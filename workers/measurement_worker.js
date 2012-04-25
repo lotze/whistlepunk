@@ -14,6 +14,9 @@ var MeasurementWorker = function () {
 }
 
 MeasurementWorker.prototype = {
+  db: function() {
+    return this.db;
+  },
   processLog: function (logHash) {
   if (logHash['eventName'] == 'measureMe') {
     var actorId = "testActor";
