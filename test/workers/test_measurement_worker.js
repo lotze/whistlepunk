@@ -13,21 +13,18 @@ suite.addBatch({
          assert.equal(measurementWorker.processLog({'eventName':'measureMe'}), 1);
        },
        'results in at least one entry in the database existing': function (measurementWorker) {
-         console.log('mw = ' + measurementWorker);
-         measurementWorker.db.query()
-                 .select(["amount"])
+         measurementWorker.db.query().select(["amount"])
                  .from("all_measurements")
-                 .where("object_id = ?", [ "testActor"])
-                 .and("object_type = ?", [ "testActorType"])
-                 .and("measure_name = ?", [ "testMeasureName"])
-                 .and("measure_target = ?", [ ""])
+                 .where("object_id = ?", ["testActor"])
+                 .and("object_type = ?", ["testActorType"])
+                 .and("measure_name = ?", ["testMeasureName"])
+                 .and("measure_target = ?", [""])
                  .execute(function(error, rows, columns){
                      if (error) {
                          console.log('ERROR: ' + error);
                          return;
                      }
-                     console.log(rows);
-                     console.log(columns);
+                     assert.strictEqual(rows.length > 0, true)
                  });
        },
      },
