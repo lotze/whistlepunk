@@ -1,0 +1,10 @@
+{ "dependencies" :
+  {
+    "streamlogger": "0.0.1",
+    "vows": "0.5.12",
+    "sinon": "1.2.0"
+  },
+  "name": "WhistlePunk",
+  "version": "0.0.1",
+  "private":"true"
+}
