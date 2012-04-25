@@ -1,7 +1,7 @@
 var vows = require('vows'),
     assert = require('assert');
 
-var MeasurementWorker = require('workers/measurement_worker').MeasurementWorker;
+var MeasurementWorker = require('../../workers/measurement_worker').MeasurementWorker;
 
 var suite = vows.describe('measurement_worker');
 
