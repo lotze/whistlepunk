@@ -4,7 +4,7 @@
     "vows": "0.5.12",
     "sinon": "1.2.0",
     "mongo": "0.1.0",
-	"db-mysql": "0.7.6"
+	  "db-mysql": "0.7.6"
   },
   "name": "WhistlePunk",
   "version": "0.0.1",
