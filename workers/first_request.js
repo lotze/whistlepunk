@@ -7,6 +7,12 @@ var FirstRequest = function() {
   foreman.on('firstRequest', this.handleFirstRequest.bind(this));
 };
 
+Persistence.prototype.init = function(callback) {
+  // generally here we need to make sure db connections are openned properly before executing the callback
+  callback();
+  
+};
+
 FirstRequest.prototype.handleFirstRequest = function(json) {
   console.log("Here is the data for FirstRequest:", json)
 };
