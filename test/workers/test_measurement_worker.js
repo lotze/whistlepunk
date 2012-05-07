@@ -10,7 +10,7 @@ suite.addBatch({
      topic: new MeasurementWorker(),
      'after processing a measureMe event': {
        'returns a 1': function (measurementWorker) {
-         assert.equal(measurementWorker.processLog({'eventName':'measureMe'}), 1);
+         assert.equal(measurementWorker.processLog({'eventName':'measureMe', 'actorId':'testActor', 'actorType':'testActorType', 'measureName':'testMeasureName', 'timestamp':0.0}), 1);
        },
        'results in at least one entry in the database existing': function (measurementWorker) {
          measurementWorker.db.query().select(["amount"])
