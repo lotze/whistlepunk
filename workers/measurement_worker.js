@@ -31,7 +31,6 @@ MeasurementWorker.prototype = {
               console.log('ERROR: ' + error);
               return;
           }
-          console.log(rows.length + ' ROWS found');
       });
     return 1;
   } else {

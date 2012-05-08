@@ -16,7 +16,9 @@ FirstRequest.prototype.init = function(callback) {
 
 FirstRequest.prototype.handleFirstRequest = function(json) {
   var normalizedSource = normalizeSource(json);
-  return if normalizeSource == 'Bot'
+  if (normalizedSource == 'Bot') {
+    return;
+  }
   
   locationId = 1001
   countryName = "Tanzania"
