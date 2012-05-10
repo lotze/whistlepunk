@@ -2,8 +2,8 @@ util = require('util')
 {EventEmitter} = require('events')
 _ = require('underscore')
 async = require 'async'
-
-DbLoader = require('../lib/db_loader.js')
+DataProvider = require('../lib/data_provider')
+DbLoader = require('../lib/db_loader')
 
 class FirstRequest extends EventEmitter
   constructor: (foreman) ->
@@ -11,6 +11,7 @@ class FirstRequest extends EventEmitter
     dbloader = new DbLoader()
     @db = dbloader.db()
     @foreman.on('firstRequest', @handleFirstRequest)
+    @dataProvider = new DataProvider()
 
   escape: (str...) =>
     @db.escape str...
@@ -26,15 +27,17 @@ class FirstRequest extends EventEmitter
     timestamp = json.timestamp
     userId = json.userId
     
-    # TODO: users_created_at, all_objects creation
+    # TODO: users_created_at
 
     async.parallel [
+      (cb) => 
+        @dataProvider.createObject 'user', userId, timestamp, cb
       (cb) =>
         myQuery = "
           INSERT IGNORE INTO olap_users (id, created_at, last_active_at)
           VALUES (
             '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp}), FROM_UNIXTIME(#{timestamp})
-            );
+          );
         "
         @db.query(myQuery).execute cb
       (cb) =>
