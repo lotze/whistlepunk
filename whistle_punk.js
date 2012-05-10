@@ -3,7 +3,9 @@ var foreman = require('./lib/foreman.js');
 var run = function(callback) {
 
   var fs = require('fs'),
-      Expeditor = require('./lib/expeditor').Expeditor;
+      Expeditor = require('./lib/expeditor.js').Expeditor,
+      zmq = require('zmq'),
+      foreman = require('./lib/foreman.js');
     
   var workers = {};
   var lib = {};
@@ -15,16 +17,20 @@ var run = function(callback) {
     fs.readdirSync('./workers').forEach(function(file) {
       var workerName = file.replace('.js', '');
       tasks.push(workerName);
-      workers[workerName] = require('./workers/'+file);
+      WorkerClass = require('./workers/'+file);
+      workers[workerName] = new WorkerClass(foreman);
       workers[workerName].init(ex(workerName));
     });
 
     ex(tasks, function() {
-        console.log('WhistlePunk: running...');
-        if(callback){
-          callback();
-        }
-      // });
+      var pullLocation = 'tcp://127.0.0.1:9000';
+      foreman.subscribeSocket.connect(pullLocation);
+      foreman.subscribeSocket.subscribe('');
+      console.log("connecting to " + pullLocation + "...");
+      console.log('WhistlePunk: running...');
+      if(callback){
+        callback();
+      }
     });
   });
 };

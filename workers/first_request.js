@@ -1,21 +1,20 @@
 var util = require('util'),
     EventEmitter = require('events').EventEmitter,
-    foreman = require('../lib/foreman.js'),
     _ = require('underscore');
 
-var FirstRequest = function() {
+var FirstRequest = function(foreman) {
+  this.foreman = foreman;
   EventEmitter.call(this);
-  foreman.on('firstRequest', this.handleFirstRequest.bind(this));
+  this.foreman.on('firstRequest', this.handleFirstRequest.bind(this));
 };
 
 FirstRequest.prototype.init = function(callback) {
   // generally here we need to make sure db connections are openned properly before executing the callback
   callback();
-  
 };
 
 FirstRequest.prototype.handleFirstRequest = function(json) {
-  var normalizedSource = normalizeSource(json);
+  var normalizedSource = this.normalizeSource(json);
   if (normalizedSource == 'Bot') {
     return;
   }
@@ -66,4 +65,4 @@ FirstRequest.prototype.isBot = function(userAgent) {
 
 
 
-module.exports = new FirstRequest();
+module.exports = FirstRequest;
