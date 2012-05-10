@@ -1,6 +1,7 @@
+var DbLoader = require('../lib/db_loader.js');
+
 var MeasurementWorker = function (foreman) {
   this.foreman = foreman;
-  var DbLoader = require('../lib/db_loader.js');
   var dbloader = new DbLoader();
   this.db = dbloader.db();
   this.foreman.on('measureMe', this.processEvent.bind(this));  

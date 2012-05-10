@@ -37,24 +37,20 @@ FileProcessorHelper.prototype.processFile = function(file) {
   
 FileProcessorHelper.prototype.clearDatabase = function(callback) {
     async.parallel([
-      function(parallel_callback) {this.db.query("TRUNCATE TABLE olap_users").execute(function(error, rows, cols) {}); parallel_callback(null,null);},
-      function(parallel_callback) {this.db.query("TRUNCATE TABLE sources_users").execute(function(error, rows, cols) {}); parallel_callback(null,null);},
-      function(parallel_callback) {this.db.query("TRUNCATE TABLE users_created_at").execute(function(error, rows, cols) {}); parallel_callback(null,null);},
-      function(parallel_callback) {this.db.query("TRUNCATE TABLE users_membership_status_at").execute(function(error, rows, cols) {}); parallel_callback(null,null);},
-      function(parallel_callback) {this.db.query("TRUNCATE TABLE all_measurements").execute(function(error, rows, cols) {}); parallel_callback(null,null);},
-      function(parallel_callback) {this.db.query("TRUNCATE TABLE all_objects").execute(function(error, rows, cols) {}); parallel_callback(null,null);},
-      function(parallel_callback) {this.db.query("TRUNCATE TABLE summarized_metrics").execute(function(error, rows, cols) {}); parallel_callback(null,null);},
-      function(parallel_callback) {this.db.query("TRUNCATE TABLE timeseries").execute(function(error, rows, cols) {}); parallel_callback(null,null);},
-      function(parallel_callback) {this.db.query("TRUNCATE TABLE shares").execute(function(error, rows, cols) {}); parallel_callback(null,null);},
-      function(parallel_callback) {this.db.query("TRUNCATE TABLE in_from_shares").execute(function(error, rows, cols) {}); parallel_callback(null,null);},
+      function(parallel_callback) {this.db.query("TRUNCATE TABLE olap_users").execute(parallel_callback);},
+      function(parallel_callback) {this.db.query("TRUNCATE TABLE sources_users").execute(parallel_callback);},
+      function(parallel_callback) {this.db.query("TRUNCATE TABLE users_created_at").execute(parallel_callback);},
+      function(parallel_callback) {this.db.query("TRUNCATE TABLE users_membership_status_at").execute(parallel_callback);},
+      function(parallel_callback) {this.db.query("TRUNCATE TABLE all_measurements").execute(parallel_callback);},
+      function(parallel_callback) {this.db.query("TRUNCATE TABLE all_objects").execute(parallel_callback);},
+      function(parallel_callback) {this.db.query("TRUNCATE TABLE summarized_metrics").execute(parallel_callback);},
+      function(parallel_callback) {this.db.query("TRUNCATE TABLE timeseries").execute(parallel_callback);},
+      function(parallel_callback) {this.db.query("TRUNCATE TABLE shares").execute(parallel_callback);},
+      function(parallel_callback) {this.db.query("TRUNCATE TABLE in_from_shares").execute(parallel_callback);},
     ],
     // optional callback
     function(err, results){
-        // the results array will equal ['one','two'] even though
-        // the second function had a shorter timeout.
-        if(callback) {
-          callback(err, results);
-        }
+        callback(err, results);
     });
   };
 

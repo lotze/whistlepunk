@@ -1,3 +1,4 @@
+require('coffee-script')
 var foreman = require('./lib/foreman.js');
 
 var run = function(callback) {
