@@ -46,6 +46,26 @@ describe('a first_request worker', function() {
              });
              
     });
+    it('results in three users created in the appropriate day/week/month', function (done) {
+      fileProcessorHelper.db.query("select day, week, month from olap_users join users_created_at on olap_users.id = users_created_at.user_id")
+             .execute(function(error, rows, columns){
+                 if (error) {
+                     console.log('ERROR: ' + error);
+                     done(error);
+                 }
+                 assert.equal(rows.length, 3);
+                 assert.equal(rows[0].day, "1970-01-01");
+                 assert.equal(rows[0].week, "1969-12-29");
+                 assert.equal(rows[0].month, "1970-01-01");
+                 assert.equal(rows[1].day, "1970-01-01");
+                 assert.equal(rows[1].week, "1969-12-29");
+                 assert.equal(rows[1].month, "1970-01-01");
+                 assert.equal(rows[2].day, "1970-01-01");
+                 assert.equal(rows[2].week, "1969-12-29");
+                 assert.equal(rows[2].month, "1970-01-01");
+                 done();
+             });      
+    });
     it('results in one user from google, one unknown, and one from hatchery', function (done) {
       fileProcessorHelper.db.query("select source from olap_users join sources_users on olap_users.id = sources_users.user_id")
              .execute(function(error, rows, columns){

@@ -13,7 +13,7 @@ describe('a measurement worker', function() {
     });
   })
   describe('after processing a measureMe event', function() {
-    it('should result in at a correct entry in the database', function (done) {
+    it('should result in a correct entry in the database', function (done) {
       var worker = new MeasurementWorker(fileProcessorHelper);
       worker.processEvent({'eventName':'measureMe', 'actorId':'testActor', 'actorType':'testActorType', 'measureName':'testMeasureName', 'timestamp':0.0});
       fileProcessorHelper.db.query().select(["amount"])
@@ -25,9 +25,9 @@ describe('a measurement worker', function() {
              .execute(function(error, rows, columns){
                 if (error) {
                   console.log('ERROR: ' + error);
-                  // done(error);
+                  done(error);
                 }
-                assert.strictEqual(rows.length > 0, true);
+                assert.strictEqual(rows.length > 0, true, "rows.length is not > 0");
                 assert.equal(rows[0]['amount'], 1);
                 done();
              });

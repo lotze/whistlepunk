@@ -3,6 +3,7 @@ util = require('util')
 _ = require('underscore')
 async = require 'async'
 DataProvider = require('../lib/data_provider')
+DateFirster = require('../lib/date_firster')
 DbLoader = require('../lib/db_loader')
 
 class FirstRequest extends EventEmitter
@@ -27,11 +28,24 @@ class FirstRequest extends EventEmitter
     timestamp = json.timestamp
     userId = json.userId
     
-    # TODO: users_created_at
+    # users_created_at
+    dateFirster = new DateFirster(timestamp)
+    actual_date = dateFirster.format()
+    first_of_week = dateFirster.firstOfWeek().format()
+    first_of_month = dateFirster.firstOfMonth().format()
+    
 
     async.parallel [
       (cb) => 
         @dataProvider.createObject 'user', userId, timestamp, cb
+      (cb) =>
+        myQuery = "
+          INSERT IGNORE INTO users_created_at (user_id, created_at, day, week, month)
+          VALUES (
+            '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp}), '#{actual_date}', '#{first_of_week}', '#{first_of_month}'
+          );
+        "
+        @db.query(myQuery).execute cb
       (cb) =>
         myQuery = "
           INSERT IGNORE INTO olap_users (id, created_at, last_active_at)
