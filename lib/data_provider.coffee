@@ -21,5 +21,19 @@ class DataProvider
         @db.query(myQuery).execute cb
     ], (err, results) =>
       callback err, results
+      
+  measure: (actorType, actorId, timestamp, measureName, measureTarget='', measureAmount=1, callback) =>
+    async.parallel [
+      (cb) =>
+        myQuery = "
+          INSERT INTO all_measurements (object_id, object_type, measure_name, measure_target, amount, first_time) 
+          VALUES ('#{@escape actorId}', '#{@escape(actorType)}', '#{@escape(measureName)}', '#{@escape(measureTarget)}', #{measureAmount}, FROM_UNIXTIME(#{timestamp}) ) ON DUPLICATE KEY UPDATE amount = amount + #{measureAmount};
+        "
+        @db.query(myQuery).execute cb
+      (cb) =>
+        myQuery = "UPDATE summarized_metrics SET raw_data_last_updated_at=UNIX_TIMESTAMP(NOW()) WHERE measure_name='#{@escape measureName}'"
+        @db.query(myQuery).execute cb
+    ], (err, results) =>
+      callback err, results
 
 module.exports = DataProvider

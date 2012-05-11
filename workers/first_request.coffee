@@ -33,7 +33,6 @@ class FirstRequest extends EventEmitter
     actual_date = dateFirster.format()
     first_of_week = dateFirster.firstOfWeek().format()
     first_of_month = dateFirster.firstOfMonth().format()
-    
 
     async.parallel [
       (cb) => 
@@ -66,7 +65,7 @@ class FirstRequest extends EventEmitter
     ], (err, results) =>
       @emit 'done', err, results
 
-    # TODO: advertising tags
+    # TODO (when we start advertising again): advertising tags
 
   normalizeSource: (data) =>
     return 'Internal Grockit IP' if data.ip in ['206.169.112.34', '98.24.120.2', '75.70.205.199', '68.117.142.136', '108.28.52.133']
@@ -75,7 +74,6 @@ class FirstRequest extends EventEmitter
 
     return 'ad' if /\bc=([^\&]+)/.test(data.requestUri)
       
-
     if matches = /^https?:\/\/([^\/]+)/.exec(data.referrer)
       return matches[1].split('.').slice(-2).join('.')
 
@@ -84,5 +82,33 @@ class FirstRequest extends EventEmitter
   isBot: (userAgent) =>
     agentExpressions = [/bot/i,/^NewRelicPinger/,/facebookexternalhit/,/^facebook share (http:\/\/facebook.com\/sharer.php)$/,/Grockit/,/spider/i,/Spinn3r/,/Twiceler/,/slurp/,/Ask Jeeves/,/^Chytach/,/^Yandex/,/^panscient/,/^Netvibes/,/^Feed/,/^UniversalFeedParser/,/^PostRank/,/^Apple-PubSub/,/ScoutJet/,/crawler/i,/^Voyager/,/oneriot/,/js-kit/,/backtype.com/,/PycURL/,/Python-urllib/,/^Jakarta Commons-HttpClient/,/^Mozilla\/5.0 \(compatible; Butterfly/,/^NING/,/^Java/,/^Ruby/,/^Twitturly/,/^MetaURI/,/daum/,/MSNPTC/]
     _.any agentExpressions, (ae) -> ae.test(userAgent)
+     
+  country: (ipAddress, callback) =>
+    myQuery = "
+        SELECT
+        country_name
+        FROM
+        geoip
+        WHERE
+        MBRCONTAINS(ip_poly, POINTFROMWKB(POINT(INET_ATON('#{ipAddress}'), 0)))
+    "
+    @db.query(myQuery).execute (err, rows, cols) =>
+      return callback(err) if err?
+      return callback(null,rows[0]['country_name']) if rows.length > 0
+      return callback(null,'Unknown')
+  
+  locationId: (ipAddress, callback) =>
+    myQuery = "
+        SELECT
+        location_id
+        FROM
+        ip_location_lookup
+        WHERE
+        MBRCONTAINS(ip_poly, POINTFROMWKB(POINT(INET_ATON('#{ipAddress}'), 0)))
+    "
+    @db.query(myQuery).execute (err, rows, cols) =>
+      return callback(err) if err?
+      return callback(null,rows[0]['location_id']) if rows.length > 0
+      return callback(null,'NULL')
 
 module.exports = FirstRequest 
