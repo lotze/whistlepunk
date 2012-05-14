@@ -83,15 +83,15 @@ describe "a first_request worker", ->
           console.log "ERROR: " + error
           done error
         assert.equal rows.length, 3
-        assert.equal rows[0].day, "1970-01-01"
+        assert.equal rows[0].day, "1969-12-31"
         assert.equal rows[0].week, "1969-12-29"
-        assert.equal rows[0].month, "1970-01-01"
-        assert.equal rows[1].day, "1970-01-01"
+        assert.equal rows[0].month, "1969-12-01"
+        assert.equal rows[1].day, "1969-12-31"
         assert.equal rows[1].week, "1969-12-29"
-        assert.equal rows[1].month, "1970-01-01"
-        assert.equal rows[2].day, "1970-01-01"
+        assert.equal rows[1].month, "1969-12-01"
+        assert.equal rows[2].day, "1969-12-31"
         assert.equal rows[2].week, "1969-12-29"
-        assert.equal rows[2].month, "1970-01-01"
+        assert.equal rows[2].month, "1969-12-01"
         done()
 
     it "results in one user from google, one unknown, and one from hatchery", (done) ->

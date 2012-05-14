@@ -1,4 +1,5 @@
 util = require('util')
+moment = require 'moment'
 _ = require('underscore')
 async = require 'async'
 DbLoader = require('../lib/db_loader')
@@ -33,6 +34,26 @@ class DataProvider
       (cb) =>
         myQuery = "UPDATE summarized_metrics SET raw_data_last_updated_at=UNIX_TIMESTAMP(NOW()) WHERE measure_name='#{@escape measureName}'"
         @db.query(myQuery).execute cb
+      (cb) =>
+        # update timeseries for day
+        aggregate_moment = moment(timestamp).hours(0).minutes(0).seconds(0)
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'day', #{aggregate_moment.unix()}, '#{aggregate_moment.format("YYYY-MM-DD")} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        @db.query(myQuery).execute cb
+      (cb) =>
+        # update timeseries for month
+        aggregate_moment = moment(timestamp).date(1).hours(0).minutes(0).seconds(0)
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'month', #{aggregate_moment.unix()}, '#{aggregate_moment.format("YYYY-MM-DD")} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        @db.query(myQuery).execute cb
+      (cb) =>
+        # update timeseries for year
+        aggregate_moment = moment(timestamp).month(0).date(1).hours(0).minutes(0).seconds(0)
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'year', #{aggregate_moment.unix()}, '#{aggregate_moment.format("YYYY-MM-DD")} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        @db.query(myQuery).execute cb
+      (cb) =>
+        # update timeseries for total
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'total', 0, '', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        @db.query(myQuery).execute cb
+        
     ], (err, results) =>
       callback err, results
 

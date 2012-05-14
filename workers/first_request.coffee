@@ -21,7 +21,13 @@ class FirstRequest extends EventEmitter
     # generally here we need to make sure db connections are openned properly before executing the callback
     callback()
 
+  # once we have country and location, actually insert the sources_users entry
+  insertSource: (json, country, locationId) =>
+    
+
   handleFirstRequest: (json) =>
+    # get countries, callback: handleCountries
+  
     normalizedSource = @normalizeSource(json)
     return if normalizedSource == 'Bot'
   
@@ -54,14 +60,17 @@ class FirstRequest extends EventEmitter
         "
         @db.query(myQuery).execute cb
       (cb) =>
-        locationId = 1001
-        countryName = "Tanzania"
-
-        myQuery = "
-          INSERT IGNORE INTO sources_users (user_id, source, referrer, request_uri, user_agent, ip_address, country_name, location_id) 
-          VALUES ('#{@escape userId}', '#{@escape normalizedSource}', '#{@escape json.referrer}', '#{@escape json.requestUri}', '#{@escape json.userAgent}', '#{@escape json.ip}', '#{@escape countryName}', #{locationId});
-        "
-        @db.query(myQuery).execute cb
+        async.parallel [
+          (cb2) => @locationId(json.ip, cb2)
+          (cb2) => @country(json.ip, cb2)
+        ], (err, results) =>
+          return cb(err) if err?
+          [locationId, countryName] = results
+          myQuery = "
+            INSERT IGNORE INTO sources_users (user_id, source, referrer, request_uri, user_agent, ip_address, country_name, location_id) 
+            VALUES ('#{@escape userId}', '#{@escape normalizedSource}', '#{@escape json.referrer}', '#{@escape json.requestUri}', '#{@escape json.userAgent}', '#{@escape json.ip}', '#{@escape countryName}', #{locationId});
+          "
+          @db.query(myQuery).execute cb
     ], (err, results) =>
       @emit 'done', err, results
 

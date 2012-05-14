@@ -4,33 +4,50 @@ should = require('should')
 assert = require('assert')
 
 describe 'DataProvider', =>
-  before =>
+  before (done) =>
     @dataProvider = new DataProvider()
     @fileProcessorHelper = new FileProcessorHelper()
+    actorType = 'testActorType'
+    actorId = 'testActor'
+    measureName = 'testMeasureName'
+    timestamp = 0.0
+    measureTarget = ''
+    measureAmount = 1
+    @fileProcessorHelper.clearDatabase =>
+      @dataProvider.measure actorType, actorId, timestamp, measureName, measureTarget, measureAmount, =>
+        done(arguments...)
 
   describe '#measure', =>
     it 'should result in a correct entry in the all_measurements table', (done) =>
-      actorType = 'testActorType'
-      actorId = 'testActor'
-      measureName = 'testMeasureName'
-      timestamp = 0.0
-      measureTarget = ''
-      measureAmount = 1
-      @fileProcessorHelper.clearDatabase =>
-        @dataProvider.measure actorType, actorId, timestamp, measureName, measureTarget, measureAmount, =>
-          @fileProcessorHelper.db.query().select(["amount"])
-                 .from("all_measurements")
-                 .where("object_id = ?", ["testActor"])
-                 .and("object_type = ?", ["testActorType"])
-                 .and("measure_name = ?", ["testMeasureName"])
-                 .and("measure_target = ?", [""])
-                 .execute (error, rows, columns) => 
-                    if (error)
-                      console.log('ERROR: ' + error)
-                      done(error)
-                    assert.strictEqual(rows.length > 0, true, "rows.length is not > 0")
-                    assert.equal(rows[0]['amount'], 1)
-                    done()
+      @fileProcessorHelper.db.query().select(["amount"])
+             .from("all_measurements")
+             .where("object_id = ?", ["testActor"])
+             .and("object_type = ?", ["testActorType"])
+             .and("measure_name = ?", ["testMeasureName"])
+             .and("measure_target = ?", [""])
+             .execute (error, rows, columns) => 
+                if (error)
+                  console.log('ERROR: ' + error)
+                  done(error)
+                assert.strictEqual(rows.length > 0, true, "rows.length is not > 0")
+                assert.equal(rows[0]['amount'], 1)
+                done()
+                
+    it 'should result in entries in the timeseries table', (done) =>
+      @fileProcessorHelper.db.query().select(["amount"])
+             .from("timeseries")
+             .where("measure_name = ?", ["testMeasureName"])
+             .execute (error, rows, columns) => 
+                if (error)
+                  console.log('ERROR: ' + error)
+                  done(error)
+                assert.strictEqual(rows.length, 4, "there are not timeseries aggregation entries for all of day, month, year, and all")
+                assert.equal(rows[0]['amount'], 1)
+                assert.equal(rows[1]['amount'], 1)
+                assert.equal(rows[2]['amount'], 1)
+                assert.equal(rows[3]['amount'], 1)
+                done()
+                    
 
   describe '#createObject', =>
     it 'should result in a new object in the all_objects table', (done) =>

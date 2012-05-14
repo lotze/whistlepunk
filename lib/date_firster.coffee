@@ -4,7 +4,7 @@ moment = require 'moment'
 
 class DateFirster
   constructor: (dateOrMoment) ->
-    @moment = moment.utc moment(dateOrMoment)
+    @moment = moment(dateOrMoment)
 
   firstOfMonth: =>
     new DateFirster @moment.clone().date(1)
