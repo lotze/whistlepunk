@@ -18,16 +18,10 @@ class FirstRequest extends EventEmitter
     @db.escape str...
 
   init: (callback) ->
-    # generally here we need to make sure db connections are openned properly before executing the callback
+    # generally here we need to make sure db connections are opened properly before executing the callback
     callback()
 
-  # once we have country and location, actually insert the sources_users entry
-  insertSource: (json, country, locationId) =>
-    
-
   handleFirstRequest: (json) =>
-    # get countries, callback: handleCountries
-  
     normalizedSource = @normalizeSource(json)
     return if normalizedSource == 'Bot'
   

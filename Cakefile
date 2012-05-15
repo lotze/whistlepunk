@@ -15,12 +15,14 @@ testFiles = ->
 
 task 'spec', ->
   process.env.NODE_ENV ?= 'test'
+  process.env.TZ = 'US/Pacific'
   cmd = './node_modules/.bin/mocha'
   args = spec_opts.concat testFiles()
   run cmd, args
 
 task 'spec:watch', ->
   process.env.NODE_ENV ?= 'test'
+  process.env.TZ = 'US/Pacific'
   cmd = './node_modules/.bin/mocha'
   args = watch_spec_opts.concat testFiles()
   run cmd, args

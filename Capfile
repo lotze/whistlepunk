@@ -108,7 +108,7 @@ namespace :deploy do
     run "mkdir -p #{shared_path}/log/restart"
   end
 
-  desc "Restart EVERYTHING (forever)"
+  desc "Restart EVERYTHING (...aka just forever)"
   task :restart, :roles => :app, :except => { :no_release => true } do
     forever.reload
   end
