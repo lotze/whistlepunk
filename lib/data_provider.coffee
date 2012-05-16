@@ -3,14 +3,20 @@ moment = require 'moment'
 _ = require('underscore')
 async = require 'async'
 DbLoader = require('../lib/db_loader')
+{EventEmitter} = require('events')
 
-class DataProvider
-  constructor: () ->
+class DataProvider extends EventEmitter
+  constructor: (foreman) ->
+    @foreman = foreman
     dbloader = new DbLoader()
     @db = dbloader.db()
 
   escape: (str...) =>
     @db.escape str...
+    
+  incrementOlapUserCounter: (userId, counterName, callback) =>
+    myQuery = "UPDATE olap_users set #{@escape counterName}=#{@escape counterName}+1 where id='#{@escape userId}';"
+    @db.query(myQuery).execute callback
     
   createObject: (objectType, objectId, createdAt, callback) =>
     async.parallel [
@@ -26,9 +32,12 @@ class DataProvider
   measure: (actorType, actorId, timestamp, measureName, measureTarget='', measureAmount=1, callback) =>
     async.parallel [
       (cb) =>
+        @foreman.emit('measureMe', {actorType: actorType, actorId: actorId, timestamp: timestamp, measureName: measureName, measureTarget: measureTarget, measureAmount: measureAmount}) if @foreman
+        cb(null, null)
+      (cb) =>
         myQuery = "
           INSERT INTO all_measurements (object_id, object_type, measure_name, measure_target, amount, first_time) 
-          VALUES ('#{@escape actorId}', '#{@escape(actorType)}', '#{@escape(measureName)}', '#{@escape(measureTarget)}', #{measureAmount}, FROM_UNIXTIME(#{timestamp}) ) ON DUPLICATE KEY UPDATE amount = amount + #{measureAmount};
+          VALUES ('#{@escape actorId}', '#{@escape actorType}', '#{@escape measureName}', '#{@escape measureTarget}', #{measureAmount}, FROM_UNIXTIME(#{timestamp}) ) ON DUPLICATE KEY UPDATE amount = amount + #{measureAmount};
         "
         @db.query(myQuery).execute cb
       (cb) =>

@@ -15,7 +15,7 @@ class ShareWorker extends EventEmitter
     @foreman.on('createdInvitation', @handleCreatedInvitation)
     @foreman.on('respondedToInvitation', @handleRespondedToInvitation)
     @foreman.on('membershipStatusChange', @handleMembershipStatusChange)
-    @dataProvider = new DataProvider()
+    @dataProvider = new DataProvider(foreman)
 
   escape: (str...) =>
     @db.escape str...

@@ -5,8 +5,8 @@ assert = require('assert')
 
 describe 'DataProvider', =>
   before (done) =>
-    @dataProvider = new DataProvider()
     @fileProcessorHelper = new FileProcessorHelper()
+    @dataProvider = new DataProvider(@fileProcessorHelper)
     actorType = 'testActorType'
     actorId = 'testActor'
     measureName = 'testMeasureName'

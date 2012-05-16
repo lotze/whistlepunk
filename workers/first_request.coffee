@@ -12,7 +12,7 @@ class FirstRequest extends EventEmitter
     dbloader = new DbLoader()
     @db = dbloader.db()
     @foreman.on('firstRequest', @handleFirstRequest)
-    @dataProvider = new DataProvider()
+    @dataProvider = new DataProvider(foreman)
 
   escape: (str...) =>
     @db.escape str...

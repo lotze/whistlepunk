@@ -13,7 +13,7 @@ class MembershipStatusWorker extends EventEmitter
     @db = dbloader.db()
     @foreman.on('userCreated', @handleUserCreated)
     @foreman.on('membershipStatusChange', @handleMembershipStatusChange)
-    @dataProvider = new DataProvider()
+    @dataProvider = new DataProvider(foreman)
 
   escape: (str...) =>
     @db.escape str...
@@ -44,7 +44,7 @@ class MembershipStatusWorker extends EventEmitter
       (cb) => 
         @dataProvider.createObject json['newState'], userId, timestamp, cb
       (cb) => 
-        @dataProvider.measure('user', userId, timestamp, 'upgraded', measureTarget='', measureAmount=1, cb)
+        @dataProvider.measure('user', userId, timestamp, 'upgraded', '', 1, cb)
       (cb) =>
         myQuery = "UPDATE IGNORE olap_users set status='#{@escape json['newState']}' where id='#{@escape userId}';"
         @db.query(myQuery).execute cb
