@@ -27,7 +27,7 @@ set :user, 'grockit'
 set :application, 'whistlepunk'
 set :deploy_to, "/opt/grockit/#{application}"
 set :scm, :git
-set :repository, "git@github.com:lotze"
+set :repository, "git@github.com:lotze/whistlepunk.git"
 set :branch, "master"
 set :repository_cache, "git_cache"
 set :deploy_via, :remote_cache
@@ -48,6 +48,14 @@ end
 task :production do
   set :node_env, "production"
   host = "23.20.144.232"
+  role :app, host
+  role :web, host
+  role :db,  host, :primary => true
+end
+
+task :staging do
+  set :node_env, "staging"
+  host = "staging.learni.st"
   role :app, host
   role :web, host
   role :db,  host, :primary => true
@@ -106,12 +114,13 @@ namespace :deploy do
     # Set up custom directory layout in addition to capistrano's defaults
     run "mkdir -p #{shared_path}/tmp/pids"
     # copy config.js file to remore repository
-    upload("config.js", "#{current_path}/config.js", :via=> :scp)
+    top.upload("config.js", "#{release_path}/config.js", :via=> :scp)
   end
 
   desc "Restart EVERYTHING (...aka just forever)"
   task :restart, :roles => :app, :except => { :no_release => true } do
-    forever.reload
+    forever.stop
+    forever.start
   end
 end
 
@@ -125,7 +134,7 @@ namespace :forever do
   
   desc "Stop forever on whistlepunk"
   task :stop, :roles => :app do
-    run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever stop whistlepunk.js"
+    run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever stop whistlepunk.js; true"
   end
 
   desc "Print status of forever process and its monitored jobs"

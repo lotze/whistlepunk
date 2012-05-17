@@ -29,6 +29,7 @@ var run = function(callback) {
       if (err !== null && err !== undefined) { throw err; }
 
       var pullLocation = "tcp://" + config.zmq.host + ":" + config.zmq.port;
+      console.log("WhistlePunk: connecting foreman to " + pullLocation);
       foreman.connect(pullLocation);
       console.log('WhistlePunk: running...');
       if(callback) {
@@ -39,6 +40,7 @@ var run = function(callback) {
 };
 
 if(require.main === module) {
+  console.log("Initializing WhistlePunk");
   run();
 }
 
