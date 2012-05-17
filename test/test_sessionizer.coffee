@@ -22,7 +22,7 @@ describe "a sessionizer worker", ->
             worker.init (err, results) ->
               fileProcessorHelper.processFile "../metricizer/spec/log/sessions.log"
 
-    it "should result in the users having three, two, one, and one sessions each", (done) ->
+    it "should result in the users having four, two, one, and one sessions each", (done) ->
       fileProcessorHelper.db.query("select num_sessions from olap_users order by num_sessions").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
@@ -30,10 +30,10 @@ describe "a sessionizer worker", ->
         assert.equal rows[0]['num_sessions'], 1
         assert.equal rows[1]['num_sessions'], 1
         assert.equal rows[2]['num_sessions'], 2
-        assert.equal rows[3]['num_sessions'], 3
+        assert.equal rows[3]['num_sessions'], 4
         done()
 
-    it "should result in the users having 3000, 2000, 1000, and 0 seconds on site each", (done) ->
+    it "should result in the users having 4000, 2000, 1000, and 0 seconds on site each", (done) ->
       fileProcessorHelper.db.query("select seconds_on_site from olap_users order by seconds_on_site").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
@@ -41,15 +41,15 @@ describe "a sessionizer worker", ->
         assert.equal rows[0]['seconds_on_site'], 0
         assert.equal rows[1]['seconds_on_site'], 1000
         assert.equal rows[2]['seconds_on_site'], 2000
-        assert.equal rows[3]['seconds_on_site'], 3000
+        assert.equal rows[3]['seconds_on_site'], 4000
         done()
 
-    it "should have seven session objects in all_objects", (done) ->
+    it "should have eight session objects in all_objects", (done) ->
       fileProcessorHelper.db.query("select count(*) as num_sessions from all_objects where object_type = 'session'").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           return done(error)
-        assert.equal rows[0]['num_sessions'], 7
+        assert.equal rows[0]['num_sessions'], 8
         done()
 
     it "should record measurements for user metrics on the sessions they occurred in"
