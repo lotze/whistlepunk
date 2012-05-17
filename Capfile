@@ -119,8 +119,15 @@ namespace :deploy do
 
   desc "Restart EVERYTHING (...aka just forever)"
   task :restart, :roles => :app, :except => { :no_release => true } do
+    npm.install
     forever.stop
     forever.start
+  end
+end
+
+namespace :npm do
+  task :install, :roles => :app do
+    run "cd #{current_path} && npm install"
   end
 end
 
@@ -135,6 +142,7 @@ namespace :forever do
   desc "Stop forever on whistlepunk"
   task :stop, :roles => :app do
     run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever stop whistlepunk.js; true"
+    run "while cd #{current_path} && forever list 2>&1 | egrep -q 'whistlepunk.js'; do echo waiting for forever to stop whistlepunk; sleep 1; done"
   end
 
   desc "Print status of forever process and its monitored jobs"
