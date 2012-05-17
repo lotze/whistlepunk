@@ -38,7 +38,7 @@ set :keep_releases, 3
 # Rails environments
 
 task :virtual do
-  set :rails_env, "production"
+  set :node_env, "production"
   host = ENV['VIP']
   role :app, host
   role :web, host
@@ -46,7 +46,7 @@ task :virtual do
 end
 
 task :production do
-  set :rails_env, "production"
+  set :node_env, "production"
   host = "23.20.144.232"
   role :app, host
   role :web, host
@@ -54,7 +54,7 @@ task :production do
 end
 
 task :stress do
-  set :rails_env, "production"
+  set :node_env, "production"
   host = "23.20.38.97"
   role :app, host
   role :web, host
@@ -115,20 +115,22 @@ namespace :deploy do
   end
 end
 
+set :forever_params, "-o log/whistlepunk_stdout.log -e log/whistlepunk_stderr.log"
+
 namespace :forever do
   desc "Start forever on whistlepunk"
   task :start, :roles => :app do
-    run "cd #{current_path} && forever -c forever.json --pidFile tmp/pids/forever.pid start whistlepunk.js"
+    run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever #{forever_params} start whistlepunk.js"
   end
   
   desc "Stop forever on whistlepunk"
   task :stop, :roles => :app do
-    run "cd #{current_path} && forever -c forever.json --pidFile tmp/pids/forever.pid stop whistlepunk.js"
+    run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever #{forever_params} stop whistlepunk.js"
   end
 
   desc "Print status of forever process and its monitored jobs"
   task :status, :roles => :app do
-    run "cd #{current_path} && forever list"
+    run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever list"
   end
 end
 

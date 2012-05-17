@@ -1,44 +1,43 @@
+#!/usr/bin/env node
+
+if (process.env.NODE_ENV === null || process.env.NODE_ENV === undefined)
+  process.env.NODE_ENV = 'development'
+
 require('coffee-script')
-var foreman = require('./lib/foreman.js');
 
 var run = function(callback) {
-
   var fs = require('fs'),
-      Expeditor = require('./lib/expeditor.js').Expeditor,
       zmq = require('zmq'),
+      config = require('./config'),
+      async = require('async'),
       foreman = require('./lib/foreman.js');
     
   var workers = {};
   var lib = {};
-  var ex = new Expeditor();
   var tasks = [];
 
   foreman.init(function(err) {
-  
-    fs.readdirSync('./workers').forEach(function(file) {
-      var workerName = file.replace('.js', '');
+    files = fs.readdirSync('./workers')
+    
+    async.forEach(files, function(workerFile, worker_callback) {
+      var workerName = workerFile.replace('.js', '');
       tasks.push(workerName);
-      WorkerClass = require('./workers/'+file);
+      WorkerClass = require('./workers/'+workerFile);
       workers[workerName] = new WorkerClass(foreman);
-      workers[workerName].init(ex(workerName));
-    });
+      workers[workerName].init(worker_callback);      
+    }, function(err) {
+      if (err !== null && err !== undefined) { throw err; }
 
-    ex(tasks, function() {
       var pullLocation = "tcp://" + config.zmq.host + ":" + config.zmq.port;
-      foreman.subscribeSocket.connect(pullLocation);
-      foreman.subscribeSocket.subscribe('');
-      console.log("connecting to " + pullLocation + "...");
+      foreman.connect(pullLocation);
       console.log('WhistlePunk: running...');
-      if(callback){
+      if(callback) {
         callback();
       }
     });
   });
 };
 
-//if(!process.argv[2] || process.argv[2].indexOf("spec") == -1) {
-//  run();
-//}
 if(require.main === module) {
   run();
 }
@@ -50,5 +49,9 @@ var terminate = exports.terminate = function() {
 };
 
 process.on('SIGKILL', function() {
+  terminate();
+});
+
+process.on('SIGINT', function() {
   terminate();
 });
