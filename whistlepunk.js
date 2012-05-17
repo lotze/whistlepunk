@@ -16,6 +16,18 @@ var run = function(callback) {
   var lib = {};
   var tasks = [];
 
+  var terminate = exports.terminate = function() {
+    foreman.terminate();
+  };
+
+  process.on('SIGKILL', function() {
+    terminate();
+  });
+
+  process.on('SIGINT', function() {
+    terminate();
+  });
+
   foreman.init(function(err) {
     files = fs.readdirSync('./workers')
     
@@ -46,14 +58,3 @@ if(require.main === module) {
 
 exports.run = run;
 
-var terminate = exports.terminate = function() {
-  foreman.terminate();
-};
-
-process.on('SIGKILL', function() {
-  terminate();
-});
-
-process.on('SIGINT', function() {
-  terminate();
-});
