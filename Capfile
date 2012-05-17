@@ -125,7 +125,7 @@ namespace :forever do
   
   desc "Stop forever on whistlepunk"
   task :stop, :roles => :app do
-    run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever #{forever_params} stop whistlepunk.js"
+    run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever stop whistlepunk.js"
   end
 
   desc "Print status of forever process and its monitored jobs"
