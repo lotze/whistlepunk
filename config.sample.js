@@ -15,6 +15,7 @@ config.zmq.port = 9000;
 
 switch(process.env.NODE_ENV) {
 case 'production':
+  config.db.user = 'metricizer';
   config.db.database = 'metricizer_prod';
   config.db.password = 'PROD_PASSWORD';
   config.zmq.host = 'ZMQ_HOST';
