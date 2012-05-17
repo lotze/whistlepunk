@@ -13,7 +13,7 @@ config.redis.port = 6379;
 config.zmq.host = '127.0.0.1';
 config.zmq.port = 9000;
 
-switch(process.env.WHISTLEPUNK_ENV) {
+switch(process.env.NODE_ENV) {
 case 'production':
   config.db.database = 'metricizer_prod';
   config.db.password = 'PROD_PASSWORD';

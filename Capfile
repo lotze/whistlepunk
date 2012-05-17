@@ -27,7 +27,7 @@ set :user, 'grockit'
 set :application, 'whistlepunk'
 set :deploy_to, "/opt/grockit/#{application}"
 set :scm, :git
-set :repository, "git@grockit-git:metricizer.git"
+set :repository, "git@github.com:lotze"
 set :branch, "master"
 set :repository_cache, "git_cache"
 set :deploy_via, :remote_cache
@@ -104,8 +104,9 @@ namespace :deploy do
   # internal task, no description string
   task :finalize, :roles => :app do
     # Set up custom directory layout in addition to capistrano's defaults
-    run "mkdir -p #{shared_path}/sockets && rm -rf #{release_path}/tmp/sockets && ln -s #{shared_path}/sockets #{release_path}/tmp"
-    run "mkdir -p #{shared_path}/log/restart"
+    run "mkdir -p #{shared_path}/tmp/pids"
+    # copy config.js file to remore repository
+    upload("config.js", "#{current_path}/config.js", :via=> :scp)
   end
 
   desc "Restart EVERYTHING (...aka just forever)"
@@ -114,33 +115,20 @@ namespace :deploy do
   end
 end
 
-
 namespace :forever do
-  desc "Start forever and all its monitored processes"
+  desc "Start forever on whistlepunk"
   task :start, :roles => :app do
-    run "cd #{current_path} && rvmsudo env RAILS_ENV=#{rails_env} bundle exec forever -c config/config.forever -P tmp/pids/forever.pid -l log/forever.log"
-    run "while cd #{current_path} && rvmsudo bundle exec forever status 2>&1 | egrep -q 'not available'; do echo waiting for forever to wake up; sleep 1; done"
+    run "cd #{current_path} && forever -c forever.json --pidFile tmp/pids/forever.pid start whistlepunk.js"
   end
   
-  # Ensure forever is running; start it if it is not
-  task :ensure_started, :roles => :app do
-    run "cd #{current_path}; if rvmsudo bundle exec forever status 2>&1 | egrep -q 'not available'; then rvmsudo env RAILS_ENV=#{rails_env} bundle exec forever -c config/config.forever -P tmp/pids/forever.pid -l log/forever.log; while cd #{current_path} && rvmsudo bundle exec forever status 2>&1 | egrep -q 'not available'; do echo waiting for forever to wake up; sleep 1; done; fi;"
-  end
-
-  desc "Stop forever (does not stop or otherwise affect monitored processes)"
+  desc "Stop forever on whistlepunk"
   task :stop, :roles => :app do
-    run "cd #{current_path} && rvmsudo bundle exec forever quit; true"
-  end
-
-  desc "Reload forever configuration (does not restart or otherwise affect monitored processes)"
-  task :reload, :roles => :app do
-    forever.ensure_started
-    run "cd #{current_path} && rvmsudo bundle exec forever load config/config.forever"
+    run "cd #{current_path} && forever -c forever.json --pidFile tmp/pids/forever.pid stop whistlepunk.js"
   end
 
   desc "Print status of forever process and its monitored jobs"
   task :status, :roles => :app do
-    run "cd #{current_path} && rvmsudo bundle exec forever status"
+    run "cd #{current_path} && forever list"
   end
 end
 

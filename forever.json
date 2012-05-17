@@ -1,0 +1,44 @@
+{
+  //
+  // Basic configuration options
+  //
+  'silent': false,            // Silences the output from stdout and stderr in the parent process
+  'uid': 'grockit',           // Custom uid for this forever process. (default: autogen)
+  'pidFile': '/opt/grockit/whistlepunk/shared/tmp/pids', // Path to put pid information for the process(es) started
+  'killTree': true,            // Kills the entire child process tree on `exit`
+
+  //
+  // These options control how quickly forever restarts a child process
+  // as well as when to kill a "spinning" process
+  //
+  'minUptime': 2000,     // Minimum time a child process has to be up. Forever will 'exit' otherwise.
+  'spinSleepTime': 1000, // Interval between restarts if a child is spinning (i.e. alive < minUptime).
+
+
+  //
+  // Command to spawn as well as options and other vars 
+  // (env, cwd, etc) to pass along
+  //
+  'command': 'node',         // Binary to run (default: 'node')
+  'options': [],  // Additional arguments to pass to the script,
+  'sourceDir': '/opt/grockit/whistlepunk/current' // Directory that the source script is in
+
+  //
+  // Options for restarting on watched files.
+  //
+  'watch': false,              // Value indicating if we should watch files.
+
+  //
+  // More specific options to pass along to `child_process.spawn` which 
+  // will override anything passed to the `spawnWith` option
+  //
+  'env': { 'NODE_ENV': 'production', 'TZ': 'US/Pacific' },
+  'cwd': '/opt/grockit/whistlepunk/current',
+
+  //
+  // Log files and associated logging options for this instance
+  //
+  'logFile': '/opt/grockit/whistlepunk/shared/log/forever.log', // Path to log output from forever process (when daemonized)
+  'outFile': '/opt/grockit/whistlepunk/shared/log/whistlepunk_stdout.log', // Path to log output from child stdout
+  'errFile': '/opt/grockit/whistlepunk/shared/log/whistlepunk_stderr.log'  // Path to log output from child stderr
+}
