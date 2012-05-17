@@ -7,7 +7,7 @@ var FileProcessorHelper = function () {
   this.jsonFinderRegEx = new RegExp(/^[^\{]*(\{.*\})/);
   var DbLoader = require('../lib/db_loader.js');
   var dbloader = new DbLoader();
-  this.db = dbloader.db();  
+  this.db = dbloader.db();
 }
 
 util.inherits(FileProcessorHelper, EventEmitter);

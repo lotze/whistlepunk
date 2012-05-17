@@ -24,7 +24,7 @@ var run = function(callback) {
     });
 
     ex(tasks, function() {
-      var pullLocation = 'tcp://127.0.0.1:9000';
+      var pullLocation = "tcp://" + config.zmq.host + ":" + config.zmq.port;
       foreman.subscribeSocket.connect(pullLocation);
       foreman.subscribeSocket.subscribe('');
       console.log("connecting to " + pullLocation + "...");
