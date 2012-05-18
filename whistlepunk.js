@@ -5,6 +5,17 @@ if (process.env.NODE_ENV === null || process.env.NODE_ENV === undefined)
 
 require('coffee-script')
 
+process.on('uncaughtException', function(e) {
+  console.error("UNCAUGHT EXCEPTION: ", e);
+});
+
+var quit = function() {
+  process.exit(0);
+};
+
+process.on('SIGINT', quit);
+process.on('SIGKILL', quit);
+
 var run = function(callback) {
   var fs = require('fs'),
       zmq = require('zmq'),
