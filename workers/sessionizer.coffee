@@ -93,23 +93,31 @@ class Sessionizer extends EventEmitter
       
       # see if the user is in next_day_start
       (req_cb) =>
-        if @client.hexists 'sessionizer:next_day_start', json.userId
-          # if so, and their time is > next_day_start, see if they are < next_day_end
-          # if so, mark them as returned and remove them from next_day_start and next_day_end
-          if @client.hget 'sessionizer:next_day_start', json.userId < json.timestamp && json.timestamp < @client.zscore 'sessionizer:next_day_end', json.userId
-            @client.hdel 'sessionizer:next_day_start', json.userId 
-            @client.zrem 'sessionizer:next_day_end', json.userId
+        @client.hexists 'sessionizer:next_day_start', json.userId, (err, inNextDay) =>
+          if inNextDay
+            # if so, and their time is > next_day_start, see if they are < next_day_end
+            # if so, mark them as returned and remove them from next_day_start and next_day_end
             async.parallel [
-              (next_day_cb) =>
-                @db.query("UPDATE IGNORE olap_users SET returned_next_day=1 WHERE id = '#{@escape json.userId}'").execute next_day_cb
-              (next_day_cb) =>
-                @dataProvider.measure 'user', json.userId, json.timestamp, 'returned_next_local_day', '', 1, next_day_cb
+              (cb) =>
+                @client.hget 'sessionizer:next_day_start', json.userId, cb
+              (cb) =>
+                @client.zscore 'sessionizer:next_day_end', json.userId, cb
             ], (err, results) =>
-              req_cb err, results
+              [nextDayStart, nextDayEnd] = results
+              if nextDayStart < json.timestamp < nextDayEnd
+                @client.hdel 'sessionizer:next_day_start', json.userId 
+                @client.zrem 'sessionizer:next_day_end', json.userId
+                async.parallel [
+                  (next_day_cb) =>
+                    @db.query("UPDATE IGNORE olap_users SET returned_next_day=1 WHERE id = '#{@escape json.userId}'").execute next_day_cb
+                  (next_day_cb) =>
+                    @dataProvider.measure 'user', json.userId, json.timestamp, 'returned_next_local_day', '', 1, next_day_cb
+                ], (err, results) =>
+                  req_cb err, results
+              else
+                req_cb null, null
           else
             req_cb null, null
-        else
-          req_cb null, null
     ], (err, results) =>
       @emit 'done', err, results
       callback(err, results)
