@@ -113,42 +113,52 @@ namespace :deploy do
   task :finalize, :roles => :app do
     # Set up custom directory layout in addition to capistrano's defaults
     run "mkdir -p #{shared_path}/tmp/pids"
+    run "mkdir -p #{shared_path}/node_modules"
+    run "ln -s #{shared_path}/node_modules #{release_path}/node_modules"
     # copy config.js file to remore repository
     top.upload("config.js", "#{release_path}/config.js", :via=> :scp)
+    npm.install
+    write_upstart_script
   end
 
-  desc "Restart EVERYTHING (...aka just forever)"
+  task :start, :roles => :app, :except => { :no_release => true } do
+    run "sudo start #{application}_#{node_env}"
+  end
+
+  task :stop, :roles => :app, :except => { :no_release => true } do
+    run "sudo stop #{application}_#{node_env}"
+  end
+
+  desc "Restart ALL THE THINGS"
   task :restart, :roles => :app, :except => { :no_release => true } do
-    npm.install
-    forever.stop
-    forever.start
+    run "sudo restart #{application}_#{node_env} || sudo start #{application}_#{node_env}"
+  end
+
+  task :write_upstart_script, :roles => :app do
+    upstart_script = <<-UPSTART
+description "#{application}"
+
+start on startup
+stop on shutdown
+
+script
+# We found $HOME is needed. Without it, we ran into problems
+export HOME="/home/#{user}"
+export NODE_ENV="#{node_env}"
+
+cd #{current_path}
+exec sudo -u #{user} sh -c "TZ=US/Pacific NODE_ENV=#{node_env} /usr/local/bin/node #{current_path}/#{application}.js >> #{shared_path}/log/#{application}_#{node_env}.log 2>&1"
+end script
+respawn
+UPSTART
+    put upstart_script, "/tmp/#{application}_upstart.conf"
+    run "sudo mv /tmp/#{application}_upstart.conf /etc/init/#{application}_#{node_env}.conf"
   end
 end
 
 namespace :npm do
   task :install, :roles => :app do
-    run "cd #{current_path} && npm install"
-  end
-end
-
-set :forever_params, ""
-#set :forever_params, "-o log/whistlepunk_stdout.log -e log/whistlepunk_stderr.log"
-
-namespace :forever do
-  desc "Start forever on whistlepunk"
-  task :start, :roles => :app do
-    run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever #{forever_params} start whistlepunk.js"
-  end
-  
-  desc "Stop forever on whistlepunk"
-  task :stop, :roles => :app do
-    run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever stop whistlepunk.js; true"
-    run "while cd #{current_path} && forever list 2>&1 | egrep -q 'whistlepunk.js'; do echo waiting for forever to stop whistlepunk; sleep 1; done"
-  end
-
-  desc "Print status of forever process and its monitored jobs"
-  task :status, :roles => :app do
-    run "cd #{current_path} && TZ=US/Pacific NODE_ENV=#{node_env} forever list"
+    run "cd #{release_path} && npm install"
   end
 end
 
