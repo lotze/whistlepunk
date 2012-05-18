@@ -131,7 +131,8 @@ namespace :npm do
   end
 end
 
-set :forever_params, "-o log/whistlepunk_stdout.log -e log/whistlepunk_stderr.log"
+set :forever_params, ""
+#set :forever_params, "-o log/whistlepunk_stdout.log -e log/whistlepunk_stderr.log"
 
 namespace :forever do
   desc "Start forever on whistlepunk"
