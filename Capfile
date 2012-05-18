@@ -113,8 +113,7 @@ namespace :deploy do
   task :finalize, :roles => :app do
     # Set up custom directory layout in addition to capistrano's defaults
     run "mkdir -p #{shared_path}/tmp/pids"
-    run "mkdir -p #{shared_path}/node_modules"
-    run "ln -s #{shared_path}/node_modules #{release_path}/node_modules"
+    run "mkdir -p #{shared_path}/node_modules && ln -s #{shared_path}/node_modules #{release_path}/node_modules"
     # copy config.js file to remore repository
     top.upload("config.js", "#{release_path}/config.js", :via=> :scp)
     npm.install

@@ -40,13 +40,14 @@ var run = function(callback) {
     }, function(err) {
       if (err !== null && err !== undefined) { throw err; }
 
-      var pullLocation = "tcp://" + config.zmq.host + ":" + config.zmq.port;
-      console.log("WhistlePunk: connecting foreman to " + pullLocation);
-      foreman.connect(pullLocation);
-      console.log('WhistlePunk: running...');
-      if(callback) {
-        callback();
-      }
+      console.log("WhistlePunk: connecting foreman to remote redis");
+      foreman.connect(function(err) {
+        if (err !== null && err !== undefined) { throw err; }
+        console.log('WhistlePunk: running...');
+        if(callback) {
+          callback();
+        }
+      });
     });
   });
 };
