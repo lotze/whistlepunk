@@ -78,16 +78,12 @@ class Sessionizer extends EventEmitter
       (req_cb) => 
           # handle any closed connections
           @processClosedSessions json.timestamp - @sessionIntervalSeconds, (err, results) =>
-            async.parallel [
+            async.series [
               # see if this user has a current session; if not, set their start_time
               (new_ses_cb) =>
-                @client.hexists 'sessionizer:start_time', json.userId, (err, exists) =>
-                  if exists
-                    new_ses_cb null, null
-                  else
-                    @client.hset 'sessionizer:start_time', json.userId, json.timestamp, new_ses_cb
+                @client.hsetnx 'sessionizer:start_time', json.userId, json.timestamp, new_ses_cb
               (new_ses_cb) =>
-                # update this user's end_time
+                # always update this user's end_time
                 @client.zadd 'sessionizer:end_time', json.timestamp, json.userId, new_ses_cb
             ], req_cb
       
@@ -165,14 +161,15 @@ class Sessionizer extends EventEmitter
             (cb) =>
               @dataProvider.createObject session_type, sessionId, startTime, cb
             (cb) =>
+              @client.zrem 'sessionizer:end_time', userId, cb
+            (cb) =>
               @client.hdel 'sessionizer:start_time', userId, cb
             (cb) =>
               @client.srem 'sessionizer:is_first', userId, cb
           ], (err, results) =>
             user_cb(err, results)
       , (err, results) =>
-        @client.zremrangebyscore 'sessionizer:end_time', -1, before_timestamp, (err, results) =>
-          callback err, results
+        callback err, results
 
   cleanOutOld: (before_timestamp) =>
     # get all users with next_day_end before before_timestamp (now); remove them from next_day_start and next_day_end

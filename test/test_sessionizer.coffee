@@ -56,4 +56,22 @@ describe "a sessionizer worker", ->
     
     it "should record the next-day return of users returning on their next local day"
     
-    
+  describe "when given real-world session events", ->
+    before (done) ->
+      try
+        processed = 0
+        client = redis.createClient(config.redis.port, config.redis.host)
+        client.flushdb (err, results) ->
+          worker = new Sessionizer(fileProcessorHelper)
+          worker.on "done", (e, r) ->
+            processed++
+            done()  if processed is 47
+          fileProcessorHelper.clearDatabase (err, results) ->
+            worker.init (err, results) ->
+              fileProcessorHelper.processFile "../metricizer/spec/log/long.log"
+      catch e
+        console.log("ERROR:", e)
+        done(e)
+
+    it "should not have caused an exception", (done) ->
+      done()
