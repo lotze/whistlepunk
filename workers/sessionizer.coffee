@@ -55,7 +55,7 @@ class Sessionizer extends EventEmitter
     @client.sadd('sessionizer:is_first', json.userId)
     # TODO: compute and store the user's next-day return range
     next_day = json.timestamp # Note: this needs to be computed based on the user's time zone...which is just IP-based now, sadly
-    @client.hset 'sessionizer:next_day_start', json.userId, next_day
+    @client.hsetnx 'sessionizer:next_day_start', json.userId, next_day
     @client.zadd 'sessionizer:next_day_end', next_day + 86400, json.userId
     @handleRequest(json)
 
