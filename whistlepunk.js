@@ -18,7 +18,6 @@ process.on('SIGKILL', quit);
 
 var run = function(callback) {
   var fs = require('fs'),
-      zmq = require('zmq'),
       config = require('./config'),
       async = require('async'),
       foreman = require('./lib/foreman.js');

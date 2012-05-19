@@ -18,7 +18,7 @@ case 'production':
   config.db.user = 'metricizer';
   config.db.database = 'metricizer_prod';
   config.db.password = 'PROD_PASSWORD';
-  config.msg_source_redis.host = 'ZMQ_HOST';
+  config.msg_source_redis.host = 'REDIS_HOST';
   break;
 case 'test':
   config.db.database = 'metricizer_test';
