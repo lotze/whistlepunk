@@ -24,7 +24,6 @@ var run = function(callback) {
     
   var workers = {};
   var lib = {};
-  var tasks = [];
 
   var terminate = exports.terminate = function() {
     foreman.terminate();
@@ -43,7 +42,6 @@ var run = function(callback) {
     
     async.forEach(files, function(workerFile, worker_callback) {
       var workerName = workerFile.replace('.js', '');
-      tasks.push(workerName);
       WorkerClass = require('./workers/'+workerFile);
       workers[workerName] = new WorkerClass(foreman);
       workers[workerName].init(worker_callback);      

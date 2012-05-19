@@ -15,6 +15,11 @@ util.inherits(FileProcessorHelper, EventEmitter);
 FileProcessorHelper.prototype.db = function() {
     return this.db;
   };
+
+FileProcessorHelper.prototype.processLine = function(line) {
+  var json_data = JSON.parse(line);
+  this.emit(json_data.eventName, json_data);
+};
   
 FileProcessorHelper.prototype.processFile = function(file) {
     var lazy = require("lazy"),
