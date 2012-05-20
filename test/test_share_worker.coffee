@@ -1,7 +1,7 @@
 should = require("should")
 assert = require("assert")
 async = require("async")
-FileProcessorHelper = require("./file_processor_helper")
+FileProcessorHelper = require('../lib/file_processor_helper')
 fileProcessorHelper = new FileProcessorHelper()
 ShareWorker = require("../workers/share_worker")
 

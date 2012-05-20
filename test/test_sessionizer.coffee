@@ -1,7 +1,7 @@
 should = require("should")
 assert = require("assert")
 async = require("async")
-FileProcessorHelper = require("./file_processor_helper")
+FileProcessorHelper = require('../lib/file_processor_helper')
 fileProcessorHelper = new FileProcessorHelper()
 Sessionizer = require("../workers/sessionizer")
 redis = require("redis")

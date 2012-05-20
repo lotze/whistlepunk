@@ -2,7 +2,7 @@ should = require("should")
 assert = require("assert")
 async = require("async")
 fs = require('fs')
-FileProcessorHelper = require("./file_processor_helper")
+FileProcessorHelper = require("../lib/file_processor_helper")
 fileProcessorHelper = new FileProcessorHelper()
 
 describe "the set of all workers", ->

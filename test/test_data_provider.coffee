@@ -1,5 +1,5 @@
 DataProvider = require('../lib/data_provider')
-FileProcessorHelper = require('./file_processor_helper')
+FileProcessorHelper = require('../lib/file_processor_helper')
 should = require('should')
 assert = require('assert')
 
