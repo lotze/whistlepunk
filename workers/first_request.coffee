@@ -75,7 +75,7 @@ class FirstRequest extends EventEmitter
 
     return 'Bot' if @isBot(data.userAgent)
 
-    return 'ad' if /\bc=([^\&]+)/.test(data.requestUri)
+    # return 'ad' if /\bc=([^\&]+)/.test(data.requestUri)
       
     if matches = /^https?:\/\/([^\/]+)/.exec(data.referrer)
       return matches[1].split('.').slice(-2).join('.')
