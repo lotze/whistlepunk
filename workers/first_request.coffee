@@ -15,6 +15,7 @@ class FirstRequest extends EventEmitter
     @dataProvider = new DataProvider(foreman)
 
   escape: (str...) =>
+    return "" unless str[0]?
     @db.escape str...
 
   init: (callback) ->

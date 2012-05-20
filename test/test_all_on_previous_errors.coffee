@@ -26,3 +26,8 @@ describe "the set of all workers", ->
     it "should not have an error", ->
       mustBeValidString = '{"service":"learnist","timestamp":1337492142.625129,"formattedTime":"2012-05-20 05:35:42 +0000","releaseRevision":"d2a440a8d63abe4cd66fe889f6d0cfcd88f4973c","userId":"1664ce40-7f8f-012f-c420-1adb9a793d61","eventName":"createdTag","taggableType":"Learning","taggableId":11210,"tagName":"photography"}'
       fileProcessorHelper.processLine(mustBeValidString)
+      
+  describe "when processing a firstRequest with a null referrer", ->
+    it "should not have an error", ->
+      mustBeValidString = '{"service":"learnist","timestamp":1329933607.612448,"formattedTime":"2012-02-22 18:00:07 +0000","userId":"fa90dbe0-3fac-012f-5b2e-12313d2bb138","eventName":"firstRequest","ip":"206.169.112.34","requestUri":"/","referrer":null,"userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.56 Safari/535.11"}'
+      fileProcessorHelper.processLine(mustBeValidString)
