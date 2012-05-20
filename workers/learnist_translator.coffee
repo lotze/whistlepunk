@@ -80,7 +80,7 @@ class LearnistTranslator extends EventEmitter
       @emit 'done', err, results
 
   handleCreatedTag: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'tagged', json.targetId.toString(), 1, (err, results) =>
+    @dataProvider.measure 'user', json.userId, json.timestamp, 'tagged', json.taggableId.toString(), 1, (err, results) =>
       @emit 'done', err, results
 
   handleEmailSent: (json) =>

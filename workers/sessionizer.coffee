@@ -176,7 +176,7 @@ class Sessionizer extends EventEmitter
     async.series [
       (cb) => 
         @client.zrangebyscore 'sessionizer:next_day_end', -1, before_timestamp, (err, results) =>
-          @client.hdel 'sessionizer:next_day_start'
+          @client.hdel 'sessionizer:next_day_start', results
       (cb) => 
         @client.zremrangebyscore 'sessionizer:end_time', -1, before_timestamp
     ]

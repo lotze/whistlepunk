@@ -29,7 +29,7 @@ class FirstRequest extends EventEmitter
     userId = json.userId
     
     # users_created_at
-    dateFirster = new DateFirster(timestamp)
+    dateFirster = new DateFirster(new Date(1000*timestamp))
     actual_date = dateFirster.format()
     first_of_week = dateFirster.firstOfWeek().format()
     first_of_month = dateFirster.firstOfMonth().format()

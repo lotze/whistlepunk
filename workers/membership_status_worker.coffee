@@ -35,7 +35,7 @@ class MembershipStatusWorker extends EventEmitter
   handleMembershipStatusChange: (json) =>
     timestamp = json.timestamp
     userId = json.userId
-    dateFirster = new DateFirster(timestamp)
+    dateFirster = new DateFirster(new Date(1000*timestamp))
     actual_date = dateFirster.format()
     first_of_week = dateFirster.firstOfWeek().format()
     first_of_month = dateFirster.firstOfMonth().format()

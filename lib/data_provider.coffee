@@ -3,6 +3,7 @@ moment = require 'moment'
 _ = require('underscore')
 async = require 'async'
 DbLoader = require('../lib/db_loader')
+DateFirster = require('../lib/date_firster')
 {EventEmitter} = require('events')
 
 class DataProvider extends EventEmitter
@@ -30,6 +31,7 @@ class DataProvider extends EventEmitter
       callback err, results
       
   measure: (actorType, actorId, timestamp, measureName, measureTarget='', measureAmount=1, callback) =>
+    dateFirster = new DateFirster(new Date(1000*timestamp))
     async.parallel [
       (cb) =>
         @foreman.emit('measureMe', {actorType: actorType, actorId: actorId, timestamp: timestamp, measureName: measureName, measureTarget: measureTarget, measureAmount: measureAmount}) if @foreman
@@ -45,18 +47,18 @@ class DataProvider extends EventEmitter
         @db.query(myQuery).execute cb
       (cb) =>
         # update timeseries for day
-        aggregate_moment = moment(timestamp).hours(0).minutes(0).seconds(0)
-        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'day', #{aggregate_moment.unix()}, '#{aggregate_moment.format("YYYY-MM-DD")} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        aggregate_moment = dateFirster.date()
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'day', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
         @db.query(myQuery).execute cb
       (cb) =>
         # update timeseries for month
-        aggregate_moment = moment(timestamp).date(1).hours(0).minutes(0).seconds(0)
-        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'month', #{aggregate_moment.unix()}, '#{aggregate_moment.format("YYYY-MM-DD")} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        aggregate_moment = dateFirster.firstOfMonth()
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'month', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
         @db.query(myQuery).execute cb
       (cb) =>
         # update timeseries for year
-        aggregate_moment = moment(timestamp).month(0).date(1).hours(0).minutes(0).seconds(0)
-        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'year', #{aggregate_moment.unix()}, '#{aggregate_moment.format("YYYY-MM-DD")} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        aggregate_moment = dateFirster.firstOfYear()
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'year', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
         @db.query(myQuery).execute cb
       (cb) =>
         # update timeseries for total
