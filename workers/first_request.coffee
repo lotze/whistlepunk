@@ -23,51 +23,55 @@ class FirstRequest extends EventEmitter
     callback()
 
   handleFirstRequest: (json) =>
-    normalizedSource = @normalizeSource(json)
-    return if normalizedSource == 'Bot'
+    try
+      normalizedSource = @normalizeSource(json)
+      return if normalizedSource == 'Bot'
   
-    timestamp = json.timestamp
-    userId = json.userId
+      timestamp = json.timestamp
+      userId = json.userId
     
-    # users_created_at
-    dateFirster = new DateFirster(new Date(1000*timestamp))
-    actual_date = dateFirster.format()
-    first_of_week = dateFirster.firstOfWeek().format()
-    first_of_month = dateFirster.firstOfMonth().format()
+      # users_created_at
+      dateFirster = new DateFirster(new Date(1000*timestamp))
+      actual_date = dateFirster.format()
+      first_of_week = dateFirster.firstOfWeek().format()
+      first_of_month = dateFirster.firstOfMonth().format()
 
-    async.parallel [
-      (cb) => 
-        @dataProvider.createObject 'user', userId, timestamp, cb
-      (cb) =>
-        myQuery = "
-          INSERT IGNORE INTO users_created_at (user_id, created_at, day, week, month)
-          VALUES (
-            '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp}), '#{actual_date}', '#{first_of_week}', '#{first_of_month}'
-          );
-        "
-        @db.query(myQuery).execute cb
-      (cb) =>
-        myQuery = "
-          INSERT IGNORE INTO olap_users (id, created_at, last_active_at)
-          VALUES (
-            '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp}), FROM_UNIXTIME(#{timestamp})
-          );
-        "
-        @db.query(myQuery).execute cb
-      (cb) =>
-        async.parallel [
-          (cb2) => @locationId(json.ip, cb2)
-          (cb2) => @country(json.ip, cb2)
-        ], (err, results) =>
-          return cb(err) if err?
-          [locationId, countryName] = results
+      async.parallel [
+        (cb) => 
+          @dataProvider.createObject 'user', userId, timestamp, cb
+        (cb) =>
           myQuery = "
-            INSERT IGNORE INTO sources_users (user_id, source, referrer, request_uri, user_agent, ip_address, country_name, location_id) 
-            VALUES ('#{@escape userId}', '#{@escape normalizedSource}', '#{@escape json.referrer}', '#{@escape json.requestUri}', '#{@escape json.userAgent}', '#{@escape json.ip}', '#{@escape countryName}', #{locationId});
+            INSERT IGNORE INTO users_created_at (user_id, created_at, day, week, month)
+            VALUES (
+              '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp}), '#{actual_date}', '#{first_of_week}', '#{first_of_month}'
+            );
           "
           @db.query(myQuery).execute cb
-    ], (err, results) =>
-      @emit 'done', err, results
+        (cb) =>
+          myQuery = "
+            INSERT IGNORE INTO olap_users (id, created_at, last_active_at)
+            VALUES (
+              '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp}), FROM_UNIXTIME(#{timestamp})
+            );
+          "
+          @db.query(myQuery).execute cb
+        (cb) =>
+          async.parallel [
+            (cb2) => @locationId(json.ip, cb2)
+            (cb2) => @country(json.ip, cb2)
+          ], (err, results) =>
+            return cb(err) if err?
+            [locationId, countryName] = results
+            myQuery = "
+              INSERT IGNORE INTO sources_users (user_id, source, referrer, request_uri, user_agent, ip_address, country_name, location_id) 
+              VALUES ('#{@escape userId}', '#{@escape normalizedSource}', '#{@escape json.referrer}', '#{@escape json.requestUri}', '#{@escape json.userAgent}', '#{@escape json.ip}', '#{@escape countryName}', #{locationId});
+            "
+            @db.query(myQuery).execute cb
+      ], (err, results) =>
+        @emit 'done', err, results
+    catch error
+      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      @emit 'done', error
 
     # TODO (when we start advertising again): advertising tags
 

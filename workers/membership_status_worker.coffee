@@ -23,39 +23,46 @@ class MembershipStatusWorker extends EventEmitter
     callback()
 
   handleUserCreated: (json) =>
-    timestamp = json.timestamp
-    userId = json.userId
+    try
+      timestamp = json.timestamp
+      userId = json.userId
     
-    myQuery = "
-      UPDATE IGNORE olap_users set name='#{@escape json['name']}', email='#{@escape json['email']}' where id='#{@escape userId}';
-    "
-    @db.query(myQuery).execute (err, results) =>
-      @emit 'done', err, results
-
+      myQuery = "
+        UPDATE IGNORE olap_users set name='#{@escape json['name']}', email='#{@escape json['email']}' where id='#{@escape userId}';
+      "
+      @db.query(myQuery).execute (err, results) =>
+        @emit 'done', err, results
+    catch error
+      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      @emit 'done', error
+      
   handleMembershipStatusChange: (json) =>
-    timestamp = json.timestamp
-    userId = json.userId
-    dateFirster = new DateFirster(new Date(1000*timestamp))
-    actual_date = dateFirster.format()
-    first_of_week = dateFirster.firstOfWeek().format()
-    first_of_month = dateFirster.firstOfMonth().format()
+    try
+      timestamp = json.timestamp
+      userId = json.userId
+      dateFirster = new DateFirster(new Date(1000*timestamp))
+      actual_date = dateFirster.format()
+      first_of_week = dateFirster.firstOfWeek().format()
+      first_of_month = dateFirster.firstOfMonth().format()
     
-    async.parallel [
-      (cb) => 
-        @dataProvider.createObject json['newState'], userId, timestamp, cb
-      (cb) => 
-        @dataProvider.measure('user', userId, timestamp, 'upgraded', '', 1, cb)
-      (cb) =>
-        myQuery = "UPDATE IGNORE olap_users set status='#{@escape json['newState']}' where id='#{@escape userId}';"
-        @db.query(myQuery).execute cb
-      (cb) =>
-        myQuery = "
-        INSERT IGNORE INTO users_membership_status_at (user_id, status, timestamp, day, week, month) 
-        VALUES ('#{@escape userId}', '#{@escape json['newState']}', FROM_UNIXTIME(#{timestamp}), '#{actual_date}', '#{first_of_week}', '#{first_of_month}' );
-        "
-        @db.query(myQuery).execute cb
-    ], (err, results) =>
-      @emit 'done', err, results
-
+      async.parallel [
+        (cb) => 
+          @dataProvider.createObject json['newState'], userId, timestamp, cb
+        (cb) => 
+          @dataProvider.measure('user', userId, timestamp, 'upgraded', '', 1, cb)
+        (cb) =>
+          myQuery = "UPDATE IGNORE olap_users set status='#{@escape json['newState']}' where id='#{@escape userId}';"
+          @db.query(myQuery).execute cb
+        (cb) =>
+          myQuery = "
+          INSERT IGNORE INTO users_membership_status_at (user_id, status, timestamp, day, week, month) 
+          VALUES ('#{@escape userId}', '#{@escape json['newState']}', FROM_UNIXTIME(#{timestamp}), '#{actual_date}', '#{first_of_week}', '#{first_of_month}' );
+          "
+          @db.query(myQuery).execute cb
+      ], (err, results) =>
+        @emit 'done', err, results
+    catch error
+      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      @emit 'done', error
 
 module.exports = MembershipStatusWorker 

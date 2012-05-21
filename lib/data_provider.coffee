@@ -13,6 +13,7 @@ class DataProvider extends EventEmitter
     @db = dbloader.db()
 
   escape: (str...) =>
+    return "" unless str[0]?
     @db.escape str...
     
   incrementOlapUserCounter: (userId, counterName, callback) =>

@@ -10,11 +10,11 @@ class ShareWorker extends EventEmitter
     @foreman = foreman
     dbloader = new DbLoader()
     @db = dbloader.db()
-    @foreman.on('objectShared', @handleObjectShared)
-    @foreman.on('firstRequest', @handleFirstRequest)
-    @foreman.on('createdInvitation', @handleCreatedInvitation)
-    @foreman.on('respondedToInvitation', @handleRespondedToInvitation)
-    @foreman.on('membershipStatusChange', @handleMembershipStatusChange)
+    @foreman.on('objectShared', @handleMessage)
+    @foreman.on('firstRequest', @handleMessage)
+    @foreman.on('createdInvitation', @handleMessage)
+    @foreman.on('respondedToInvitation', @handleMessage)
+    @foreman.on('membershipStatusChange', @handleMessage)
     @dataProvider = new DataProvider(foreman)
 
   escape: (str...) =>
@@ -23,6 +23,19 @@ class ShareWorker extends EventEmitter
   init: (callback) ->
     # generally here we need to make sure db connections are opened properly before executing the callback
     callback()
+
+  handleMessage: (json) =>
+    try
+      switch json.eventName
+        when "objectShared" then @handleObjectShared(json)
+        when "firstRequest" then @handleFirstRequest(json)
+        when "createdInvitation" then @handleCreatedInvitation(json)
+        when "respondedToInvitation" then @handleRespondedToInvitation(json)
+        when "membershipStatusChange" then @handleMembershipStatusChange(json)
+        else throw new Error('unhandled eventName');
+    catch error
+      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      @emit 'done', error
 
   handleObjectShared: (json) =>
     timestamp = json.timestamp

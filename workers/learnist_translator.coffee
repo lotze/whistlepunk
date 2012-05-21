@@ -10,24 +10,24 @@ class LearnistTranslator extends EventEmitter
     @foreman = foreman
     dbloader = new DbLoader()
     @db = dbloader.db()
-    @foreman.on('completedLearning', @handleCompletedLearning)
-    @foreman.on('commentAdd', @handleCommentAdd)
-    @foreman.on('createdBoard', @handleCreatedBoard)
-    @foreman.on('completedLearning', @handleCompletedLearning)
-    @foreman.on('createdInvitation', @handleCreatedInvitation)
-    @foreman.on('createdLearning', @handleCreatedLearning)
-    @foreman.on('createdTag', @handleCreatedTag)
-    @foreman.on('emailSent', @handleEmailSent)
-    @foreman.on('followed', @handleFollowed)
-    @foreman.on('liked', @handleLiked)
-    @foreman.on('objectShared', @handleObjectShared)
-    @foreman.on('request', @handleRequest)
-    @foreman.on('respondedToInvitation', @handleRespondedToInvitation)
-    @foreman.on('tagFollowed', @handleTagFollowed)
-    @foreman.on('tagUnfollowed', @handleTagUnfollowed)
-    @foreman.on('updatedLearning', @handleUpdatedLearning)
-    @foreman.on('userCreated', @handleUserCreated)
-    @foreman.on('viewedBoard', @handleViewedBoard)
+    @foreman.on('completedLearning', @handleMessage)
+    @foreman.on('commentAdd', @handleMessage)
+    @foreman.on('createdBoard', @handleMessage)
+    @foreman.on('completedLearning', @handleMessage)
+    @foreman.on('createdInvitation', @handleMessage)
+    @foreman.on('createdLearning', @handleMessage)
+    @foreman.on('createdTag', @handleMessage)
+    @foreman.on('emailSent', @handleMessage)
+    @foreman.on('followed', @handleMessage)
+    @foreman.on('liked', @handleMessage)
+    @foreman.on('objectShared', @handleMessage)
+    @foreman.on('request', @handleMessage)
+    @foreman.on('respondedToInvitation', @handleMessage)
+    @foreman.on('tagFollowed', @handleMessage)
+    @foreman.on('tagUnfollowed', @handleMessage)
+    @foreman.on('updatedLearning', @handleMessage)
+    @foreman.on('userCreated', @handleMessage)
+    @foreman.on('viewedBoard', @handleMessage)
     @dataProvider = new DataProvider(foreman)
 
   escape: (str...) =>
@@ -36,6 +36,33 @@ class LearnistTranslator extends EventEmitter
   init: (callback) ->
     # generally here we need to make sure db connections are opened properly before executing the callback
     callback()
+    
+  handleMessage: (json) =>
+    try
+      switch json.eventName
+        when "completedLearning" then @handleCompletedLearning(json)
+        when "commentAdd" then @handleCommentAdd(json)
+        when "createdBoard" then @handleCreatedBoard(json)
+        when "completedLearning" then @handleCompletedLearning(json)
+        when "createdInvitation" then @handleCreatedInvitation(json)
+        when "createdLearning" then @handleCreatedLearning(json)
+        when "createdTag" then @handleCreatedTag(json)
+        when "emailSent" then @handleEmailSent(json)
+        when "followed" then @handleFollowed(json)
+        when "liked" then @handleLiked(json)
+        when "objectShared" then @handleObjectShared(json)
+        when "request" then @handleRequest(json)
+        when "respondedToInvitation" then @handleRespondedToInvitation(json)
+        when "tagFollowed" then @handleTagFollowed(json)
+        when "tagUnfollowed" then @handleTagUnfollowed(json)
+        when "updatedLearning" then @handleUpdatedLearning(json)
+        when "userCreated" then @handleUserCreated(json)
+        when "viewedBoard" then @handleViewedBoard(json)
+        else throw new Error('unhandled eventName');
+    catch error
+      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      @emit 'done', error
+      
 
   handleCompletedLearning: (json) =>
     async.parallel [
