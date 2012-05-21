@@ -26,6 +26,7 @@ class ShareWorker extends EventEmitter
     callback()
 
   handleMessage: (json) =>
+    GLOBAL.pendingWorker++
     try
       switch json.eventName
         when "objectShared" then @handleObjectShared(json)

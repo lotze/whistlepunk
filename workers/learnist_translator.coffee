@@ -39,6 +39,7 @@ class LearnistTranslator extends EventEmitter
     callback()
     
   handleMessage: (json) =>
+    GLOBAL.pendingWorker++
     try
       switch json.eventName
         when "completedLearning" then @handleCompletedLearning(json)

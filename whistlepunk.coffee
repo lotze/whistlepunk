@@ -1,5 +1,11 @@
 #!/usr/bin/env coffee
 
+GLOBAL.pendingWorker = 0
+
+setInterval =>
+  console.log "Pending Worker Requests: #{GLOBAL.pendingWorker}"
+, 1000
+
 process.env.NODE_ENV ?= 'development'
 
 require('coffee-script')
@@ -35,7 +41,9 @@ class Application
         workerName = workerFile.replace('.js', '')
         WorkerClass = require('./workers/'+workerFile)
         workers[workerName] = new WorkerClass(foreman)
-        workers[workerName].init(worker_callback)  
+        workers[workerName].init(worker_callback)
+        workers[workerName].on 'done', =>
+          GLOBAL.pendingWorker--
       , (err) =>
         throw err if err?
         @startProcessing()
