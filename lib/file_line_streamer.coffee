@@ -18,14 +18,16 @@ class FileLineStreamer extends EventEmitter
       @emit 'data', @buffer if @buffer.length
       @emit 'end'
     @stream.on 'data', (data) =>
-      @dataCount++
-      if @dataCount >= 10000
-        @dataCount = 0
-        @showMemory()
       @buffer += data
       parts = @buffer.split "\n"
       @buffer = parts.pop()
       @emit('data', part) for part in parts
+
+      @dataCount += parts.length
+      if @dataCount >= 10000
+        @dataCount = 0
+        @showMemory()
+
 
   showMemory: =>
     console.log "Current Memory Usage: ", util.inspect(process.memoryUsage())
