@@ -98,10 +98,10 @@ var run = function(callback) {
                       fileProcessorHelper.processFileForForeman(logPath + fileName, foreman, finalMessage, file_cb);
                     } catch(err) {
                       console.error("Uncaught error processing file for foreman: ",err,err.stack);
-                      file_cb(err);
+                      file_cb();
                     }
-                  }, function(err) {
-                    cb(err);
+                  }, function() {
+                    cb();
                   });
                 });
               }
