@@ -49,7 +49,7 @@ class Sessionizer extends EventEmitter
   handleMeasureMe: (json) =>
     try
       if json.actorType == 'user'
-        @client.hget ['sessionizer:start_time', json.userId], (err, start_time) =>
+        @client.hget 'sessionizer:start_time', json.userId, (err, start_time) =>
           if start_time
             @dataProvider.measure 'session', @sessionId(start_time,json.userId), json.timestamp, json.measureName, json.measureTarget, json.measureAmount
     catch error
