@@ -26,7 +26,9 @@ class FirstRequest extends EventEmitter
     @emit 'start'
     try
       normalizedSource = @normalizeSource(json)
-      return if normalizedSource == 'Bot'
+      if normalizedSource == 'Bot'
+        @emit 'done'
+        return
   
       timestamp = json.timestamp
       userId = json.userId
@@ -61,7 +63,9 @@ class FirstRequest extends EventEmitter
             (cb2) => @locationId(json.ip, cb2)
             (cb2) => @country(json.ip, cb2)
           ], (err, results) =>
-            return cb(err) if err?
+            if err?
+              @emit 'done', err
+              cb(err)
             [locationId, countryName] = results
             myQuery = "
               INSERT IGNORE INTO sources_users (user_id, source, referrer, request_uri, user_agent, ip_address, country_name, location_id) 
