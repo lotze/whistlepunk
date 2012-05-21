@@ -86,11 +86,17 @@ var run = function(callback) {
                 if (process.env.NODE_ENV == 'development') {
                   logPath = "/Users/grockit/workspace/metricizer/spec/log/";
                 }
-                async.forEachSeries(fileProcessorHelper.getLogFilesInOrder(logPath), function(fileName, file_cb) {
-                  console.log("WhistlePunk: processing old log: " + logPath + fileName);
-                  fileProcessorHelper.processFileForForeman(logPath + fileName, foreman, finalMessage, file_cb);
-                }, function(err) {
-                  cb(err);
+                fileProcessorHelper.getLogFilesInOrder(logPath, function (err, fileList) {
+                  if (err !== null && err !== undefined) {
+                    return console.error("Error while getting log files: " + err);
+                  }
+                  
+                  async.forEachSeries(fileList, function(fileName, file_cb) {
+                    console.log("WhistlePunk: processing old log: " + logPath + fileName);
+                    fileProcessorHelper.processFileForForeman(logPath + fileName, foreman, finalMessage, file_cb);
+                  }, function(err) {
+                    cb(err);
+                  });
                 });
               }
             }.bind(this));
