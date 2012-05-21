@@ -40,13 +40,16 @@ class FileProcessorHelper extends EventEmitter
     console.log("Starting FileLineStreamer for #{file}")
     reader = new FileLineStreamer(file)
     reader.on 'data', (line) ->
-      matches = line.toString().match(/^[^\{]*(\{.*\})/)
-      if (matches?) and (matches.length > 0)
-        jsonString = matches[1]
-        streamData = JSON.parse(jsonString)
-        foreman.processMessage(streamData)  if streamData.timestamp <= lastEvent.timestamp
-      else
-        console.log "event line " + jsonString + " had a parsing issue -- SKIPPING"
+      try
+        matches = line.toString().match(/^[^\{]*(\{.*\})/)
+        if (matches?) and (matches.length > 0)
+          jsonString = matches[1]
+          streamData = JSON.parse(jsonString)
+          foreman.processMessage(streamData)  if streamData.timestamp <= lastEvent.timestamp
+        else
+          console.trace "event line " + line + " did not match as expected"
+      catch error
+        console.trace "event line " + line + " had a serious parsing issue: #{error}"
     reader.on 'end', ->
       callback null
     reader.start()
