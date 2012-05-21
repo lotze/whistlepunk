@@ -126,6 +126,8 @@ class ShareWorker extends EventEmitter
               UPDATE shares set num_visits=num_visits+1 where share_id='#{@escape json['invitationId']}';
             "
             @db.query(myQuery).execute cb
+          else
+            cb(null)
     ], (err, results) =>
       @emit 'done', err, results
 
@@ -159,6 +161,8 @@ class ShareWorker extends EventEmitter
                 @db.query(myQuery).execute cb2
             ], (err, results) =>
               cb err, results
+          else
+            cb(null)
     ], (err, results) =>
       @emit 'done', err, results
 

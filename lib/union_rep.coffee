@@ -2,7 +2,7 @@
 util = require 'util'
 
 class UnionRep extends EventEmitter
-  constructor: (@max = 1000) ->
+  constructor: (@max = 10000) ->
     @workers = {}
     @count   = {}
     @total   = 0
