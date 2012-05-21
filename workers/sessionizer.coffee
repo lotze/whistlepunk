@@ -34,6 +34,7 @@ class Sessionizer extends EventEmitter
     @sessionIntervalSeconds = 900
 
   escape: (str...) =>
+    return "" unless str? && str[0]?
     @db.escape str...
 
   init: (callback) ->

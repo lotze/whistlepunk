@@ -16,6 +16,7 @@ class MembershipStatusWorker extends EventEmitter
     @dataProvider = new DataProvider(foreman)
 
   escape: (str...) =>
+    return "" unless str? && str[0]?
     @db.escape str...
 
   init: (callback) ->
