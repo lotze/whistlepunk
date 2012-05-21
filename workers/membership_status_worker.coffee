@@ -24,7 +24,7 @@ class MembershipStatusWorker extends EventEmitter
     callback()
 
   handleUserCreated: (json) =>
-    GLOBAL.pendingWorker++
+    @emit 'start'
     try
       timestamp = json.timestamp
       userId = json.userId
@@ -39,7 +39,7 @@ class MembershipStatusWorker extends EventEmitter
       @emit 'done', error
       
   handleMembershipStatusChange: (json) =>
-    GLOBAL.pendingWorker++
+    @emit 'start'
     try
       timestamp = json.timestamp
       userId = json.userId

@@ -23,7 +23,7 @@ class FirstRequest extends EventEmitter
     callback()
 
   handleFirstRequest: (json) =>
-    GLOBAL.pendingWorker++
+    @emit 'start'
     try
       normalizedSource = @normalizeSource(json)
       return if normalizedSource == 'Bot'

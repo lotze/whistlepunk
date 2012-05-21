@@ -29,6 +29,12 @@ class FileLineStreamer extends EventEmitter
       @buffer = parts.pop()
       @emit('data', part) for part in parts
 
+  pause: =>
+    @stream.pause()
+
+  resume: =>
+    @stream.resume()
+
   showMemory: =>
     console.log "Current Memory Usage: ", util.inspect(process.memoryUsage())
 

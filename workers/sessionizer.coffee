@@ -47,7 +47,7 @@ class Sessionizer extends EventEmitter
     @queue = async.queue @processRequest, 1
 
   handleMeasureMe: (json) =>
-    GLOBAL.pendingWorker++
+    @emit 'start'
     try
       if json.actorType == 'user'
         @client.hget 'sessionizer:start_time', json.userId, (err, start_time) =>
@@ -58,7 +58,7 @@ class Sessionizer extends EventEmitter
       @emit 'done', error
             
   handleFirstRequest: (json) =>
-    GLOBAL.pendingWorker++
+    @emit 'start'
     try
       @client.sadd('sessionizer:is_first', json.userId)
       # TODO: compute and store the user's next-day return range
@@ -71,7 +71,7 @@ class Sessionizer extends EventEmitter
       @emit 'done', error
       
   handleRequest: (json) =>
-    GLOBAL.pendingWorker++
+    @emit 'start'
     try
       @queue.push {data: json}, (err) =>
         if err?

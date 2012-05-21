@@ -5,7 +5,7 @@ FileLineStreamer = require("../lib/file_line_streamer")
 fs = require("fs")
 
 class FileProcessorHelper extends EventEmitter
-  constructor: ->
+  constructor: (@unionRep) ->
     @jsonFinderRegEx = new RegExp(/^[^\{]*(\{.*\})/)
     DbLoader = require("../lib/db_loader.js")
     dbloader = new DbLoader()
@@ -39,6 +39,14 @@ class FileProcessorHelper extends EventEmitter
   processFileForForeman: (file, foreman, lastEvent, callback) =>
     console.log("Starting FileLineStreamer for #{file}")
     reader = new FileLineStreamer(file)
+
+    @unionRep.on 'saturate', =>
+      console.log "Union workers working too hard, taking a break..."
+      reader.pause()
+    @unionRep.on 'drain', =>
+      console.log "BACK TO WORK YOU LAZY BUMS"
+      reader.resume()
+
     reader.on 'data', (line) ->
       try
         matches = line.toString().match(/^[^\{]*(\{.*\})/)
