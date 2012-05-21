@@ -53,7 +53,7 @@ class Sessionizer extends EventEmitter
           if start_time
             @dataProvider.measure 'session', @sessionId(start_time,json.userId), json.timestamp, json.measureName, json.measureTarget, json.measureAmount
     catch error
-      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      console.error "Error processing",json," (#{error}): #{error.stack}"
       @emit 'done', error
             
   handleFirstRequest: (json) =>
@@ -65,7 +65,7 @@ class Sessionizer extends EventEmitter
       @client.zadd 'sessionizer:next_day_end', next_day + 86400, json.userId
       @handleRequest(json)
     catch error
-      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      console.error "Error processing",json," (#{error}): #{error.stack}"
       @emit 'done', error
       
   handleRequest: (json) =>
@@ -74,7 +74,7 @@ class Sessionizer extends EventEmitter
         if err?
           console.error "Error executing queue for", json, "the error was:", err
     catch error
-      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      console.error "Error processing",json," (#{error}): #{error.stack}"
       @emit 'done', error
         
   processRequest: (data, callback) =>

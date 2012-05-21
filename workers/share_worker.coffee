@@ -35,7 +35,7 @@ class ShareWorker extends EventEmitter
         when "membershipStatusChange" then @handleMembershipStatusChange(json)
         else throw new Error('unhandled eventName');
     catch error
-      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      console.error "Error processing",json," (#{error}): #{error.stack}"
       @emit 'done', error
 
   handleObjectShared: (json) =>

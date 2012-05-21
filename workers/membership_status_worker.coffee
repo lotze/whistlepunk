@@ -34,7 +34,7 @@ class MembershipStatusWorker extends EventEmitter
       @db.query(myQuery).execute (err, results) =>
         @emit 'done', err, results
     catch error
-      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      console.error "Error processing",json," (#{error}): #{error.stack}"
       @emit 'done', error
       
   handleMembershipStatusChange: (json) =>
@@ -63,7 +63,7 @@ class MembershipStatusWorker extends EventEmitter
       ], (err, results) =>
         @emit 'done', err, results
     catch error
-      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      console.error "Error processing",json," (#{error}): #{error.stack}"
       @emit 'done', error
 
 module.exports = MembershipStatusWorker 

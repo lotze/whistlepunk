@@ -70,7 +70,7 @@ class FirstRequest extends EventEmitter
       ], (err, results) =>
         @emit 'done', err, results
     catch error
-      console.error "Error processing #{json} (#{error}): #{error.stack}"
+      console.error "Error processing",json," (#{error}): #{error.stack}"
       @emit 'done', error
 
     # TODO (when we start advertising again): advertising tags
