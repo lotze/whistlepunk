@@ -53,22 +53,23 @@ class Sessionizer extends EventEmitter
         @client.hget 'sessionizer:start_time', json.userId, (err, start_time) =>
           if start_time
             @dataProvider.measure 'session', @sessionId(start_time,json.userId), json.timestamp, json.measureName, json.measureTarget, json.measureAmount
+          @emit 'done', null
+      else
+        @emit 'done', null
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
       @emit 'done', error
             
   handleFirstRequest: (json) =>
-    @emit 'start'
     try
       @client.sadd('sessionizer:is_first', json.userId)
       # TODO: compute and store the user's next-day return range
-      next_day = json.timestamp # Note: this needs to be computed based on the user's time zone...which is just IP-based now, sadly
+      next_day = json.timestamp + 86400 # Note: this needs to be computed based on the user's time zone...which is just IP-based now, sadly
       @client.hsetnx 'sessionizer:next_day_start', json.userId, next_day
       @client.zadd 'sessionizer:next_day_end', next_day + 86400, json.userId
       @handleRequest(json)
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
-      @emit 'done', error
       
   handleRequest: (json) =>
     @emit 'start'
@@ -76,6 +77,7 @@ class Sessionizer extends EventEmitter
       @queue.push {data: json}, (err) =>
         if err?
           console.error "Error executing queue for", json, "the error was:", err
+          @emit 'done', err
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
       @emit 'done', error
