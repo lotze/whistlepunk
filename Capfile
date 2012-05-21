@@ -146,7 +146,7 @@ export HOME="/home/#{user}"
 export NODE_ENV="#{node_env}"
 
 cd #{current_path}
-exec sudo -u #{user} sh -c "TZ=US/Pacific NODE_ENV=#{node_env} /usr/local/bin/node #{current_path}/#{application}.js >> #{shared_path}/log/#{application}_#{node_env}.log 2>&1"
+exec sudo -u #{user} sh -c "TZ=US/Pacific NODE_ENV=#{node_env} #{current_path}/node_modules/.bin/coffee #{current_path}/#{application}.coffee >> #{shared_path}/log/#{application}_#{node_env}.log 2>&1"
 end script
 respawn
 UPSTART

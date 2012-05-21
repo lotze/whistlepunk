@@ -1,7 +1,7 @@
 async = require("async")
 EventEmitter = require("events").EventEmitter
 util = require("util")
-FileLineReader = require("../lib/file_line_reader").FileLineReader
+FileLineStreamer = require("../lib/file_line_streamer")
 fs = require("fs")
 
 class FileProcessorHelper extends EventEmitter
@@ -16,12 +16,14 @@ class FileProcessorHelper extends EventEmitter
     @emit json_data.eventName, json_data
 
   getLogFilesInOrder: (directory, callback) =>
-    return callback(null, [ "shares.log", "sessions.log" ])  if process.env.NODE_ENV is "development"
+    return callback(null, [ "#{directory}/shares.log", "#{directory}/sessions.log" ]) if process.env.NODE_ENV is "development"
     fs.readdir directory, (err, files) ->
       matchedFiles = (file for file in files when file.match(/^learnist\.log\.1.*/))
       matchedFiles = matchedFiles.sort()
       matchedFiles.unshift "learnist.log.old"
       matchedFiles.push "learnist.log"
+
+      matchedFiles = ("#{directory}/#{file}" for file in matchedFiles)
       callback err, matchedFiles
 
   processFile: (file) =>
@@ -35,20 +37,31 @@ class FileProcessorHelper extends EventEmitter
       self.emit streamData.eventName, streamData
 
   processFileForForeman: (file, foreman, lastEvent, callback) =>
-    fs = require("fs")
-    self = this
-    reader = new FileLineReader(file)
-    loop
-      line = reader.nextLine()
+    console.log("Starting FileLineStreamer for #{file}")
+    reader = new FileLineStreamer(file)
+    reader.on 'data', (line) ->
       matches = line.toString().match(/^[^\{]*(\{.*\})/)
       if (matches?) and (matches.length > 0)
         jsonString = matches[1]
         streamData = JSON.parse(jsonString)
-        foreman.emit streamData.eventName, streamData  if streamData.timestamp <= lastEvent.timestamp
+        foreman.processMessage(streamData)  if streamData.timestamp <= lastEvent.timestamp
       else
         console.log "event line " + jsonString + " had a parsing issue -- SKIPPING"
-      break unless reader.hasNextLine()
-    callback null
+    reader.on 'end', ->
+      callback null
+    reader.start()
+
+    # loop
+    #   line = reader.nextLine()
+    #   matches = line.toString().match(/^[^\{]*(\{.*\})/)
+    #   if (matches?) and (matches.length > 0)
+    #     jsonString = matches[1]
+    #     streamData = JSON.parse(jsonString)
+    #     foreman.emit streamData.eventName, streamData  if streamData.timestamp <= lastEvent.timestamp
+    #   else
+    #     console.log "event line " + jsonString + " had a parsing issue -- SKIPPING"
+    #   break unless reader.hasNextLine()
+    # callback null
 
   clearDatabase: (callback) =>
     async.parallel [ (parallel_callback) ->
