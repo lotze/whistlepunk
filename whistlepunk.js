@@ -90,7 +90,8 @@ var run = function(callback) {
                   if (err !== null && err !== undefined) {
                     return console.error("Error while getting log files: " + err);
                   }
-                  
+
+                  console.log("Processing log file list: ", fileList);
                   async.forEachSeries(fileList, function(fileName, file_cb) {
                     console.log("WhistlePunk: processing old log: " + logPath + fileName);
                     fileProcessorHelper.processFileForForeman(logPath + fileName, foreman, finalMessage, file_cb);
