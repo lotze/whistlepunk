@@ -94,7 +94,12 @@ var run = function(callback) {
                   console.log("Processing log file list: ", fileList);
                   async.forEachSeries(fileList, function(fileName, file_cb) {
                     console.log("WhistlePunk: processing old log: " + logPath + fileName);
-                    fileProcessorHelper.processFileForForeman(logPath + fileName, foreman, finalMessage, file_cb);
+                    try {
+                      fileProcessorHelper.processFileForForeman(logPath + fileName, foreman, finalMessage, file_cb);
+                    } catch(err) {
+                      console.error("Uncaught error processing file for foreman: ",err,err.stack);
+                      cb(err);
+                    }
                   }, function(err) {
                     cb(err);
                   });
