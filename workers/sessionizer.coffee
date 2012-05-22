@@ -5,7 +5,7 @@ async = require 'async'
 DataProvider = require('../lib/data_provider')
 DateFirster = require('../lib/date_firster')
 DbLoader = require('../lib/db_loader')
-redis = require("redis")
+Redis = require("../lib/redis")
 crypto = require("crypto")
 config = require('../config')
 
@@ -39,13 +39,10 @@ class Sessionizer extends Worker
     @db.escape str...
 
   init: (callback) ->
-    # generally here we need to make sure db connections are opened properly before executing the callback
-    @client = redis.createClient(config.redis.port, config.redis.host)
-    @client.on "error", (err) ->
-      console.log("Error " + err);
-    @client.on "ready", (err) =>
-      @client.set 'sessionizer:requests_processed', '0', callback
     @queue = async.queue @popQueue, 1
+    Redis.getClient (err, client) =>
+      @client = client
+      @client.set 'sessionizer:requests_processed', '0', callback
 
   popQueue: (data, queueCallback) =>
     json = data.json
