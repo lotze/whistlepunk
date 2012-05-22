@@ -1,5 +1,5 @@
 util = require('util')
-{EventEmitter} = require('events')
+Worker = require('../lib/worker')
 _ = require('underscore')
 async = require 'async'
 DataProvider = require('../lib/data_provider')
@@ -21,17 +21,18 @@ config = require('../config')
 # sessionizer maintains a string (integer) value of the number of requests processed since last cleaning, to figure out when to clean out old next-day sessions
 #  - sessionizer:requests_processed
 
-class Sessionizer extends EventEmitter
+class Sessionizer extends Worker
   constructor: (foreman) ->
     @foreman = foreman
     dbloader = new DbLoader()
     @db = dbloader.db()
-    @foreman.on('firstRequest', @handleFirstRequest)
-    @foreman.on('request', @handleRequest)
-    @foreman.on('measureMe', @handleMeasureMe)
+    @foreman.on('firstRequest', @enqueueEvent)
+    @foreman.on('request', @enqueueEvent)
+    @foreman.on('measureMe', @enqueueEvent)
     @dataProvider = new DataProvider(foreman)
     @cleanRequestFrequency = 10000
     @sessionIntervalSeconds = 900
+    super()
 
   escape: (str...) =>
     return "" unless str? && str[0]?
@@ -44,46 +45,65 @@ class Sessionizer extends EventEmitter
       console.log("Error " + err);
     @client.on "ready", (err) =>
       @client.set 'sessionizer:requests_processed', '0', callback
-    @queue = async.queue @processRequest, 1
+    @queue = async.queue @popQueue, 1
 
-  handleMeasureMe: (json) =>
+  popQueue: (data, queueCallback) =>
+    json = data.json
+    try
+      if (json.eventName == 'measureMe')
+        @handleMeasureMe(json, queueCallback)
+      else
+        @handleRequest(json, queueCallback)
+    catch error
+      console.error "Error processing ",json," (#{error}): #{error.stack}"
+      queueCallback error
+
+  enqueueEvent: (json) =>
     @emit 'start'
+    @queue.push {json: json}, (err, results) =>
+      if err?
+        console.error "Error executing queue for", json, "the error was:", err
+      @emitResults err, results
+    
+  handleMeasureMe: (json, callback) =>
     try
       if json.actorType == 'user'
-        @client.hget 'sessionizer:start_time', json.userId, (err, start_time) =>
-          if start_time
-            @dataProvider.measure 'session', @sessionId(start_time,json.userId), json.timestamp, json.measureName, json.measureTarget, json.measureAmount
-          @emit 'done', null
+        @client.hget 'sessionizer:start_time', json.actorId, (err, startTime) =>
+          if startTime?
+            @dataProvider.measure 'session', @sessionId(startTime,json.actorId), json.timestamp, json.measureName, json.measureTarget, json.measureAmount, callback
+          else
+            @client.hgetall 'sessionizer:start_time', (err, results) =>
+              console.log("no session -- shouldn't happen in test")
+              console.log("sessions in the hash:")
+              console.dir(results)
+              callback()
       else
-        @emit 'done', null
+        console.log("not a user measurement; should happen once")
+        callback()
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
-      @emit 'done', error
-            
-  handleFirstRequest: (json) =>
-    try
-      @client.sadd('sessionizer:is_first', json.userId)
-      # TODO: compute and store the user's next-day return range
-      next_day = json.timestamp + 86400 # Note: this needs to be computed based on the user's time zone...which is just IP-based now, sadly
-      @client.hsetnx 'sessionizer:next_day_start', json.userId, next_day
-      @client.zadd 'sessionizer:next_day_end', next_day + 86400, json.userId
-      @handleRequest(json)
-    catch error
-      console.error "Error processing",json," (#{error}): #{error.stack}"
-      
-  handleRequest: (json) =>
-    @emit 'start'
-    try
-      @queue.push {data: json}, (err) =>
-        if err?
-          console.error "Error executing queue for", json, "the error was:", err
-          @emit 'done', err
-    catch error
-      console.error "Error processing",json," (#{error}): #{error.stack}"
-      @emit 'done', error
-        
-  processRequest: (data, callback) =>
-    json = data.data
+      callback(error)
+
+  handleRequest: (json, callback) =>
+    if json.userId?
+      async.series [
+        (processing_cb) =>
+          if json.eventName == 'firstRequest'
+            next_day = json.timestamp + 86400
+            async.series [
+              (cb) => @client.sadd 'sessionizer:is_first', json.userId, cb
+              (cb) => @client.hsetnx 'sessionizer:next_day_start', json.userId, next_day, cb
+              (cb) => @client.zadd 'sessionizer:next_day_end', next_day + 86400, json.userId, cb
+            ], processing_cb
+          else
+            processing_cb()
+        (processing_cb) =>
+          @processRequest json, processing_cb
+      ], callback
+    else
+      callback()
+
+  processRequest: (json, callback) =>
     async.parallel [
       # check to see if we should do cleaning out of old states
       (req_cb) => 
@@ -133,7 +153,7 @@ class Sessionizer extends EventEmitter
           else
             req_cb null, null
     ], (err, results) =>
-      @emit 'done', err, results
+      # Calls back to the queue, which emits error or done
       callback(err, results)
 
   sessionId: (timestamp, userId) ->
@@ -148,6 +168,7 @@ class Sessionizer extends EventEmitter
         callback err, null
       nonblankUserIds = (userId for userId in userIds when userId isnt '')
       async.forEach nonblankUserIds, (userId, user_cb) =>
+        # console.log("closing session for #{userId}")
         async.parallel [
           (cb) => @client.hget 'sessionizer:start_time', userId, cb
           (cb) => @client.zscore 'sessionizer:end_time', userId, cb
@@ -155,6 +176,7 @@ class Sessionizer extends EventEmitter
         ], (err, results) =>
           throw err if err?
           [startTime, endTime, isFirst] = results
+          # console.log("  started at #{startTime}, ended at #{endTime}, was first? #{isFirst}")
           seconds = endTime - startTime
           sessionId = @sessionId(startTime, userId)
           if (seconds < 0)
@@ -189,7 +211,7 @@ class Sessionizer extends EventEmitter
       , (err, results) =>
         callback err, results
 
-  cleanOutOld: (before_timestamp) =>
+  cleanOutOld: (before_timestamp, callback) =>
     # get all users with next_day_end before before_timestamp (now); remove them from next_day_start and next_day_end
     async.series [
       (cb) => 
@@ -198,7 +220,8 @@ class Sessionizer extends EventEmitter
             @client.hdel 'sessionizer:next_day_start', key, key_cb
           , cb
       (cb) => 
-        @client.zremrangebyscore 'sessionizer:end_time', -1, before_timestamp
-    ]
+        @client.zremrangebyscore 'sessionizer:end_time', -1, before_timestamp, cb
+    ], (err, results) =>
+      callback?()
 
 module.exports = Sessionizer 

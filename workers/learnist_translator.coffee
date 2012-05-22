@@ -1,11 +1,11 @@
 util = require('util')
-{EventEmitter} = require('events')
+Worker = require('../lib/worker')
 _ = require('underscore')
 async = require 'async'
 DataProvider = require('../lib/data_provider')
 DbLoader = require('../lib/db_loader')
 
-class LearnistTranslator extends EventEmitter
+class LearnistTranslator extends Worker
   constructor: (foreman) ->
     @foreman = foreman
     dbloader = new DbLoader()
@@ -29,6 +29,7 @@ class LearnistTranslator extends EventEmitter
     @foreman.on('userCreated', @handleMessage)
     @foreman.on('viewedBoard', @handleMessage)
     @dataProvider = new DataProvider(foreman)
+    super()
 
   escape: (str...) =>
     return "" unless str? && str[0]?
@@ -63,8 +64,7 @@ class LearnistTranslator extends EventEmitter
         else throw new Error('unhandled eventName');
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
-      @emit 'done', error
-      
+      @emit 'error', error
 
   handleCompletedLearning: (json) =>
     async.parallel [
@@ -77,12 +77,10 @@ class LearnistTranslator extends EventEmitter
           cb(null,null)
       (cb) => 
         @dataProvider.measure 'board', json.boardId.toString(), json.timestamp, 'had_learning_completed', json.userId, 1, cb
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
       
   handleCommentAdd: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'commented', '', 1, (err, results) =>
-      @emit 'done', err, results
+    @dataProvider.measure 'user', json.userId, json.timestamp, 'commented', '', 1, @emitResults
 
   handleCreatedBoard: (json) =>
     async.parallel [
@@ -92,8 +90,7 @@ class LearnistTranslator extends EventEmitter
         @dataProvider.createObject 'board', json.boardId?.toString(), json.timestamp, cb
       (cb) => 
         @dataProvider.incrementOlapUserCounter json.userId, 'boards_created', cb
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
   handleCreatedInvitation: (json) =>
     async.parallel [
@@ -101,16 +98,13 @@ class LearnistTranslator extends EventEmitter
         @dataProvider.measure 'user', json.userId, json.timestamp, 'created_invitation', json.boardId, 1, cb
       (cb) => 
         @dataProvider.createObject 'invitation', json.invitationId, json.timestamp, cb
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
   handleCreatedLearning: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'created_learning', json.boardId?.toString(), 1, (err, results) =>
-      @emit 'done', err, results
+    @dataProvider.measure 'user', json.userId, json.timestamp, 'created_learning', json.boardId?.toString(), 1, @emitResults
 
   handleCreatedTag: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'tagged', json.taggableId?.toString(), 1, (err, results) =>
-      @emit 'done', err, results
+    @dataProvider.measure 'user', json.userId, json.timestamp, 'tagged', json.taggableId?.toString(), 1, @emitResults
 
   handleEmailSent: (json) =>
     async.parallel [
@@ -120,12 +114,10 @@ class LearnistTranslator extends EventEmitter
         @dataProvider.createObject 'system_email', json.shareHash, json.timestamp, cb
       (cb) => 
         @dataProvider.createObject "system_email_#{json.emailType}", json.shareHash, json.timestamp, cb
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
   handleFollowed: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'followed', json.subscriptionTargetId?.toString(), 1, (err, results) =>
-      @emit 'done', err, results
+    @dataProvider.measure 'user', json.userId, json.timestamp, 'followed', json.subscriptionTargetId?.toString(), 1, @emitResults
 
   handleLiked: (json) =>
     share_id = json.shareHash || "#{json.targetType}_#{json.targetId}"
@@ -134,8 +126,7 @@ class LearnistTranslator extends EventEmitter
         @dataProvider.measure 'user', json.userId, json.timestamp, 'liked', share_id, 1, cb
       (cb) => 
         @dataProvider.createObject 'like', share_id, json.timestamp, cb
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
   handleObjectShared: (json) =>
     async.parallel [
@@ -147,8 +138,7 @@ class LearnistTranslator extends EventEmitter
         @dataProvider.createObject 'share', json.shareHash, json.timestamp, cb
       (cb) => 
         @dataProvider.createObject "share_#{json.shareService}", json.shareHash, json.timestamp, cb
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
   handleRequest: (json) =>
     async.parallel [
@@ -157,20 +147,16 @@ class LearnistTranslator extends EventEmitter
           @dataProvider.measure 'share', json.fromShare, json.timestamp, 'share_visited', json.userId, 1, cb
         else
           cb(null, null)
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
   handleRespondedToInvitation: (json) =>
-    @dataProvider.measure 'user', 'invitation', json.timestamp, 'invitation_responded_to', json.userId, 1, (err, results) =>
-      @emit 'done', err, results
+    @dataProvider.measure 'user', 'invitation', json.timestamp, 'invitation_responded_to', json.userId, 1, @emitResults
 
   handleTagFollowed: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'tag_followed', json.tagId?.toString(), 1, (err, results) =>
-      @emit 'done', err, results
+    @dataProvider.measure 'user', json.userId, json.timestamp, 'tag_followed', json.tagId?.toString(), 1, @emitResults
 
   handleTagUnfollowed: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'tag_unfollowed', json.tagId?.toString(), 1, (err, results) =>
-      @emit 'done', err, results
+    @dataProvider.measure 'user', json.userId, json.timestamp, 'tag_unfollowed', json.tagId?.toString(), 1, @emitResults
 
   handleUpdatedLearning: (json) =>
     async.parallel [
@@ -178,8 +164,7 @@ class LearnistTranslator extends EventEmitter
         @dataProvider.measure 'user', json.userId, json.timestamp, 'updated_board', '', 1, cb
       (cb) => 
         @dataProvider.measure 'user', json.userId, json.timestamp, "updated_learning", '', 1, cb
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
   handleUserCreated: (json) =>
     async.parallel [
@@ -188,8 +173,7 @@ class LearnistTranslator extends EventEmitter
           @dataProvider.measure 'invitation', json.invitationId, json.timestamp, 'created_membership_from_invitation', '', 1, cb
         else
           cb(null, null)
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
   
   handleViewedBoard: (json) =>
     async.parallel [
@@ -198,7 +182,6 @@ class LearnistTranslator extends EventEmitter
         @dataProvider.measure 'user', json.userId, json.timestamp, 'viewed_board', json.boardId?.toString(), 1, cb
       (cb) => 
         @dataProvider.incrementOlapUserCounter json.userId, 'board_viewings', cb
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
 module.exports = LearnistTranslator

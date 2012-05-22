@@ -1,12 +1,12 @@
 util = require('util')
-{EventEmitter} = require('events')
+Worker = require('../lib/worker')
 _ = require('underscore')
 async = require 'async'
 DataProvider = require('../lib/data_provider')
 DateFirster = require('../lib/date_firster')
 DbLoader = require('../lib/db_loader')
 
-class MembershipStatusWorker extends EventEmitter
+class MembershipStatusWorker extends Worker
   constructor: (foreman) ->
     @foreman = foreman
     dbloader = new DbLoader()
@@ -14,6 +14,7 @@ class MembershipStatusWorker extends EventEmitter
     @foreman.on('userCreated', @handleUserCreated)
     @foreman.on('membershipStatusChange', @handleMembershipStatusChange)
     @dataProvider = new DataProvider(foreman)
+    super()
 
   escape: (str...) =>
     return "" unless str? && str[0]?
@@ -32,11 +33,10 @@ class MembershipStatusWorker extends EventEmitter
       myQuery = "
         UPDATE IGNORE olap_users set name='#{@escape json['name']}', email='#{@escape json['email']}' where id='#{@escape userId}';
       "
-      @db.query(myQuery).execute (err, results) =>
-        @emit 'done', err, results
+      @db.query(myQuery).execute @emitResults
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
-      @emit 'done', error
+      @emit 'error', error
       
   handleMembershipStatusChange: (json) =>
     @emit 'start'
@@ -62,10 +62,9 @@ class MembershipStatusWorker extends EventEmitter
           VALUES ('#{@escape userId}', '#{@escape json['newState']}', FROM_UNIXTIME(#{timestamp}), '#{actual_date}', '#{first_of_week}', '#{first_of_month}' );
           "
           @db.query(myQuery).execute cb
-      ], (err, results) =>
-        @emit 'done', err, results
+      ], @emitResults
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
-      @emit 'done', error
+      @emit 'error', error
 
 module.exports = MembershipStatusWorker 

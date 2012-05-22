@@ -1,18 +1,19 @@
 util = require('util')
-{EventEmitter} = require('events')
+Worker = require('../lib/worker')
 _ = require('underscore')
 async = require 'async'
 DataProvider = require('../lib/data_provider')
 DateFirster = require('../lib/date_firster')
 DbLoader = require('../lib/db_loader')
 
-class FirstRequest extends EventEmitter
+class FirstRequest extends Worker
   constructor: (foreman) ->
     @foreman = foreman
     dbloader = new DbLoader()
     @db = dbloader.db()
     @foreman.on('firstRequest', @handleFirstRequest)
     @dataProvider = new DataProvider(foreman)
+    super()
 
   escape: (str...) =>
     return "" unless str? && str[0]?
@@ -64,7 +65,7 @@ class FirstRequest extends EventEmitter
             (cb2) => @country(json.ip, cb2)
           ], (err, results) =>
             if err?
-              @emit 'done', err
+              @emit 'error', err
               cb(err)
             [locationId, countryName] = results
             myQuery = "
@@ -72,11 +73,10 @@ class FirstRequest extends EventEmitter
               VALUES ('#{@escape userId}', '#{@escape normalizedSource}', '#{@escape json.referrer}', '#{@escape json.requestUri}', '#{@escape json.userAgent}', '#{@escape json.ip}', '#{@escape countryName}', #{locationId});
             "
             @db.query(myQuery).execute cb
-      ], (err, results) =>
-        @emit 'done', err, results
+      ], @emitResults
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
-      @emit 'done', error
+      @emit 'error', error
 
     # TODO (when we start advertising again): advertising tags
 

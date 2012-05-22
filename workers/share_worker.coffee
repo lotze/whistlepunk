@@ -1,11 +1,11 @@
 util = require('util')
-{EventEmitter} = require('events')
+Worker = require('../lib/worker')
 _ = require('underscore')
 async = require 'async'
 DataProvider = require('../lib/data_provider')
 DbLoader = require('../lib/db_loader')
 
-class ShareWorker extends EventEmitter
+class ShareWorker extends Worker
   constructor: (foreman) ->
     @foreman = foreman
     dbloader = new DbLoader()
@@ -16,6 +16,7 @@ class ShareWorker extends EventEmitter
     @foreman.on('respondedToInvitation', @handleMessage)
     @foreman.on('membershipStatusChange', @handleMessage)
     @dataProvider = new DataProvider(foreman)
+    super()
 
   escape: (str...) =>
     return "" unless str? && str[0]?
@@ -37,7 +38,7 @@ class ShareWorker extends EventEmitter
         else throw new Error('unhandled eventName');
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
-      @emit 'done', error
+      @emit 'error', error
 
   handleObjectShared: (json) =>
     timestamp = json.timestamp
@@ -55,8 +56,7 @@ class ShareWorker extends EventEmitter
           UPDATE olap_users set shares_created=shares_created+1 where id='#{@escape userId}';
         "
         @db.query(myQuery).execute cb
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
   handleFirstRequest: (json) =>
     timestamp = json.timestamp
@@ -82,10 +82,9 @@ class ShareWorker extends EventEmitter
               @db.query(myQuery).execute cb
             else
               cb()
-      ], (err, results) =>
-        @emit 'done', err, results
+      ], @emitResults
     else
-      @emit 'done', null, null
+      @emit 'done'
 
   handleCreatedInvitation: (json) =>
     timestamp = json.timestamp
@@ -103,8 +102,7 @@ class ShareWorker extends EventEmitter
           UPDATE olap_users set invitations_created=invitations_created+1 where id='#{@escape userId}';
         "
         @db.query(myQuery).execute cb
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
   handleRespondedToInvitation: (json) =>
     timestamp = json.timestamp
@@ -129,8 +127,7 @@ class ShareWorker extends EventEmitter
             @db.query(myQuery).execute cb
           else
             cb()
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
   handleMembershipStatusChange: (json) =>
     timestamp = json.timestamp
@@ -164,7 +161,6 @@ class ShareWorker extends EventEmitter
               cb err, results
           else
             cb()
-    ], (err, results) =>
-      @emit 'done', err, results
+    ], @emitResults
 
 module.exports = ShareWorker 
