@@ -1,11 +1,5 @@
 #!/usr/bin/env coffee
 
-GLOBAL.pendingWorker = 0
-
-# setInterval =>
-#   console.log "Pending Worker Requests: #{GLOBAL.pendingWorker}"
-# , 1000
-
 process.env.NODE_ENV ?= 'development'
 
 require('coffee-script')

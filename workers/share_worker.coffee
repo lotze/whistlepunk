@@ -80,11 +80,12 @@ class ShareWorker extends EventEmitter
                 UPDATE shares set num_visits=num_visits+1 where share_id='#{@escape json['fromShare']}';
               "
               @db.query(myQuery).execute cb
+            else
+              cb()
       ], (err, results) =>
         @emit 'done', err, results
     else
       @emit 'done', null, null
-    
 
   handleCreatedInvitation: (json) =>
     timestamp = json.timestamp
@@ -127,7 +128,7 @@ class ShareWorker extends EventEmitter
             "
             @db.query(myQuery).execute cb
           else
-            cb(null)
+            cb()
     ], (err, results) =>
       @emit 'done', err, results
 
@@ -162,9 +163,8 @@ class ShareWorker extends EventEmitter
             ], (err, results) =>
               cb err, results
           else
-            cb(null)
+            cb()
     ], (err, results) =>
       @emit 'done', err, results
-
 
 module.exports = ShareWorker 

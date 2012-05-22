@@ -41,7 +41,7 @@ class FileProcessorHelper extends EventEmitter
     reader = new FileLineStreamer(file)
 
     @unionRep.on 'saturate', =>
-      console.log "Union workers working too hard, taking a break..."
+      console.log "Union workers working too hard, taking a mandatory break..."
       reader.pause()
     @unionRep.on 'drain', =>
       console.log "BACK TO WORK YOU LAZY BUMS"

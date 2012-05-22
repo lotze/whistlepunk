@@ -6,8 +6,6 @@ class UnionRep extends EventEmitter
     @workers = {}
     @count   = {}
     @total   = 0
-    setInterval @report, 1000
-    @on 'saturate', @report
 
   addWorker: (name, worker) =>
     @workers[name] = worker
