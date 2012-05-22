@@ -6,8 +6,10 @@ class UnionRep extends EventEmitter
     @workers = {}
     @count   = {}
     @total   = 0
-    setInterval @report, 10000
-    @on 'saturate', @report
+    @saturated = false
+    @drained = true
+    # setInterval @report, 10000
+    # @on 'saturate', @report
 
   addWorker: (name, worker) =>
     @workers[name] = worker
@@ -16,12 +18,24 @@ class UnionRep extends EventEmitter
     worker.on 'start', =>
       @count[name]++
       @total++
-      @emit 'saturate' if @total >= @max
+      if @total >= @max && @saturated = false
+        @saturated = true
+        @drained = false
+        @emit 'saturate' 
 
     worker.on 'done', =>
-      @count[name]--
-      @total--
-      @emit 'drain' if @total <= 0
+      @done(name)
+    worker.on 'error', (err) =>
+      console.error "Got an error in a worker: ", err, err.stack
+      @done(name)
+  
+  done: (name) =>
+    @count[name]--
+    @total--
+    if @total <= 0 && @drained = false
+      @drained = true
+      @saturated = false
+      @emit 'drain'
 
   report: =>
     console.log("Worker workloads:")
