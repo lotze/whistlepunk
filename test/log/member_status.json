@@ -1,0 +1,52 @@
+[learnist] {"eventName":"request","userId":"","timestamp":1724,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_6","userAgent":"Chrome","fromShare":null}
+[learnist] {"eventName":"firstRequest","userId":"super_member","timestamp":1724,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_6","userAgent":"Chrome","fromShare":null}
+[learnist] {"userId":"super_member","timestamp":1824,"eventName":"membershipStatusChange","newState":"member"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":2463,"service":"service","ip":"1.2.3.4","referrer":"/randompage_6","requestUri":"/randompage_0","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":2538,"service":"service","ip":"1.2.3.4","referrer":"/randompage_0","requestUri":"/randompage_9","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":2675,"service":"service","ip":"1.2.3.4","referrer":"/randompage_9","requestUri":"/randompage_5","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":2688,"service":"service","ip":"1.2.3.4","referrer":"/randompage_5","requestUri":"/randompage_9","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":2694,"service":"service","ip":"1.2.3.4","referrer":"/randompage_9","requestUri":"/randompage_8","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":2701,"service":"service","ip":"1.2.3.4","referrer":"/randompage_8","requestUri":"/randompage_8","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":2718,"service":"service","ip":"1.2.3.4","referrer":"/randompage_8","requestUri":"/randompage_0","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":2724,"service":"service","ip":"1.2.3.4","referrer":"/randompage_0","requestUri":"/randompage_5","userAgent":"Chrome"}
+[learnist] {"eventName":"firstRequest","userId":"non-member","timestamp":31881,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_5?tb=share_by_effective_sharer","userAgent":"Chrome","fromShare":"share_by_effective_sharer"}
+[learnist] {"eventName":"request","userId":"","timestamp":31881,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_5?tb=share_by_effective_sharer","userAgent":"Chrome","fromShare":"share_by_effective_sharer"}
+[learnist] {"eventName":"request","userId":"non-member","timestamp":32663,"service":"service","ip":"1.2.3.4","referrer":"/randompage_5?tb=share_by_effective_sharer","requestUri":"/randompage_8","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"non-member","timestamp":32701,"service":"service","ip":"1.2.3.4","referrer":"/randompage_8","requestUri":"/randompage_1","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"non-member","timestamp":32764,"service":"service","ip":"1.2.3.4","referrer":"/randompage_1","requestUri":"/randompage_5","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"non-member","timestamp":32881,"service":"service","ip":"1.2.3.4","referrer":"/randompage_5","requestUri":"/randompage_3","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"","timestamp":35410,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_0","userAgent":"Chrome","fromShare":null}
+[learnist] {"eventName":"firstRequest","userId":"regular member","timestamp":35410,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_0","userAgent":"Chrome","fromShare":null}
+[learnist] {"userId":"regular member","timestamp":35510,"eventName":"membershipStatusChange","newState":"member"}
+[learnist] {"userId":"regular member","timestamp":35510,"eventName":"userCreated","name":"Regular Joe","email":"joe@test.com"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":35934,"service":"service","ip":"1.2.3.4","referrer":"/randompage_0","requestUri":"/randompage_3","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":36138,"service":"service","ip":"1.2.3.4","referrer":"/randompage_3","requestUri":"/randompage_5","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":36402,"service":"service","ip":"1.2.3.4","referrer":"/randompage_5","requestUri":"/randompage_8","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":36410,"service":"service","ip":"1.2.3.4","referrer":"/randompage_8","requestUri":"/randompage_8","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":37315,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_4","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":37937,"service":"service","ip":"1.2.3.4","referrer":"/randompage_4","requestUri":"/randompage_4","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":37982,"service":"service","ip":"1.2.3.4","referrer":"/randompage_4","requestUri":"/randompage_8","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":37994,"service":"service","ip":"1.2.3.4","referrer":"/randompage_8","requestUri":"/randompage_0","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":38156,"service":"service","ip":"1.2.3.4","referrer":"/randompage_0","requestUri":"/randompage_0","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":38266,"service":"service","ip":"1.2.3.4","referrer":"/randompage_0","requestUri":"/randompage_1","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"regular member","timestamp":38315,"service":"service","ip":"1.2.3.4","referrer":"/randompage_1","requestUri":"/randompage_8","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":47391,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_1","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":47603,"service":"service","ip":"1.2.3.4","referrer":"/randompage_1","requestUri":"/randompage_3","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":47700,"service":"service","ip":"1.2.3.4","referrer":"/randompage_3","requestUri":"/randompage_1","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":48241,"service":"service","ip":"1.2.3.4","referrer":"/randompage_1","requestUri":"/randompage_1","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":48249,"service":"service","ip":"1.2.3.4","referrer":"/randompage_1","requestUri":"/randompage_6","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":48318,"service":"service","ip":"1.2.3.4","referrer":"/randompage_6","requestUri":"/randompage_1","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":48391,"service":"service","ip":"1.2.3.4","referrer":"/randompage_1","requestUri":"/randompage_3","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":83327,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_4","userAgent":"Chrome"}
+[learnist] {"userId":"super_member","timestamp":83427,"eventName":"membershipStatusChange","newState":"super_member"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":83587,"service":"service","ip":"1.2.3.4","referrer":"/randompage_4","requestUri":"/randompage_6","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":83978,"service":"service","ip":"1.2.3.4","referrer":"/randompage_6","requestUri":"/randompage_5","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":84140,"service":"service","ip":"1.2.3.4","referrer":"/randompage_5","requestUri":"/randompage_4","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":84207,"service":"service","ip":"1.2.3.4","referrer":"/randompage_4","requestUri":"/randompage_2","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":84266,"service":"service","ip":"1.2.3.4","referrer":"/randompage_2","requestUri":"/randompage_9","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":84284,"service":"service","ip":"1.2.3.4","referrer":"/randompage_9","requestUri":"/randompage_9","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":84327,"service":"service","ip":"1.2.3.4","referrer":"/randompage_9","requestUri":"/randompage_5","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":120565,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_6","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":121263,"service":"service","ip":"1.2.3.4","referrer":"/randompage_6","requestUri":"/randompage_1","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":121492,"service":"service","ip":"1.2.3.4","referrer":"/randompage_1","requestUri":"/randompage_1","userAgent":"Chrome"}
+[learnist] {"eventName":"request","userId":"super_member","timestamp":121565,"service":"service","ip":"1.2.3.4","referrer":"/randompage_1","requestUri":"/randompage_7","userAgent":"Chrome"}

@@ -16,7 +16,7 @@ describe "a share worker", ->
       fileProcessorHelper.clearDatabase (err, results) ->
         fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('effective_sharer'),('incoming_nonmember'),('incoming_member'),('sad_sharer');").execute (err, results) ->
           worker.init ->
-            fileProcessorHelper.processFile "../metricizer/spec/log/shares.log"
+            fileProcessorHelper.processFile "test/log/shares.json"
 
     it "should result in three shares and two sharers", (done) ->
       fileProcessorHelper.db.query("select count(*) as shares, count(distinct sharing_user_id) as sharers from shares").execute (error, rows, columns) ->

@@ -86,6 +86,21 @@ class Sessionizer extends Worker
       async.series [
         (processing_cb) =>
           if json.eventName == 'firstRequest'
+            # TODO: actually compute based on time zone
+            # begin
+            #   tz = TZInfo::Timezone.get(user_time_zone)
+            # rescue Exception => e
+            #   tz = TZInfo::Timezone.get("US/Pacific")
+            # end
+            # local_time = tz.utc_to_local(Time.at(session.start_time).utc)
+            # # create end_of_first_day (next 3 AM), end_of_second_day (following 3 AM), and see if the timestamp is between them
+            # three_am_this_day = tz.local_to_utc(Time.utc(local_time.year,local_time.month,local_time.day,3,0,0))
+            # end_of_first_day = nil
+            # if (local_time.strftime("%H").to_i >= 3)
+            #   end_of_first_day = three_am_this_day + 86400
+            # else
+            #   end_of_first_day = three_am_this_day
+            # end
             next_day = json.timestamp + 86400
             async.series [
               (cb) => @client.sadd 'sessionizer:is_first', json.userId, cb

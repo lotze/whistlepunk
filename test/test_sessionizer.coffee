@@ -22,7 +22,7 @@ describe "a sessionizer worker", ->
   #           done()  if processed is 47
   #         fileProcessorHelper.clearDatabase (err, results) ->
   #           worker.init (err, results) ->
-  #             fileProcessorHelper.processFile "../metricizer/spec/log/long.log"
+  #             fileProcessorHelper.processFile "test/log/long.log"
   #     catch e
   #       console.log("ERROR:", e)
   #       done(e)
@@ -45,7 +45,7 @@ describe "a sessionizer worker", ->
         fileProcessorHelper.clearDatabase (err, results) ->
           fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('joe_active_four'),('close_two'),('bounce'),('just_once');").execute (err, results) ->
             worker.init (err, results) ->
-              fileProcessorHelper.processFile "../metricizer/spec/log/sessions.log"
+              fileProcessorHelper.processFile "test/log/sessions.json"
 
     it "should result in the users having four, two, one, and one sessions each", (done) ->
       fileProcessorHelper.db.query("select num_sessions from olap_users order by num_sessions").execute (error, rows, columns) ->
@@ -82,7 +82,7 @@ describe "a sessionizer worker", ->
         if error
           console.log "ERROR: " + error
           return done(error)
-        assert.equal rows[0]['num_measured_sessions'], 1
+        assert.equal rows[0]['num_measured_sessions'], 2
         done()
     
     # it "should record the next-day return of users returning on their next local day"

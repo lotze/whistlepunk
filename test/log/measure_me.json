@@ -1,0 +1,9 @@
+[learnist] {"eventName":"created","objectType":"my_object","objectId":"useless_object","timestamp":86400}
+[learnist] {"eventName":"created","objectType":"my_object","objectId":"once_object","timestamp":172800}
+[learnist] {"eventName":"measureMe","measureName":"best_measure","actorType":"my_object","actorId":"once_object","targetId":"target","timestamp":173800}
+[learnist] {"eventName":"created","objectType":"my_object","objectId":"two_targets_object","timestamp":259200}
+[learnist] {"eventName":"measureMe","measureName":"best_measure","actorType":"my_object","actorId":"two_targets_object","targetId":"target_one","timestamp":260200}
+[learnist] {"eventName":"measureMe","measureName":"best_measure","actorType":"my_object","actorId":"two_targets_object","targetId":"target_two","timestamp":261200}
+[learnist] {"eventName":"created","objectType":"my_object","objectId":"twice_one_target_object","timestamp":345600}
+[learnist] {"eventName":"measureMe","measureName":"best_measure","actorType":"my_object","actorId":"twice_one_target_object","targetId":"target_three","timestamp":346600}
+[learnist] {"eventName":"measureMe","measureName":"best_measure","actorType":"my_object","actorId":"twice_one_target_object","targetId":"target_three","timestamp":347600}

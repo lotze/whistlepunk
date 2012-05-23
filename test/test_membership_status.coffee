@@ -16,7 +16,7 @@ describe "a membership status worker", ->
       fileProcessorHelper.clearDatabase (err, results) ->
         fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('super_member'),('non-member'),('regular member');").execute (err, results) ->
           worker.init ->
-            fileProcessorHelper.processFile "../metricizer/spec/log/member_status.log"
+            fileProcessorHelper.processFile "test/log/member_status.json"
 
     it "should update regular member's name and email address", (done) ->
       fileProcessorHelper.db.query("select name, email from olap_users where id='regular member'").execute (error, rows, columns) ->

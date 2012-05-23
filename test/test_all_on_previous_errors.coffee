@@ -12,10 +12,16 @@ describe "the set of all workers", ->
     async.forEach files, (workerFile, worker_callback) =>
       workerName = workerFile.replace('.js', '')
       WorkerClass = require('../workers/'+workerFile)
-      workers[workerName] = new WorkerClass(fileProcessorHelper)
+      worker = new WorkerClass(fileProcessorHelper)
+      workers[workerName] = worker
       workers[workerName].init(worker_callback)
     , (err) =>
       done()
+      
+  describe "when processing an entry with a single quote", ->
+    it "should not have an error", ->
+      mustBeValidString = '{"service":"learnist","timestamp":1331851773.29056,"formattedTime":"2012-03-15 22:49:33 +0000","xhr":null,"userId":"joe","eventName":"request","ip":"24.5.83.80","requestUri":"/it\'s-a-me-mario","referrer":"http://monkey.com/why\'d-we-do-that","userAgent":"Safari","fromShare":null}'
+      fileProcessorHelper.processLine(mustBeValidString)
   
   describe "when processing an entry with a null highlightedLearningId", ->
     it "should not have an error", ->

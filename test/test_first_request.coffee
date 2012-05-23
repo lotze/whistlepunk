@@ -59,7 +59,7 @@ describe "a first_request worker", ->
           processed++
           done()  if processed is 3
 
-        fileProcessorHelper.processFile "../metricizer/spec/log/first_sessions.log"
+        fileProcessorHelper.processFile "test/log/first_sessions.json"
 
     it "results in three users in all_objects", (done) ->
       fileProcessorHelper.db.query().select([ "object_id" ]).from("all_objects").where("object_type = ?", [ "user" ]).execute (error, rows, columns) ->
