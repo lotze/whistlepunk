@@ -18,7 +18,7 @@ class UnionRep extends EventEmitter
     worker.on 'start', =>
       @count[name]++
       @total++
-      if @total >= @max && @saturated = false
+      if @total >= @max && !@saturated
         @saturated = true
         @drained = false
         @emit 'saturate' 
@@ -32,11 +32,11 @@ class UnionRep extends EventEmitter
   done: (name) =>
     @count[name]--
     @total--
-    if @total <= 0 && @drained = false
+    if @total <= 0 && !@drained
       @drained = true
       @saturated = false
       @emit 'drain'
-
+      
   report: =>
     console.log("Worker workloads:")
     console.log util.inspect(@count)
