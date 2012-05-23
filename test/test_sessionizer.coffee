@@ -6,6 +6,7 @@ Sessionizer = require("../workers/sessionizer")
 UnionRep = require("../lib/union_rep")
 redis = require("redis")
 config = require('../config')
+foreman = require('../lib/foreman.js')
 
 fileProcessorHelper = null
 
@@ -32,20 +33,27 @@ describe "a sessionizer worker", ->
 
   describe "after processing session events", ->
     before (done) ->
-      processed = 0
+      worker = new Sessionizer(foreman)
+      all_lines_read_in = false
+      drained = false
       client = redis.createClient(config.redis.port, config.redis.host)
       client.flushdb (err, results) ->
-        unionRep = new UnionRep()
+        unionRep = new UnionRep(1)
         fileProcessorHelper = new FileProcessorHelper(unionRep)
-        worker = new Sessionizer(fileProcessorHelper)
-        unionRep.addWorker('sessionizer', worker)        
-        worker.on "done", (e, r) ->
-          processed++
-          done() if processed is 52
-        fileProcessorHelper.clearDatabase (err, results) ->
-          fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('joe_active_four'),('close_two'),('bounce'),('just_once');").execute (err, results) ->
-            worker.init (err, results) ->
-              fileProcessorHelper.processFile "test/log/sessions.json"
+        unionRep.addWorker('worker_being_tested', worker)
+        
+        unionRep.once 'drain', =>
+          drained = true
+          if all_lines_read_in
+            done()
+        
+        fileProcessorHelper.clearDatabase (err, results) =>
+          fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('joe_active_four'),('close_two'),('bounce'),('just_once');").execute (err, results) =>
+            worker.init (err, results) =>
+              fileProcessorHelper.processFileForForeman "test/log/sessions.json", foreman, {timestamp:99999999999999}, =>
+                all_lines_read_in = true
+                if drained
+                  done()
 
     it "should result in the users having four, two, one, and one sessions each", (done) ->
       fileProcessorHelper.db.query("select num_sessions from olap_users order by num_sessions").execute (error, rows, columns) ->

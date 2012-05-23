@@ -31,11 +31,11 @@ class DataProvider extends EventEmitter
     ], (err, results) =>
       callback err, results
       
-  measure: (actorType, actorId, timestamp, measureName, measureTarget='', measureAmount=1, callback) =>
+  measure: (actorType, actorId, timestamp, measureName, activityId, measureTarget='', measureAmount=1, callback) =>
     dateFirster = new DateFirster(new Date(1000*timestamp))
     async.parallel [
       (cb) =>
-        @foreman.emit('measureMe', {actorType: actorType, actorId: actorId, timestamp: timestamp, measureName: measureName, measureTarget: measureTarget, measureAmount: measureAmount}) if @foreman
+        @foreman.processMessage({eventName:'measureMe', actorType: actorType, actorId: actorId, timestamp: timestamp, activityId: activityId, measureName: measureName, measureTarget: measureTarget, measureAmount: measureAmount}) if @foreman
         cb(null, null)
       (cb) =>
         myQuery = "

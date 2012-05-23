@@ -4,9 +4,10 @@ async = require("async")
 FileProcessorHelper = require('../lib/file_processor_helper')
 fileProcessorHelper = new FileProcessorHelper()
 FirstRequest = require("../workers/first_request")
+UnionRep = require("../lib/union_rep")
+foreman = require('../lib/foreman.js')
 
 describe "a first_request worker", ->
-  
   describe "#country", ->
     before (done) ->
       async.series [
@@ -52,14 +53,22 @@ describe "a first_request worker", ->
 
   describe "after processing a firstRequest event", ->
     before (done) ->
-      processed = 0
-      worker = new FirstRequest(fileProcessorHelper)
-      fileProcessorHelper.clearDatabase ->
-        worker.on "done", (e, r) ->
-          processed++
-          done()  if processed is 3
-
-        fileProcessorHelper.processFile "test/log/first_sessions.json"
+      worker = new FirstRequest(foreman)
+      all_lines_read_in = false
+      drained = false
+      unionRep = new UnionRep(1)
+      fileProcessorHelper = new FileProcessorHelper(unionRep)
+      unionRep.addWorker('worker_being_tested', worker)
+      unionRep.once 'drain', =>
+        drained = true
+        if all_lines_read_in
+          done()
+      fileProcessorHelper.clearDatabase (err, results) =>
+        worker.init (err, results) =>
+          fileProcessorHelper.processFileForForeman "test/log/first_sessions.json", foreman, {timestamp:99999999999999}, =>
+            all_lines_read_in = true
+            if drained
+              done()
 
     it "results in three users in all_objects", (done) ->
       fileProcessorHelper.db.query().select([ "object_id" ]).from("all_objects").where("object_type = ?", [ "user" ]).execute (error, rows, columns) ->

@@ -10,11 +10,12 @@ describe 'DataProvider', =>
     actorType = 'testActorType'
     actorId = 'testActor'
     measureName = 'testMeasureName'
+    activityId = 'my_activity_id'
     timestamp = 1337540783.254368
     measureTarget = ''
     measureAmount = 1
     @fileProcessorHelper.clearDatabase =>
-      @dataProvider.measure actorType, actorId, timestamp, measureName, measureTarget, measureAmount, =>
+      @dataProvider.measure actorType, actorId, timestamp, measureName, activityId, measureTarget, measureAmount, =>
         done(arguments...)
 
   describe '#measure', =>

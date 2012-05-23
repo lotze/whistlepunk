@@ -29,9 +29,10 @@ class Sessionizer extends Worker
     @foreman.on('firstRequest', @enqueueEvent)
     @foreman.on('request', @enqueueEvent)
     @foreman.on('measureMe', @enqueueEvent)
-    @dataProvider = new DataProvider(foreman)
+    @dataProvider = new DataProvider(@foreman)
     @cleanRequestFrequency = 10000
     @sessionIntervalSeconds = 900
+    @eventTracker = {}
     super()
 
   escape: (str...) =>
@@ -67,15 +68,10 @@ class Sessionizer extends Worker
       if json.actorType == 'user'
         @client.hget 'sessionizer:start_time', json.actorId, (err, startTime) =>
           if startTime?
-            @dataProvider.measure 'session', @sessionId(startTime,json.actorId), json.timestamp, json.measureName, json.measureTarget, json.measureAmount, callback
+            @dataProvider.measure 'session', @sessionId(startTime,json.actorId), json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
           else
-            @client.hgetall 'sessionizer:start_time', (err, results) =>
-              console.log("no session -- shouldn't happen in test")
-              console.log("sessions in the hash:")
-              console.dir(results)
-              callback()
+            callback()
       else
-        console.log("not a user measurement; should happen once")
         callback()
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
@@ -157,7 +153,7 @@ class Sessionizer extends Worker
                   (next_day_cb) =>
                     @db.query("UPDATE IGNORE olap_users SET returned_next_day=1 WHERE id = '#{@escape json.userId}'").execute next_day_cb
                   (next_day_cb) =>
-                    @dataProvider.measure 'user', json.userId, json.timestamp, 'returned_next_local_day', '', 1, next_day_cb
+                    @dataProvider.measure 'user', json.userId, json.timestamp, 'returned_next_local_day', null, '', 1, next_day_cb
                 ], (err, results) =>
                   req_cb err, results
               else
@@ -209,7 +205,7 @@ class Sessionizer extends Worker
               if isFirst
                 cb null, null
               else
-                @dataProvider.measure 'user', userId, startTime, 'returned', '', 1, cb
+                @dataProvider.measure 'user', userId, startTime, 'returned', sessionId, '', 1, cb
             (cb) =>
               @dataProvider.createObject session_type, sessionId, startTime, cb
             (cb) =>

@@ -52,7 +52,7 @@ class MembershipStatusWorker extends Worker
         (cb) => 
           @dataProvider.createObject json['newState'], userId, timestamp, cb
         (cb) => 
-          @dataProvider.measure('user', userId, timestamp, 'upgraded', '', 1, cb)
+          @dataProvider.measure('user', userId, timestamp, 'upgraded', json.activityId, '', 1, cb)
         (cb) =>
           myQuery = "UPDATE IGNORE olap_users set status='#{@escape json['newState']}' where id='#{@escape userId}';"
           @db.query(myQuery).execute cb

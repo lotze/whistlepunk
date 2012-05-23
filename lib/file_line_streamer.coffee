@@ -4,7 +4,6 @@ util = require 'util'
 
 class FileLineStreamer extends EventEmitter
   constructor: (@filename) ->
-    console.log("FileLineStreamer constructor: #{@filename}")
     @buffer = ''
 
   start: =>

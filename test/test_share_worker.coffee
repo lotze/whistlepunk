@@ -4,19 +4,31 @@ async = require("async")
 FileProcessorHelper = require('../lib/file_processor_helper')
 fileProcessorHelper = new FileProcessorHelper()
 ShareWorker = require("../workers/share_worker")
+UnionRep = require("../lib/union_rep")
+foreman = require('../lib/foreman.js')
 
 describe "a share worker", ->
   describe "after processing share events", ->
     before (done) ->
-      processed = 0
-      worker = new ShareWorker(fileProcessorHelper)
-      worker.on "done", (e, r) ->
-        processed++
-        done()  if processed is 8
-      fileProcessorHelper.clearDatabase (err, results) ->
+      worker = new ShareWorker(foreman)
+      all_lines_read_in = false
+      drained = false
+      unionRep = new UnionRep(1)
+      fileProcessorHelper = new FileProcessorHelper(unionRep)
+      unionRep.addWorker('worker_being_tested', worker)
+      
+      unionRep.once 'drain', =>
+        drained = true
+        if all_lines_read_in
+          done()
+      
+      fileProcessorHelper.clearDatabase (err, results) =>
         fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('effective_sharer'),('incoming_nonmember'),('incoming_member'),('sad_sharer');").execute (err, results) ->
-          worker.init ->
-            fileProcessorHelper.processFile "test/log/shares.json"
+          worker.init (err, results) =>
+            fileProcessorHelper.processFileForForeman "test/log/shares.json", foreman, {timestamp:99999999999999}, =>
+              all_lines_read_in = true
+              if drained
+                done()
 
     it "should result in three shares and two sharers", (done) ->
       fileProcessorHelper.db.query("select count(*) as shares, count(distinct sharing_user_id) as sharers from shares").execute (error, rows, columns) ->

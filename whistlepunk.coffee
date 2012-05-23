@@ -35,7 +35,7 @@ class Application
       async.forEach files, (workerFile, worker_callback) =>
         workerName = workerFile.replace('.js', '')
         WorkerClass = require('./workers/'+workerFile)
-        worker = new WorkerClass(foreman)
+        worker = new WorkerClass(@foreman)
         worker.init(worker_callback)
         @unionRep.addWorker(workerName, worker)
       , (err) =>

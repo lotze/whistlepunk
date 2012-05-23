@@ -4,6 +4,7 @@ async = require("async")
 FileProcessorHelper = require('../lib/file_processor_helper')
 fileProcessorHelper = new FileProcessorHelper()
 MembershipStatusWorker = require("../workers/membership_status_worker")
+foreman = require('../lib/foreman.js')
 
 describe "a membership status worker", ->
   describe "after processing membership status events", ->

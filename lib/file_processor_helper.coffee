@@ -16,6 +16,9 @@ class FileProcessorHelper extends EventEmitter
 
   processLine: (line) =>
     json_data = JSON.parse(line)
+    @processMessage(json_data)
+    
+  processMessage: (json_data) =>
     @emit json_data.eventName, json_data
 
   getLogFilesInOrder: (directory, callback) =>
@@ -40,14 +43,13 @@ class FileProcessorHelper extends EventEmitter
       self.emit streamData.eventName, streamData
 
   processFileForForeman: (file, foreman, lastEvent, callback) =>
-    console.log("Starting FileLineStreamer for #{file}")
     reader = new FileLineStreamer(file)
 
     @unionRep.on 'saturate', =>
-      console.log "Union workers working too hard, taking a mandatory break..."
+      #console.log "Union workers working too hard, taking a mandatory break..."
       reader.pause()
     @unionRep.on 'drain', =>
-      console.log "BACK TO WORK YOU LAZY BUMS"
+      #console.log "BACK TO WORK YOU LAZY BUMS"
       reader.resume()
 
     reader.on 'data', (line) ->
