@@ -2,7 +2,7 @@
 
 class Worker extends EventEmitter
   constructor: ->
-    super
+    super()
   emitResults: (err, results) =>
     if err?
       @emit 'error', err
