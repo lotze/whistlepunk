@@ -68,8 +68,12 @@ class Application
         # then get the first event in the redis queue
         console.log "WhistlePunk: getting first redis event"
         redis_client = redis.createClient(config.msg_source_redis.port, config.msg_source_redis.host)
+        if (config.msg_source_redis.redis_db_num) {
+          this.redis_client.select(config.msg_source_redis.redis_db_num);
+        }
         redis_key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
         redis_client.brpop redis_key, 0, (err, reply) =>
+          console.log("Got it -- will reprocess up to ", reply)
           @reprocessUpTo(err, reply, cb)
     ], (err, results) =>
       throw err if err?
