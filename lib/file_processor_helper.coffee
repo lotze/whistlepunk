@@ -95,14 +95,16 @@ class FileProcessorHelper extends EventEmitter
       (parallel_callback) => @db.query("TRUNCATE TABLE timeseries").execute parallel_callback
       (parallel_callback) => @db.query("TRUNCATE TABLE shares").execute parallel_callback
       (parallel_callback) => @db.query("TRUNCATE TABLE in_from_shares").execute parallel_callback
-      (parallel_callback) => @client.smembers 'sessionizer:is_first', (err, results) =>
-        @client.srem 'sessionizer:is_first', results..., parallel_callback
-      (parallel_callback) => @client.hkeys 'sessionizer:start_time', (err, results) =>
-        @client.hdel 'sessionizer:start_time', results..., parallel_callback
-      (parallel_callback) => @client.zremrangebyscore 'sessionizer:end_time', -1, 99999999999999999, parallel_callback
-      (parallel_callback) => @client.hkeys 'sessionizer:next_day_start', (err, results) =>
-        @client.hdel 'sessionizer:next_day_start', results..., parallel_callback
-      (parallel_callback) => @client.zremrangebyscore 'sessionizer:next_day_end', -1, 99999999999999999, parallel_callback
+      # (parallel_callback) => @client.smembers 'sessionizer:is_first', (err, results) =>
+      #   @client.srem 'sessionizer:is_first', results..., parallel_callback
+      # (parallel_callback) => @client.hkeys 'sessionizer:start_time', (err, results) =>
+      #   @client.hdel 'sessionizer:start_time', results..., parallel_callback
+      # (parallel_callback) => @client.hkeys 'sessionizer:activity_id', (err, results) =>
+      #   @client.hdel 'sessionizer:activity_id', results..., parallel_callback
+      # (parallel_callback) => @client.zremrangebyscore 'sessionizer:end_time', -1, 99999999999999999, parallel_callback
+      # (parallel_callback) => @client.hkeys 'sessionizer:next_day_start', (err, results) =>
+      #   @client.hdel 'sessionizer:next_day_start', results..., parallel_callback
+      # (parallel_callback) => @client.zremrangebyscore 'sessionizer:next_day_end', -1, 99999999999999999, parallel_callback
      ], (err, results) =>
       callback err, results
 
