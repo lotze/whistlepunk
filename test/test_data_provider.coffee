@@ -4,21 +4,23 @@ should = require('should')
 assert = require('assert')
 
 describe 'DataProvider', =>
-  before (done) =>
+  before =>
     @fileProcessorHelper = new FileProcessorHelper()
     @dataProvider = new DataProvider(@fileProcessorHelper)
-    actorType = 'testActorType'
-    actorId = 'testActor'
-    measureName = 'testMeasureName'
-    activityId = 'my_activity_id'
-    timestamp = 1337540783.254368
-    measureTarget = ''
-    measureAmount = 1
-    @fileProcessorHelper.clearDatabase =>
-      @dataProvider.measure actorType, actorId, timestamp, measureName, activityId, measureTarget, measureAmount, =>
-        done(arguments...)
+    @actorType = 'testActorType'
+    @actorId = 'testActor'
 
   describe '#measure', =>
+    before (done) =>
+      measureName = 'testMeasureName'
+      activityId = 'my_activity_id'
+      timestamp = 1337540783.254368
+      measureTarget = ''
+      measureAmount = 1
+      @fileProcessorHelper.clearDatabase =>
+        @dataProvider.measure @actorType, @actorId, timestamp, measureName, activityId, measureTarget, measureAmount, =>
+          done(arguments...)
+
     it 'should result in a correct entry in the all_measurements table', (done) =>
       @fileProcessorHelper.db.query().select(["amount"])
              .from("all_measurements")
@@ -54,11 +56,9 @@ describe 'DataProvider', =>
 
   describe '#createObject', =>
     it 'should result in a new object in the all_objects table', (done) =>
-      actorType = 'testActorType'
-      actorId = 'testActor'
       timestamp = 0.0
       @fileProcessorHelper.clearDatabase =>
-        @dataProvider.createObject actorType, actorId, timestamp, =>
+        @dataProvider.createObject @actorType, @actorId, timestamp, =>
           @fileProcessorHelper.db.query().select(["object_id"])
                  .from("all_objects")
                  .where("object_id = ?", ["testActor"])
