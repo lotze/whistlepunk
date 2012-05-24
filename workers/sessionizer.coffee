@@ -9,10 +9,11 @@ Redis = require("../lib/redis")
 crypto = require("crypto")
 config = require('../config')
 
-# sessionizer maintains a hash (by user), a set, and a sorted set (by user/end time) in redis to determine the aspects of all currently-active user sessions:
-#  - sessionizer:start_time  start time of the session
-#  - sessionizer:is_first    whether the session is the user's first session
-#  - sessionizer:end_time    end time of the session
+# sessionizer maintains data objects in redis to determine the aspects of all currently-active user sessions:
+#  - sessionizer:start_time  hash by user; start time of the session
+#  - sessionizer:is_first    set; whether the session is the user's first session
+#  - sessionizer:activity_id hash by user; activityId for the current session
+#  - sessionizer:end_time    sorted set; end time of the session
 
 # sessonizer also maintains a hash (by user) and sorted set (by user/end_time) of recently created users to see if they come back on their next day:
 #  - sessionizer:next_day_start
@@ -66,9 +67,17 @@ class Sessionizer extends Worker
   handleMeasureMe: (json, callback) =>
     try
       if json.actorType == 'user'
-        @client.hget 'sessionizer:start_time', json.actorId, (err, startTime) =>
+        if json.activityId?
+          @dataProvider.measure 'session', json.activityId, json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
+        else
+        async.parallel [
+          (cb) => @client.hget 'sessionizer:start_time', json.actorId, cb
+          (cb) => @client.hget 'sessionizer:activity_id', json.actorId, cb
+        ], (err, results) =>
+          return callback(err) if err?
+          [startTime, activityId] = results
           if startTime?
-            @dataProvider.measure 'session', @sessionId(startTime,json.actorId), json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
+            @dataProvider.measure 'session', activityId || @sessionId(startTime,json.actorId), json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
           else
             callback()
       else
@@ -103,6 +112,11 @@ class Sessionizer extends Worker
               (cb) => @client.hsetnx 'sessionizer:next_day_start', json.userId, next_day, cb
               (cb) => @client.zadd 'sessionizer:next_day_end', next_day + 86400, json.userId, cb
             ], processing_cb
+          else
+            processing_cb()
+        (processing_cb) => 
+          if json.activityId
+            @client.hsetnx 'sessionizer:activity_id', json.userId, json.activityId, processing_cb
           else
             processing_cb()
         (processing_cb) =>
@@ -176,17 +190,18 @@ class Sessionizer extends Worker
         callback err, null
       nonblankUserIds = (userId for userId in userIds when userId isnt '')
       async.forEach nonblankUserIds, (userId, user_cb) =>
-        # console.log("closing session for #{userId}")
+        #console.log("closing session for #{userId}")
         async.parallel [
           (cb) => @client.hget 'sessionizer:start_time', userId, cb
           (cb) => @client.zscore 'sessionizer:end_time', userId, cb
           (cb) => @client.sismember 'sessionizer:is_first', userId, cb
+          (cb) => @client.hget 'sessionizer:activity_id', userId, cb
         ], (err, results) =>
           throw err if err?
-          [startTime, endTime, isFirst] = results
-          # console.log("  started at #{startTime}, ended at #{endTime}, was first? #{isFirst}")
+          [startTime, endTime, isFirst, sessionId] = results
+          sessionId = @sessionId(startTime, userId) unless sessionId?
+          #console.log("  started at #{startTime}, ended at #{endTime}, was first? #{isFirst}")
           seconds = endTime - startTime
-          sessionId = @sessionId(startTime, userId)
           if (seconds < 0)
             seconds=0
           if isFirst
@@ -205,6 +220,7 @@ class Sessionizer extends Worker
               if isFirst
                 cb null, null
               else
+                #console.log("measuring 'returned' for #{userId}/#{sessionId}")
                 @dataProvider.measure 'user', userId, startTime, 'returned', sessionId, '', 1, cb
             (cb) =>
               @dataProvider.createObject session_type, sessionId, startTime, cb
@@ -212,6 +228,8 @@ class Sessionizer extends Worker
               @client.zrem 'sessionizer:end_time', userId, cb
             (cb) =>
               @client.hdel 'sessionizer:start_time', userId, cb
+            (cb) =>
+              @client.hdel 'sessionizer:activity_id', userId, cb
             (cb) =>
               @client.srem 'sessionizer:is_first', userId, cb
           ], (err, results) =>
