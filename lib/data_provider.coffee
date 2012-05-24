@@ -35,6 +35,7 @@ class DataProvider extends EventEmitter
     dateFirster = new DateFirster(new Date(1000*timestamp))
     async.parallel [
       (cb) =>
+        # console.log("dp measuring ",actorType, actorId, timestamp, measureName, activityId)
         @foreman.processMessage({eventName:'measureMe', actorType: actorType, actorId: actorId, timestamp: timestamp, activityId: activityId, measureName: measureName, measureTarget: measureTarget, measureAmount: measureAmount}) if @foreman
         cb(null, null)
       (cb) =>
@@ -46,26 +47,29 @@ class DataProvider extends EventEmitter
       (cb) =>
         myQuery = "UPDATE summarized_metrics SET raw_data_last_updated_at=UNIX_TIMESTAMP(NOW()) WHERE measure_name='#{@escape measureName}'"
         @db.query(myQuery).execute cb
-      (cb) =>
-        # update timeseries for day
-        aggregate_moment = dateFirster.date()
-        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'day', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
-        @db.query(myQuery).execute cb
-      (cb) =>
-        # update timeseries for month
-        aggregate_moment = dateFirster.firstOfMonth()
-        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'month', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
-        @db.query(myQuery).execute cb
-      (cb) =>
-        # update timeseries for year
-        aggregate_moment = dateFirster.firstOfYear()
-        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'year', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
-        @db.query(myQuery).execute cb
-      (cb) =>
-        # update timeseries for total
-        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'total', 0, '', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
-        @db.query(myQuery).execute cb
-        
+      (cb) => 
+        async.parallel [
+          (timeseries_cb) =>
+            # update timeseries for day
+            aggregate_moment = dateFirster.date()
+            myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'day', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+            @db.query(myQuery).execute timeseries_cb
+          (timeseries_cb) =>
+            # update timeseries for month
+            aggregate_moment = dateFirster.firstOfMonth()
+            myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'month', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+            @db.query(myQuery).execute timeseries_cb
+          (timeseries_cb) =>
+            # update timeseries for year
+            aggregate_moment = dateFirster.firstOfYear()
+            myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'year', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+            @db.query(myQuery).execute timeseries_cb
+          (timeseries_cb) =>
+            # update timeseries for total
+            myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'total', 0, '', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+            @db.query(myQuery).execute timeseries_cb
+        ], (err, results) =>
+          cb(err, results)
     ], (err, results) =>
       callback err, results
 
