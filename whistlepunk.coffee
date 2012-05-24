@@ -3,6 +3,7 @@
 process.env.NODE_ENV ?= 'development'
 
 require('coffee-script')
+redis = require('redis')
 Redis = require("./lib/redis")
 config = require('./config')
 FileProcessorHelper = require('./lib/file_processor_helper')
@@ -69,9 +70,9 @@ class Application
       return throw err if err?
       [from, to] = results
       if from?
-        resumeReprocessing(from, to)
+        @resumeReprocessing(from, to)
       else
-        startReprocessing()
+        @startReprocessing()
 
   resumeReprocessing: (from, to) =>
     @reprocessFromTo from, to, (err, results) =>
@@ -87,19 +88,20 @@ class Application
       (cb) =>
         # then get the first event in the redis queue
         console.log "WhistlePunk: getting first redis event"
-        redis_client = redis.createClient(config.msg_source_redis.port, config.msg_source_redis.host)
-        if config.msg_source_redis.redis_db_num?
-          redis_client.select(config.msg_source_redis.redis_db_num);
         redis_key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
-        redis_client.brpop redis_key, 0, (err, reply) =>
+        remote_redis_client = redis.createClient(config.msg_source_redis.port, config.msg_source_redis.host);
+        if config.msg_source_redis.redis_db_num?
+          remote_redis_client.select(config.msg_source_redis.redis_db_num);
+        remote_redis_client.brpop redis_key, 0, (err, reply) =>
           if err?
             console.error "Error during Redis BRPOP"
             return throw err
           else
             console.log("Got it -- will reprocess up to ", reply)
+            jsonString = reply[1]
             @client.set 'whistlepunk:last_event_to_process', jsonString, (err, result) =>
               console.log("error updating last event to process: ",err,err.stack) if err?
-              @reprocessFromTo(null, reply[1], cb)
+              @reprocessFromTo(null, jsonString, cb)
     ], (err, results) =>
       throw err if err?
       @client.del 'whistlepunk:last_event_processed', (err, results) =>
@@ -109,7 +111,7 @@ class Application
     # then process all data from all log files up to that event
     @firstMessage = JSON.parse(from) if from?
     @finalMessage = JSON.parse(to) if to?
-    logPath = if process.env.NODE_ENV == 'development' then "/Users/grockit/workspace/metricizer/spec/log" else "/opt/grockit/log"
+    logPath = if process.env.NODE_ENV == 'development' then "/Users/grockit/workspace/whistlepunk/test/log" else "/opt/grockit/log"
     @fileProcessorHelper.getLogFilesInOrder logPath, (err, fileList) =>
       if err?
         console.error("Error while getting log files")

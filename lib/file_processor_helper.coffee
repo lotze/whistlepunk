@@ -23,7 +23,7 @@ class FileProcessorHelper extends EventEmitter
     @emit json_data.eventName, json_data
 
   getLogFilesInOrder: (directory, callback) =>
-    return callback(null, [ "#{directory}/shares.log", "#{directory}/sessions.log" ]) if process.env.NODE_ENV is "development"
+    return callback(null, [ "#{directory}/shares.json", "#{directory}/sessions.json" ]) if process.env.NODE_ENV is "development"
     fs.readdir directory, (err, files) ->
       matchedFiles = (file for file in files when file.match(/^learnist\.log\.1.*/))
       matchedFiles = matchedFiles.sort (a, b) =>
@@ -69,7 +69,7 @@ class FileProcessorHelper extends EventEmitter
       console.log "BACK TO WORK YOU LAZY BUMS"
       reader.resume()
 
-    reader.on 'data', (line) ->
+    reader.on 'data', (line) =>
       try
         matches = line.toString().match(/^[^\{]*(\{.*\})/)
         if (matches?) and (matches.length > 0)
@@ -100,14 +100,22 @@ class FileProcessorHelper extends EventEmitter
       (parallel_callback) => @db.query("TRUNCATE TABLE shares").execute parallel_callback
       (parallel_callback) => @db.query("TRUNCATE TABLE in_from_shares").execute parallel_callback
       (parallel_callback) => @client.smembers 'sessionizer:is_first', (err, results) =>
-        @client.srem 'sessionizer:is_first', results..., parallel_callback
+        async.forEach results, (userId, user_cb) =>
+          @client.srem 'sessionizer:is_first', userId, user_cb
+        , parallel_callback
       (parallel_callback) => @client.hkeys 'sessionizer:start_time', (err, results) =>
-        @client.hdel 'sessionizer:start_time', results..., parallel_callback
+        async.forEach results, (userId, user_cb) =>
+          @client.hdel 'sessionizer:start_time', userId, user_cb
+        , parallel_callback
       (parallel_callback) => @client.hkeys 'sessionizer:activity_id', (err, results) =>
-        @client.hdel 'sessionizer:activity_id', results..., parallel_callback
+        async.forEach results, (userId, user_cb) =>
+          @client.hdel 'sessionizer:activity_id', userId, user_cb
+        , parallel_callback
       (parallel_callback) => @client.zremrangebyscore 'sessionizer:end_time', -1, 99999999999999999, parallel_callback
       (parallel_callback) => @client.hkeys 'sessionizer:next_day_start', (err, results) =>
-        @client.hdel 'sessionizer:next_day_start', results..., parallel_callback
+        async.forEach results, (userId, user_cb) =>
+          @client.hdel 'sessionizer:next_day_start', userId, user_cb
+        , parallel_callback
       (parallel_callback) => @client.zremrangebyscore 'sessionizer:next_day_end', -1, 99999999999999999, parallel_callback
      ], (err, results) =>
       callback err, results
