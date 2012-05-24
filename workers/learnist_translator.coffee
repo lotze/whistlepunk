@@ -18,6 +18,7 @@ class LearnistTranslator extends Worker
     @foreman.on('createdLearning', @handleMessage)
     @foreman.on('createdTag', @handleMessage)
     @foreman.on('emailSent', @handleMessage)
+    @foreman.on('facebookLiked', @handleMessage)
     @foreman.on('followed', @handleMessage)
     @foreman.on('liked', @handleMessage)
     @foreman.on('objectShared', @handleMessage)
@@ -51,6 +52,7 @@ class LearnistTranslator extends Worker
         when "createdLearning" then @handleCreatedLearning(json)
         when "createdTag" then @handleCreatedTag(json)
         when "emailSent" then @handleEmailSent(json)
+        when "facebookLiked" then @handleFacebookLiked(json)
         when "followed" then @handleFollowed(json)
         when "liked" then @handleLiked(json)
         when "objectShared" then @handleObjectShared(json)
@@ -115,6 +117,9 @@ class LearnistTranslator extends Worker
       (cb) => 
         @dataProvider.createObject "system_email_#{json.emailType}", json.shareHash, json.timestamp, cb
     ], @emitResults
+    
+  handleFacebookLiked: (json) =>
+    @dataProvider.measure 'user', json.userId, json.timestamp, 'facebook_liked', json.activityId, json.likedUri, 1, @emitResults
 
   handleFollowed: (json) =>
     @dataProvider.measure 'user', json.userId, json.timestamp, 'followed', json.activityId, json.subscriptionTargetId?.toString(), 1, @emitResults

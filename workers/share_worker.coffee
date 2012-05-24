@@ -31,6 +31,7 @@ class ShareWorker extends Worker
     try
       switch json.eventName
         when "objectShared" then @handleObjectShared(json)
+        when "facebookLiked" then @handleFacebookLike(json)
         when "firstRequest" then @handleFirstRequest(json)
         when "createdInvitation" then @handleCreatedInvitation(json)
         when "respondedToInvitation" then @handleRespondedToInvitation(json)
@@ -58,15 +59,33 @@ class ShareWorker extends Worker
         @db.query(myQuery).execute cb
     ], @emitResults
 
-  handleFirstRequest: (json) =>
+  handleFacebookLike: (json) =>
     timestamp = json.timestamp
     userId = json.userId
     
+    async.parallel [
+      (cb) =>
+        myQuery = "
+          INSERT IGNORE INTO shares (sharing_user_id, share_id, share_or_invitation, share_method, created_at) 
+          VALUES ('#{@escape userId}', '#{@escape json['shareHash']}', 'share', 'facebook_like', FROM_UNIXTIME(#{timestamp}));
+        "
+        @db.query(myQuery).execute cb
+      (cb) =>
+        myQuery = "
+          UPDATE olap_users set shares_created=shares_created+1 where id='#{@escape userId}';
+        "
+        @db.query(myQuery).execute cb
+    ], @emitResults
+
+  handleFirstRequest: (json) =>
+    timestamp = json.timestamp
+    userId = json.userId
+
     if json['fromShare']
       async.parallel [
         (cb) =>
           myQuery = "
-            INSERT IGNORE INTO in_from_shares (user_id, share_id, created_at) 
+            INSERT IGNORE INTO in_from_shares (user_id, share_id, created_at)
             VALUES ('#{@escape userId}', '#{@escape json['fromShare']}', FROM_UNIXTIME(#{timestamp}))
           "
           @db.query(myQuery).execute cb
