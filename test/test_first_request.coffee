@@ -5,7 +5,6 @@ FileProcessorHelper = require('../lib/file_processor_helper')
 fileProcessorHelper = new FileProcessorHelper()
 FirstRequest = require("../workers/first_request")
 UnionRep = require("../lib/union_rep")
-foreman = require('../lib/foreman.js')
 
 describe "a first_request worker", ->
   describe "#country", ->
@@ -53,11 +52,11 @@ describe "a first_request worker", ->
 
   describe "after processing a firstRequest event", ->
     before (done) ->
-      worker = new FirstRequest(foreman)
-      all_lines_read_in = false
-      drained = false
       unionRep = new UnionRep(1)
       fileProcessorHelper = new FileProcessorHelper(unionRep)
+      worker = new FirstRequest(fileProcessorHelper)
+      all_lines_read_in = false
+      drained = false
       unionRep.addWorker('worker_being_tested', worker)
       unionRep.once 'drain', =>
         drained = true
@@ -65,7 +64,7 @@ describe "a first_request worker", ->
           done()
       fileProcessorHelper.clearDatabase (err, results) =>
         worker.init (err, results) =>
-          fileProcessorHelper.processFileForForeman "test/log/first_sessions.json", foreman, {timestamp:99999999999999}, =>
+          fileProcessorHelper.processFile "test/log/first_sessions.json", =>
             all_lines_read_in = true
             if drained
               done()

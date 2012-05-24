@@ -1,13 +1,14 @@
 #!/usr/bin/ruby
 
-require File.expand_path("#{File.dirname(__FILE__)}/../config/environment")
+require 'rubygems'
+require 'json'
 
 class MakeTestLogs
 
   def write_logs(log_file, log_hashes)
     File.open(log_file, "w") do |file|
       log_hashes.sort_by {|l| l['timestamp'] || l[:timestamp]}.each do |l|
-        file.puts "[learnist] #{l.to_json}"
+        file.puts l.to_json
       end
     end
   end
@@ -80,27 +81,31 @@ class MakeTestLogs
     log_hashes = []
 
     current_time = time_starts_at.to_i + rand(86400)
-    log_hashes = log_hashes + make_session_logs("joe_active_four", current_time, 1000, true)
-    log_hashes = log_hashes + become_member("joe_active_four", current_time + 100)
+    user_id = "joe_active_four"
+    log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
+    log_hashes = log_hashes + become_member(user_id, current_time + 100, 'member', {:activityId => "#{current_time}#{user_id}"})
     current_time += 1000 + 900 + rand(86400)
-    log_hashes = log_hashes + make_session_logs("joe_active_four", current_time, 1000)
-    log_hashes = log_hashes + measure_event("joe_active_four", current_time + 10, 'great_measure')
+    log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, false, nil, {:activityId => "#{current_time}#{user_id}"})
+    #log_hashes = log_hashes + measure_event(user_id, current_time + 10, 'great_measure')
     current_time += 1000 + 900 + rand(86400)
-    log_hashes = log_hashes + make_session_logs("joe_active_four", current_time, 1000)
+    log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, false, nil, {:activityId => "#{current_time}#{user_id}"})
     current_time += 1000 + 900 + rand(86400)
-    log_hashes = log_hashes + make_session_logs("joe_active_four", current_time, 1000)
+    log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, false, nil, {:activityId => "#{current_time}#{user_id}"})
 
     current_time = time_starts_at.to_i + rand(86400)
-    log_hashes = log_hashes + make_session_logs("close_two", current_time, 1000, true)
+    user_id = "close_two"
+    log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
     current_time += 1000 + 905
-    log_hashes = log_hashes + make_session_logs("close_two", current_time, 1000)
-    log_hashes = log_hashes + measure_event("close_two", current_time + 10, 'great_measure')
+    log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, false, nil, {:activityId => "#{current_time}#{user_id}"})
+    #log_hashes = log_hashes + measure_event("close_two", current_time + 10, 'great_measure')
 
     current_time = time_starts_at.to_i + rand(86400)
-    log_hashes = log_hashes + make_session_logs("just_once", current_time, 1000, true)
+    user_id = "just_once"
+    log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
 
     current_time = time_starts_at.to_i + rand(86400)
-    log_hashes = log_hashes + make_session_logs("bounce", current_time, 0, true)
+    user_id = "bounce"
+    log_hashes = log_hashes + make_session_logs(user_id, current_time, 0, true, nil, {:activityId => "#{current_time}#{user_id}"})
 
     write_logs(outfile, log_hashes)
   end
@@ -236,10 +241,10 @@ makeTestLogs = MakeTestLogs.new
 
 file_types = [:sessions, :shares, :measure_me, :first_sessions, :member_status]
 
-for (file_type in ARGV)
+ARGV.each do |file_type|
   if file_types.include?(file_type.to_sym)
     outfile = File.expand_path("#{File.dirname(__FILE__)}/../test/log/#{file_type}.json")
-    makeTestLogs.call(file_type, outfile)
+    makeTestLogs.send(file_type, outfile)
   end
 end
 

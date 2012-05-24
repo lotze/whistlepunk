@@ -1,15 +1,17 @@
 should = require("should")
 assert = require("assert")
 async = require("async")
+UnionRep = require("../lib/union_rep")
 FileProcessorHelper = require('../lib/file_processor_helper')
-fileProcessorHelper = new FileProcessorHelper()
+fileProcessorHelper = null
 MembershipStatusWorker = require("../workers/membership_status_worker")
-foreman = require('../lib/foreman.js')
 
 describe "a membership status worker", ->
   describe "after processing membership status events", ->
     before (done) ->
       processed = 0
+      unionRep = new UnionRep(1)
+      fileProcessorHelper = new FileProcessorHelper(unionRep)
       worker = new MembershipStatusWorker(fileProcessorHelper)
       worker.on "done", (e, r) ->
         processed++

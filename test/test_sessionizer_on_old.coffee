@@ -10,27 +10,7 @@ config = require('../config')
 fileProcessorHelper = null
 
 describe "a sessionizer worker", ->
-  # describe "when given real-world session events", ->
-  #   before (done) ->
-  #     try
-  #       processed = 0
-  #       client = redis.createClient(config.redis.port, config.redis.host)
-  #       client.flushdb (err, results) ->
-  #         worker = new Sessionizer(fileProcessorHelper)
-  #         worker.on "done", (e, r) ->
-  #           processed++
-  #           done()  if processed is 47
-  #         fileProcessorHelper.clearDatabase (err, results) ->
-  #           worker.init (err, results) ->
-  #             fileProcessorHelper.processFile "test/log/long.log"
-  #     catch e
-  #       console.log("ERROR:", e)
-  #       done(e)
-  # 
-  #   it "should not have caused an exception", (done) ->
-  #     done()
-
-  describe "after processing current session events", ->
+  describe "after processing old session events", ->
     before (done) ->
       unionRep = new UnionRep(1)
       fileProcessorHelper = new FileProcessorHelper(unionRep)
@@ -38,18 +18,19 @@ describe "a sessionizer worker", ->
       client = redis.createClient(config.redis.port, config.redis.host)
       client.flushdb (err, results) ->
         unionRep.addWorker('worker_being_tested', worker)
+        
         fileProcessorHelper.clearDatabase (err, results) =>
           fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('joe_active_four'),('close_two'),('bounce'),('just_once');").execute (err, results) =>
             worker.init (err, results) =>
               fileProcessorHelper.processFile "test/log/sessions.json", =>
-                worker.dataProvider.measure 'user', "joe_active_four", 80170, 'better_measure', undefined, '', 1, =>
-                  fileProcessorHelper.processMessage(JSON.parse('{"eventName":"request","userId":"finale","timestamp":9980170,"service":"service","ip":"1.2.3.4","referrer":"/","requestUri":"/","userAgent":"Chrome"}'))
+                worker.dataProvider.measure 'user', "joe_active_four", 80170, 'better_measure', null, '', 1, =>
+                  fileProcessorHelper.processMessage(JSON.parse('{"eventName":"request","userId":"finale","timestamp":980170,"service":"service","ip":"1.2.3.4","referrer":"/","requestUri":"/","userAgent":"Chrome"}'))
                   if unionRep.total == 0
                     done()
                   else
                     unionRep.once 'drain', =>
                       done()
-
+  
     it "should result in the users having four, two, one, and one sessions each", (done) ->
       fileProcessorHelper.db.query("select num_sessions from olap_users order by num_sessions").execute (error, rows, columns) ->
         if error
@@ -60,7 +41,7 @@ describe "a sessionizer worker", ->
         assert.equal rows[2]['num_sessions'], 2
         assert.equal rows[3]['num_sessions'], 4
         done()
-
+  
     it "should result in the users having 4000, 2000, 1000, and 0 seconds on site each", (done) ->
       fileProcessorHelper.db.query("select seconds_on_site from olap_users order by seconds_on_site").execute (error, rows, columns) ->
         if error
@@ -71,7 +52,7 @@ describe "a sessionizer worker", ->
         assert.equal rows[2]['seconds_on_site'], 2000
         assert.equal rows[3]['seconds_on_site'], 4000
         done()
-
+  
     it "should have eight session objects in all_objects", (done) ->
       fileProcessorHelper.db.query("select count(*) as num_sessions from all_objects where object_type = 'session'").execute (error, rows, columns) ->
         if error
@@ -79,7 +60,7 @@ describe "a sessionizer worker", ->
           return done(error)
         assert.equal rows[0]['num_sessions'], 8
         done()
-
+  
     it "should record 'returned' measurements for user metrics on the sessions they occurred in", (done) ->
       fileProcessorHelper.db.query("select count(distinct all_measurements.object_id) as num_measured_sessions, count(*) as num_measures from all_measurements join all_objects on all_measurements.object_id = all_objects.object_id where all_measurements.object_type='session' and all_objects.object_type='session'").execute (error, rows, columns) ->
         if error
@@ -90,3 +71,4 @@ describe "a sessionizer worker", ->
         done()
     
     # it "should record the next-day return of users returning on their next local day"
+    

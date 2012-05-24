@@ -32,15 +32,26 @@ class FileProcessorHelper extends EventEmitter
       matchedFiles = ("#{directory}/#{file}" for file in matchedFiles)
       callback err, matchedFiles
 
-  processFile: (file) =>
-    lazy = require("lazy")
-    fs = require("fs")
-    self = this
-    new lazy(fs.createReadStream(file)).lines.forEach (line) ->
-      matches = line.toString().match(/^[^\{]*(\{.*\})/)
-      jsonString = matches[1]
-      streamData = JSON.parse(jsonString)
-      self.emit streamData.eventName, streamData
+  processFile: (file, callback) =>
+    reader = new FileLineStreamer(file)
+    @unionRep.on 'saturate', =>
+      reader.pause()
+    @unionRep.on 'drain', =>
+      reader.resume()
+    reader.on 'data', (line) =>
+      try
+        matches = line.toString().match(/^[^\{]*(\{.*\})/)
+        if (matches?) and (matches.length > 0)
+          jsonString = matches[1]
+          streamData = JSON.parse(jsonString)
+          @processMessage(streamData)
+        else
+          console.trace "event line " + line + " did not match as expected"
+      catch error
+        console.trace "event line " + line + " had a serious parsing issue: #{error}"
+    reader.on 'end', ->
+      callback null if callback?
+    reader.start()
 
   processFileForForeman: (file, foreman, lastEvent, callback) =>
     reader = new FileLineStreamer(file)
