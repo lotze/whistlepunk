@@ -64,8 +64,11 @@ class Sessionizer extends Worker
     
   handleMeasureMe: (json, callback) =>
     try
-      if json.actorType == 'user' && json.measureName != 'returned' && json.measureName != 'returned_next_day'
+      #console.log("handling measurement ", json)
+      if json.actorType == 'user' && json.measureName != 'returned' && json.measureName != 'returned_next_local_day'
+        #console.log("   it's a kind we care about")
         if json.activityId?
+          #console.log("   it has activity")
           @dataProvider.measure 'session', json.activityId, json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
         else
           async.parallel [
@@ -75,10 +78,13 @@ class Sessionizer extends Worker
             return callback(err) if err?
             [startTime, activityId] = results
             if startTime?
+              #console.log("   it has start time")
               @dataProvider.measure 'session', activityId || @sessionId(startTime,json.actorId), json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
             else
+              #console.log("   it has no activity")
               callback()
       else
+        #console.log("   we don't care")
         callback()
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
