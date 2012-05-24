@@ -25,7 +25,12 @@ class FileProcessorHelper extends EventEmitter
     return callback(null, [ "#{directory}/shares.log", "#{directory}/sessions.log" ]) if process.env.NODE_ENV is "development"
     fs.readdir directory, (err, files) ->
       matchedFiles = (file for file in files when file.match(/^learnist\.log\.1.*/))
-      matchedFiles = matchedFiles.sort()
+      matchedFiles = matchedFiles.sort (a, b) =>
+        a_matches = a.match(/(\d{8})_(\d{6})/)
+        b_matches = b.match(/(\d{8})_(\d{6})/)
+        a_num = "#{a_matches[1]}#{a_matches[2]}"
+        b_num = "#{b_matches[1]}#{b_matches[2]}"
+        return(parseInt(a_num) - parseInt(b_num))
       matchedFiles.unshift "learnist.log.old"
       matchedFiles.push "learnist.log"
 
