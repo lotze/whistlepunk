@@ -35,6 +35,7 @@ describe "a sessionizer worker", ->
       unionRep = new UnionRep(1)
       fileProcessorHelper = new FileProcessorHelper(unionRep)
       worker = new Sessionizer(fileProcessorHelper)
+      finalMessage = JSON.parse('{"eventName":"request","userId":"finale","timestamp":9980170,"service":"service","ip":"1.2.3.4","referrer":"/","requestUri":"/","userAgent":"Chrome"}')
       client = redis.createClient(config.redis.port, config.redis.host)
       client.flushdb (err, results) ->
         unionRep.addWorker('worker_being_tested', worker)
@@ -43,7 +44,7 @@ describe "a sessionizer worker", ->
             worker.init (err, results) =>
               fileProcessorHelper.processFile "test/log/sessions.json", =>
                 worker.dataProvider.measure 'user', "joe_active_four", 80170, 'better_measure', undefined, '', 1, =>
-                  fileProcessorHelper.processMessage(JSON.parse('{"eventName":"request","userId":"finale","timestamp":9980170,"service":"service","ip":"1.2.3.4","referrer":"/","requestUri":"/","userAgent":"Chrome"}'))
+                  fileProcessorHelper.processMessage(finalMessage)
                   if unionRep.total == 0
                     done()
                   else
@@ -85,8 +86,8 @@ describe "a sessionizer worker", ->
         if error
           console.log "ERROR: " + error
           return done(error)
-        assert.equal rows[0]['num_measured_sessions'], 4
-        assert.equal rows[0]['num_measures'], 6
+        assert.equal rows[0]['num_measured_sessions'], 1
+        assert.equal rows[0]['num_measures'], 1
         done()
     
     # it "should record the next-day return of users returning on their next local day"
