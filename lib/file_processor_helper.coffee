@@ -3,7 +3,7 @@ EventEmitter = require("events").EventEmitter
 util = require("util")
 FileLineStreamer = require("../lib/file_line_streamer")
 fs = require("fs")
-redis = require("redis")
+Redis = require("../lib/redis")
 config = require("../config")
 
 class FileProcessorHelper extends EventEmitter
@@ -12,7 +12,8 @@ class FileProcessorHelper extends EventEmitter
     DbLoader = require("../lib/db_loader.js")
     dbloader = new DbLoader()
     @db = dbloader.db()
-    @client = redis.createClient(config.redis.port, config.redis.host)
+    Redis.getClient (err, client) =>
+      @client = client
 
   processLine: (line) =>
     json_data = JSON.parse(line)
@@ -58,14 +59,14 @@ class FileProcessorHelper extends EventEmitter
       callback null if callback?
     reader.start()
 
-  processFileForForeman: (file, foreman, lastEvent, callback) =>
+  processFileForForeman: (file, foreman, firstEvent, lastEvent, callback) =>
     reader = new FileLineStreamer(file)
 
     @unionRep.on 'saturate', =>
-      #console.log "Union workers working too hard, taking a mandatory break..."
+      console.log "Union workers working too hard, taking a mandatory break..."
       reader.pause()
     @unionRep.on 'drain', =>
-      #console.log "BACK TO WORK YOU LAZY BUMS"
+      console.log "BACK TO WORK YOU LAZY BUMS"
       reader.resume()
 
     reader.on 'data', (line) ->
@@ -74,7 +75,10 @@ class FileProcessorHelper extends EventEmitter
         if (matches?) and (matches.length > 0)
           jsonString = matches[1]
           streamData = JSON.parse(jsonString)
-          foreman.processMessage(streamData)  if streamData.timestamp <= lastEvent.timestamp
+          if (!lastEvent? || streamData.timestamp <= lastEvent.timestamp) && (!firstEvent? || streamData.timestamp > firstEvent.timestamp)
+            foreman.processMessage(streamData)
+            @client.set 'whistlepunk:last_event_processed', jsonString, (err, result) =>
+              console.log("error updating last event processed: ",err,err.stack) if err?
         else
           console.trace "event line " + line + " did not match as expected"
       catch error
@@ -95,16 +99,16 @@ class FileProcessorHelper extends EventEmitter
       (parallel_callback) => @db.query("TRUNCATE TABLE timeseries").execute parallel_callback
       (parallel_callback) => @db.query("TRUNCATE TABLE shares").execute parallel_callback
       (parallel_callback) => @db.query("TRUNCATE TABLE in_from_shares").execute parallel_callback
-      # (parallel_callback) => @client.smembers 'sessionizer:is_first', (err, results) =>
-      #   @client.srem 'sessionizer:is_first', results..., parallel_callback
-      # (parallel_callback) => @client.hkeys 'sessionizer:start_time', (err, results) =>
-      #   @client.hdel 'sessionizer:start_time', results..., parallel_callback
-      # (parallel_callback) => @client.hkeys 'sessionizer:activity_id', (err, results) =>
-      #   @client.hdel 'sessionizer:activity_id', results..., parallel_callback
-      # (parallel_callback) => @client.zremrangebyscore 'sessionizer:end_time', -1, 99999999999999999, parallel_callback
-      # (parallel_callback) => @client.hkeys 'sessionizer:next_day_start', (err, results) =>
-      #   @client.hdel 'sessionizer:next_day_start', results..., parallel_callback
-      # (parallel_callback) => @client.zremrangebyscore 'sessionizer:next_day_end', -1, 99999999999999999, parallel_callback
+      (parallel_callback) => @client.smembers 'sessionizer:is_first', (err, results) =>
+        @client.srem 'sessionizer:is_first', results..., parallel_callback
+      (parallel_callback) => @client.hkeys 'sessionizer:start_time', (err, results) =>
+        @client.hdel 'sessionizer:start_time', results..., parallel_callback
+      (parallel_callback) => @client.hkeys 'sessionizer:activity_id', (err, results) =>
+        @client.hdel 'sessionizer:activity_id', results..., parallel_callback
+      (parallel_callback) => @client.zremrangebyscore 'sessionizer:end_time', -1, 99999999999999999, parallel_callback
+      (parallel_callback) => @client.hkeys 'sessionizer:next_day_start', (err, results) =>
+        @client.hdel 'sessionizer:next_day_start', results..., parallel_callback
+      (parallel_callback) => @client.zremrangebyscore 'sessionizer:next_day_end', -1, 99999999999999999, parallel_callback
      ], (err, results) =>
       callback err, results
 

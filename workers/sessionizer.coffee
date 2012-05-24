@@ -60,26 +60,24 @@ class Sessionizer extends Worker
   enqueueEvent: (json) =>
     @emit 'start'
     @queue.push {json: json}, (err, results) =>
-      if err?
-        console.error "Error executing queue for", json, "the error was:", err
       @emitResults err, results
     
   handleMeasureMe: (json, callback) =>
     try
-      if json.actorType == 'user'
+      if json.actorType == 'user' && json.measureName != 'returned' && json.measureName != 'returned_next_day'
         if json.activityId?
           @dataProvider.measure 'session', json.activityId, json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
         else
-        async.parallel [
-          (cb) => @client.hget 'sessionizer:start_time', json.actorId, cb
-          (cb) => @client.hget 'sessionizer:activity_id', json.actorId, cb
-        ], (err, results) =>
-          return callback(err) if err?
-          [startTime, activityId] = results
-          if startTime?
-            @dataProvider.measure 'session', activityId || @sessionId(startTime,json.actorId), json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
-          else
-            callback()
+          async.parallel [
+            (cb) => @client.hget 'sessionizer:start_time', json.actorId, cb
+            (cb) => @client.hget 'sessionizer:activity_id', json.actorId, cb
+          ], (err, results) =>
+            return callback(err) if err?
+            [startTime, activityId] = results
+            if startTime?
+              @dataProvider.measure 'session', activityId || @sessionId(startTime,json.actorId), json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
+            else
+              callback()
       else
         callback()
     catch error

@@ -3,7 +3,7 @@
 process.env.NODE_ENV ?= 'development'
 
 require('coffee-script')
-redis = require('redis')
+Redis = require("./lib/redis")
 config = require('./config')
 FileProcessorHelper = require('./lib/file_processor_helper')
 UnionRep = require('./lib/union_rep')
@@ -23,6 +23,8 @@ process.on('SIGKILL', quit)
 
 class Application
   constructor: (@foreman) ->
+    Redis.getClient (err, client) =>
+      @client = client
 
   terminate: =>
     @foreman.terminate()
@@ -59,6 +61,24 @@ class Application
   reprocess: =>
     console.log "Reprocessing"
     @fileProcessorHelper = new FileProcessorHelper(@unionRep)
+
+    async.parallel [
+      (cb) => @client.get 'whistlepunk:last_event_processed', cb
+      (cb) => @client.get 'whistlepunk:last_event_to_process', cb
+    ], (err, results) =>
+      return throw err if err?
+      [from, to] = results
+      if from?
+        resumeReprocessing(from, to)
+      else
+        startReprocessing()
+
+  resumeReprocessing: (from, to) =>
+    @reprocessFromTo from, to, (err, results) =>
+      @client.del 'whistlepunk:last_event_processed', (err, results) =>
+        @processNormally()
+
+  startReprocessing: =>
     async.series [
       (cb) =>
         # first delete all data
@@ -69,40 +89,42 @@ class Application
         console.log "WhistlePunk: getting first redis event"
         redis_client = redis.createClient(config.msg_source_redis.port, config.msg_source_redis.host)
         if config.msg_source_redis.redis_db_num?
-          this.redis_client.select(config.msg_source_redis.redis_db_num);
+          redis_client.select(config.msg_source_redis.redis_db_num);
         redis_key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
         redis_client.brpop redis_key, 0, (err, reply) =>
-          console.log("Got it -- will reprocess up to ", reply)
-          @reprocessUpTo(err, reply, cb)
+          if err?
+            console.error "Error during Redis BRPOP"
+            return throw err
+          else
+            console.log("Got it -- will reprocess up to ", reply)
+            @client.set 'whistlepunk:last_event_to_process', jsonString, (err, result) =>
+              console.log("error updating last event to process: ",err,err.stack) if err?
+              @reprocessFromTo(null, reply[1], cb)
     ], (err, results) =>
       throw err if err?
-      @processNormally()
+      @client.del 'whistlepunk:last_event_processed', (err, results) =>
+        @processNormally()
             
-  reprocessUpTo: (err, reply, cb) =>
-    if err?
-      console.error "Error during Redis BRPOP"
-      throw err
-
-    [list, message] = reply
-    console.log "got list " + list + ", msg " + message
+  reprocessFromTo: (from, to, cb) =>
     # then process all data from all log files up to that event
-    @finalMessage = JSON.parse(message)
+    @firstMessage = JSON.parse(from) if from?
+    @finalMessage = JSON.parse(to) if to?
     logPath = if process.env.NODE_ENV == 'development' then "/Users/grockit/workspace/metricizer/spec/log" else "/opt/grockit/log"
     @fileProcessorHelper.getLogFilesInOrder logPath, (err, fileList) =>
       if err?
         console.error("Error while getting log files")
         throw err
-
-      console.log "Processing log file list: ", fileList
-      async.forEachSeries fileList, @reprocessFile, (err) =>
-        console.log("!!! DONE with async.forEachSeries")
-        cb()
+      else
+        console.log "Processing log file list: ", fileList
+        async.forEachSeries fileList, @reprocessFile, (err) =>
+          console.log("!!! DONE with async.forEachSeries")
+          cb()
 
   reprocessFile: (fileName, file_cb) =>
-    console.trace("WTF!?") unless fileName?
     console.log("WhistlePunk: processing old log: " + fileName)
     try
-      @fileProcessorHelper.processFileForForeman(fileName, @foreman, @finalMessage, file_cb)
+      "whistlepunk:#{process.env.NODE_ENV}:finalMessage"
+      @fileProcessorHelper.processFileForForeman(fileName, @foreman, @firstMessage, @finalMessage, file_cb)
     catch err
       console.error("Uncaught error processing file for foreman: ",err,err.stack)
       file_cb()

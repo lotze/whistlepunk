@@ -8,8 +8,8 @@ class UnionRep extends EventEmitter
     @total   = 0
     @saturated = false
     @drained = true
-    # setInterval @report, 10000
-    # @on 'saturate', @report
+    setInterval @report, 10000
+    @on 'saturate', @report
 
   addWorker: (name, worker) =>
     @workers[name] = worker
