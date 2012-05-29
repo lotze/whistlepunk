@@ -5,6 +5,7 @@ class Worker extends EventEmitter
     super()
   emitResults: (err, results) =>
     if err?
+      console.log("emitting error from worker: ",err,err.stack)
       @emit 'error', err
     else
       @emit 'done', results

@@ -66,7 +66,7 @@ class LearnistTranslator extends Worker
         else throw new Error('unhandled eventName');
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
-      @emit 'error', error
+      @emitResults error
 
   handleCompletedLearning: (json) =>
     async.parallel [

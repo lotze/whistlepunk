@@ -7,13 +7,14 @@ Redis = require("../lib/redis")
 config = require("../config")
 
 class FileProcessorHelper extends EventEmitter
-  constructor: (@unionRep) ->
+  constructor: (@unionRep, callback) ->
     @jsonFinderRegEx = new RegExp(/^[^\{]*(\{.*\})/)
     DbLoader = require("../lib/db_loader.js")
     dbloader = new DbLoader()
     @db = dbloader.db()
     Redis.getClient (err, client) =>
       @client = client
+      callback(null, this) if callback?
 
   processLine: (line) =>
     json_data = JSON.parse(line)

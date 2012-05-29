@@ -1,14 +1,17 @@
 DataProvider = require('../lib/data_provider')
+UnionRep = require('../lib/union_rep')
 FileProcessorHelper = require('../lib/file_processor_helper')
 should = require('should')
 assert = require('assert')
 
 describe 'DataProvider', =>
-  before =>
-    @fileProcessorHelper = new FileProcessorHelper()
-    @dataProvider = new DataProvider(@fileProcessorHelper)
-    @actorType = 'testActorType'
-    @actorId = 'testActor'
+  before (done) =>
+    unionRep = new UnionRep(1)
+    @fileProcessorHelper = new FileProcessorHelper unionRep, =>
+      @dataProvider = new DataProvider(@fileProcessorHelper)
+      @actorType = 'user'
+      @actorId = 'testActor'
+      done()
 
   describe '#measure', =>
     before (done) =>
@@ -19,13 +22,13 @@ describe 'DataProvider', =>
       measureAmount = 1
       @fileProcessorHelper.clearDatabase =>
         @dataProvider.measure @actorType, @actorId, timestamp, measureName, activityId, measureTarget, measureAmount, =>
-          done(arguments...)
+          done()
 
     it 'should result in a correct entry in the all_measurements table', (done) =>
       @fileProcessorHelper.db.query().select(["amount"])
              .from("all_measurements")
-             .where("object_id = ?", ["testActor"])
-             .and("object_type = ?", ["testActorType"])
+             .where("object_id = ?", [@actorId])
+             .and("object_type = ?", [@actorType])
              .and("measure_name = ?", ["testMeasureName"])
              .and("measure_target = ?", [""])
              .execute (error, rows, columns) => 
@@ -61,8 +64,8 @@ describe 'DataProvider', =>
         @dataProvider.createObject @actorType, @actorId, timestamp, =>
           @fileProcessorHelper.db.query().select(["object_id"])
                  .from("all_objects")
-                 .where("object_id = ?", ["testActor"])
-                 .and("object_type = ?", ["testActorType"])
+                 .where("object_id = ?", [@actorId])
+                 .and("object_type = ?", [@actorType])
                  .execute (error, rows, columns) => 
                     if (error)
                       console.log('ERROR: ' + error)

@@ -45,17 +45,17 @@ class FirstRequest extends Worker
           @dataProvider.createObject 'user', userId, timestamp, cb
         (cb) =>
           myQuery = "
-            INSERT IGNORE INTO users_created_at (user_id, created_at, day, week, month)
+            INSERT INTO olap_users (id, created_at)
             VALUES (
-              '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp}), '#{actual_date}', '#{first_of_week}', '#{first_of_month}'
-            );
+              '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp})
+            ) ON DUPLICATE KEY UPDATE created_at = FROM_UNIXTIME(#{timestamp});
           "
           @db.query(myQuery).execute cb
         (cb) =>
           myQuery = "
-            INSERT IGNORE INTO olap_users (id, created_at, last_active_at)
+            INSERT IGNORE INTO users_created_at (user_id, created_at, day, week, month)
             VALUES (
-              '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp}), FROM_UNIXTIME(#{timestamp})
+              '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp}), '#{actual_date}', '#{first_of_week}', '#{first_of_month}'
             );
           "
           @db.query(myQuery).execute cb
@@ -65,7 +65,7 @@ class FirstRequest extends Worker
             (cb2) => @country(json.ip, cb2)
           ], (err, results) =>
             if err?
-              @emit 'error', err
+              @emitResults err
               cb(err)
             [locationId, countryName] = results
             myQuery = "
@@ -76,7 +76,7 @@ class FirstRequest extends Worker
       ], @emitResults
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
-      @emit 'error', error
+      @emitResults error
 
     # TODO (when we start advertising again): advertising tags
 

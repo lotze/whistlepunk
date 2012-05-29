@@ -4,6 +4,7 @@ async = require("async")
 UnionRep = require("../lib/union_rep")
 FileProcessorHelper = require('../lib/file_processor_helper')
 fileProcessorHelper = null
+worker = null
 MembershipStatusWorker = require("../workers/membership_status_worker")
 
 describe "a membership status worker", ->
@@ -11,7 +12,7 @@ describe "a membership status worker", ->
     before (done) ->
       processed = 0
       unionRep = new UnionRep(1)
-      fileProcessorHelper = new FileProcessorHelper(unionRep)
+      fileProcessorHelper = new FileProcessorHelper unionRep
       worker = new MembershipStatusWorker(fileProcessorHelper)
       worker.on "done", (e, r) ->
         processed++
