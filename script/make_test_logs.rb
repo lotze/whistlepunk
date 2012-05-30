@@ -49,7 +49,7 @@ class MakeTestLogs
     else
       log_hashes << {:eventName => 'request', :userId => user_id, :timestamp => request_time, :service => 'service', :ip => ip_address, :referrer => referrer_uri, :requestUri => request_uri, :userAgent => user_agent}.merge(overrides)
     end
-  
+
     remaining_time = session_length
     while (remaining_time > 0)
       if remaining_time < 120 && rand(0) < 0.5
@@ -63,7 +63,7 @@ class MakeTestLogs
       remaining_time -= time_to_next_request
       log_hashes << {:eventName => 'request', :userId => user_id, :timestamp => request_time, :service => 'service', :ip => ip_address, :referrer => referrer_uri, :requestUri => request_uri, :userAgent => user_agent}.merge(overrides)
     end
-  
+
     return log_hashes
   end
 
@@ -114,6 +114,7 @@ class MakeTestLogs
 
   def shares(outfile)
     log_hashes = []
+    time_starts_at = Time.at(0)
 
     user_id = "sad_sharer"
     current_time = time_starts_at.to_i + rand(86400)
@@ -131,18 +132,24 @@ class MakeTestLogs
     user_id = "effective_sharer"
     current_time = time_starts_at.to_i + rand(86400)
     log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true)
-    log_hashes = log_hashes + log_share(user_id, current_time + 500, "share_by_#{user_id}")
+    effective_share_time = current_time + 500
+    log_hashes = log_hashes + log_share(user_id, effective_share_time, "share_by_#{user_id}")
     current_time += 1000 + 905
     log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000)
     log_hashes = log_hashes + become_member(user_id, current_time + 100)
 
     user_id = "incoming_member"
-    current_time = time_starts_at.to_i + rand(86400)
+    current_time = effective_share_time + rand(86400)
     log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, "share_by_effective_sharer")
     log_hashes = log_hashes + become_member(user_id, current_time + 100)
 
+    user_id = "incoming_invite_requested_member"
+    current_time = effective_share_time + rand(86400)
+    log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, "share_by_effective_sharer")
+    log_hashes = log_hashes + become_member(user_id, current_time + 100, 'invite_requested_member')
+
     user_id = "incoming_nonmember"
-    current_time = time_starts_at.to_i + rand(86400)
+    current_time = effective_share_time + rand(86400)
     log_hashes = log_hashes + make_session_logs(user_id, current_time, 0, true, "share_by_effective_sharer")
 
     write_logs(outfile, log_hashes)
@@ -248,7 +255,7 @@ ARGV.each do |file_type|
   end
 end
 
-# 
+#
 # # 1000 users, randomly (50/50) assigned to split test A or B
 # # 5% from Grockit IP address; others from a completely random IP address
 # # each comes to sample.com as firstRequest (so make a duplicate request with no user id)
@@ -265,12 +272,12 @@ end
 #     if (rand < 0.95)
 #       ip_address = "#{rand(254)+1}.#{rand(254)+1}.#{rand(254)+1}.#{rand(254)+1}"
 #     end
-# 
+#
 #     user_agent = 'Chrome'
 #     if (rand < 0.10)
 #       user_agent = 'Bot'
 #     end
-# 
+#
 #     first_referrer = 'http://facebook.com'
 #     ref_rand = rand
 #     if (ref_rand < 0.25)
@@ -280,20 +287,20 @@ end
 #     elsif (ref_rand < 0.75)
 #       first_referrer = 'http://somerandomsite.com'
 #     end
-# 
+#
 #     # make first request (no user id)
 #     first_request_at = Time.now.to_i + rand(86400*7)
 #     file.puts("[service] " + {:eventName => 'request', :userId => '', :timestamp => first_request_at, :service => 'service', :ip => ip_address, :referrer => first_referrer, :requestUri => '/', :userAgent => user_agent}.to_json)
 #     # make first request with user id
 #     file.puts("[service] " + {:eventName => 'firstRequest', :userId => "user_#{user_num}", :timestamp => first_request_at, :service => 'service', :ip => ip_address, :referrer => first_referrer, :requestUri => '/', :userAgent => user_agent}.to_json)
-# 
+#
 #     # make split test
 #     split_test = '0.50'
 #     if (rand < 0.5)
 #       split_test = '0.45'
 #     end
 #     file.puts("[service] " + {:eventName => 'splitTestAssignment', :experiment => 'test_experiment', :assignment => split_test, :userId => "user_#{user_num}", :timestamp => Time.now.to_i, :service => 'service'}.to_json)
-# 
+#
 #     # group A has a 50% chance of just having initial request
 #     # group B has a 45% chance of just having initial request
 #     if (rand > split_test.to_f)
@@ -305,22 +312,22 @@ end
 #       # if they don't just have the initial request, they have a random lifetime: uniform, 0-7*24*3600 seconds
 #       half_life = rand(7*24*3600/2)
 #       # 3 sessions per user (including first): one halfway, one at end
-# 
+#
 #       (0..2).each do |session_num|
 #         #   each session has 3 requests: main page, two random pages (sample.com/<0-10>.html)), each with a 0-15s delay
 #         session_start = first_request_at + half_life * session_num
 #         cur_request_time = session_start
-# 
+#
 #         file.puts("[service] " + {:eventName => 'request', :userId => "user_#{user_num}", :timestamp => cur_request_time, :service => 'service', :ip => ip_address, :referrer => '', :requestUri => '/', :userAgent => user_agent}.to_json)
-#         
+#
 #         # if they don't just have the initial request, they also become a member and create a thingy
 #         if (session_num == 0)
 #           cur_request_time = cur_request_time + rand(10)
 #           file.puts("[service] " + {:eventName => 'membershipStatusChange', :userId => "user_#{user_num}", :timestamp => cur_request_time, :service => 'service', :newState => 'member'}.to_json)
 #           file.puts("[service] " + {:eventName => 'measureMe', :userId => "user_#{user_num}", :timestamp => cur_request_time, :service => 'service', :measureName => 'create_object_thingy'}.to_json)
-#           file.puts("[service] " + {:eventName => 'created', :userId => "user_#{user_num}", :timestamp => cur_request_time, :service => 'service', :objectType => 'thingy', :objectId => "object_of_user_#{user_num}"}.to_json)                
+#           file.puts("[service] " + {:eventName => 'created', :userId => "user_#{user_num}", :timestamp => cur_request_time, :service => 'service', :objectType => 'thingy', :objectId => "object_of_user_#{user_num}"}.to_json)
 #         end
-# 
+#
 #         (1..2).each do |request_num|
 #           cur_request_time = cur_request_time + rand(16)
 #           request_uri = rand(10)
