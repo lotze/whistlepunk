@@ -10,11 +10,12 @@ class ShareWorker extends Worker
     @foreman = foreman
     dbloader = new DbLoader()
     @db = dbloader.db()
-    @foreman.on('objectShared', @handleMessage)
-    @foreman.on('firstRequest', @handleMessage)
     @foreman.on('createdInvitation', @handleMessage)
-    @foreman.on('respondedToInvitation', @handleMessage)
+    @foreman.on('facebookLiked', @handleMessage)
+    @foreman.on('firstRequest', @handleMessage)
     @foreman.on('membershipStatusChange', @handleMessage)
+    @foreman.on('objectShared', @handleMessage)
+    @foreman.on('respondedToInvitation', @handleMessage)
     @dataProvider = new DataProvider(foreman)
     super()
 
@@ -30,12 +31,12 @@ class ShareWorker extends Worker
     @emit 'start'
     try
       switch json.eventName
-        when "objectShared" then @handleObjectShared(json)
+        when "createdInvitation" then @handleCreatedInvitation(json)
         when "facebookLiked" then @handleFacebookLike(json)
         when "firstRequest" then @handleFirstRequest(json)
-        when "createdInvitation" then @handleCreatedInvitation(json)
-        when "respondedToInvitation" then @handleRespondedToInvitation(json)
         when "membershipStatusChange" then @handleMembershipStatusChange(json)
+        when "objectShared" then @handleObjectShared(json)
+        when "respondedToInvitation" then @handleRespondedToInvitation(json)
         else throw new Error('unhandled eventName');
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"

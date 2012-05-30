@@ -20,6 +20,10 @@ class MakeTestLogs
       ]
   end
 
+  def log_facebook_like(user_id, ts, share_id, overrides={})
+    return [{:userId => user_id, :timestamp => ts, :eventName => 'facebookLiked', :shareHash => share_id}.merge(overrides)]
+  end
+
   def measure_event(user_id, ts, measureName, overrides={})
     return [{:actorId => user_id, :timestamp => ts, :eventName => 'measureMe', :measureName => measureName, :measureTarget => '', :measureAmount => 1}.merge(overrides)]
   end
@@ -133,7 +137,7 @@ class MakeTestLogs
     current_time = time_starts_at.to_i + rand(86400)
     log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true)
     effective_share_time = current_time + 500
-    log_hashes = log_hashes + log_share(user_id, effective_share_time, "share_by_#{user_id}")
+    log_hashes = log_hashes + log_facebook_like(user_id, effective_share_time, "share_by_#{user_id}")
     current_time += 1000 + 905
     log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000)
     log_hashes = log_hashes + become_member(user_id, current_time + 100)
@@ -151,6 +155,8 @@ class MakeTestLogs
     user_id = "incoming_nonmember"
     current_time = effective_share_time + rand(86400)
     log_hashes = log_hashes + make_session_logs(user_id, current_time, 0, true, "share_by_effective_sharer")
+
+
 
     write_logs(outfile, log_hashes)
   end
