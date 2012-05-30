@@ -6,7 +6,7 @@ client = null
 module.exports =
   getClient: (callback) =>
     if client?
-      callback(null, client)
+      callback(null, client) if callback?
     else
       client = redis.createClient(config.redis.port, config.redis.host)
       client.on "error", (err) ->
@@ -14,7 +14,7 @@ module.exports =
       client.once "ready", (err) =>
         if config.redis.redis_db_num?
           client.select config.redis.redis_db_num, =>
-            callback(null, client)
+            callback(null, client) if callback?
         else
-          callback(null, client)
-    client
+          callback(null, client) if callback?
+    return client

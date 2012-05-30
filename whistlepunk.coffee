@@ -24,8 +24,7 @@ process.on('SIGKILL', quit)
 
 class Application
   constructor: (@foreman) ->
-    Redis.getClient (err, client) =>
-      @client = client
+    @client = Redis.getClient()
 
   terminate: =>
     @foreman.terminate()
@@ -44,7 +43,7 @@ class Application
       , (err) =>
         throw err if err?
         @startProcessing()
-    
+
   startProcessing: =>
     console.log "Starting processing"
     if process.env.REPROCESS?
@@ -106,7 +105,7 @@ class Application
       throw err if err?
       @client.del 'whistlepunk:last_event_processed', (err, results) =>
         @processNormally()
-            
+
   reprocessFromTo: (from, to, cb) =>
     # then process all data from all log files up to that event
     @firstMessage = JSON.parse(from) if from?
@@ -132,6 +131,7 @@ class Application
       file_cb()
 
 app = new Application(foreman)
+
 
 process.on 'SIGKILL', ->
   app.terminate()
