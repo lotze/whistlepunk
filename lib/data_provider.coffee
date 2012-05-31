@@ -12,9 +12,9 @@ class DataProvider extends EventEmitter
     dbloader = new DbLoader()
     @db = dbloader.db()
 
-  escape: (str...) =>
+  escape: (str) =>
     return "" unless str? && str[0]?
-    @db.escape str...
+    @db.escape str.toString()
     
   incrementOlapUserCounter: (userId, counterName, callback) =>
     myQuery = "INSERT INTO olap_users (id, #{@escape counterName}) VALUES ('#{@escape userId}',1) ON DUPLICATE KEY update #{@escape counterName}=#{@escape counterName}+1;"
