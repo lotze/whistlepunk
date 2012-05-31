@@ -12,14 +12,13 @@ class FileProcessorHelper extends EventEmitter
     DbLoader = require("../lib/db_loader.js")
     dbloader = new DbLoader()
     @db = dbloader.db()
-    Redis.getClient (err, client) =>
-      @client = client
-      callback(null, this) if callback?
+    @client = Redis.getClient()
+    callback(null, this) if callback?
 
   processLine: (line) =>
     json_data = JSON.parse(line)
     @processMessage(json_data)
-    
+
   processMessage: (json_data) =>
     @emit json_data.eventName, json_data
 
@@ -89,7 +88,7 @@ class FileProcessorHelper extends EventEmitter
     reader.start()
 
   clearDatabase: (callback) =>
-    async.parallel [ 
+    async.parallel [
       (parallel_callback) => @db.query("TRUNCATE TABLE olap_users").execute parallel_callback
       (parallel_callback) => @db.query("TRUNCATE TABLE sources_users").execute parallel_callback
       (parallel_callback) => @db.query("TRUNCATE TABLE users_created_at").execute parallel_callback

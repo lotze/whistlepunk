@@ -15,9 +15,9 @@ describe "a share worker", ->
       all_lines_read_in = false
       drained = false
       unionRep.addWorker('worker_being_tested', worker)
-      
+
       fileProcessorHelper.clearDatabase (err, results) =>
-        fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('effective_sharer'),('incoming_nonmember'),('incoming_member'),('sad_sharer');").execute (err, results) ->
+        fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('effective_sharer'),('incoming_nonmember'),('incoming_member'),('sad_sharer'),('incoming_invite_requested_member');").execute (err, results) ->
           worker.init (err, results) =>
             fileProcessorHelper.processFile "test/log/shares.json", =>
               if unionRep.total == 0
@@ -54,15 +54,16 @@ describe "a share worker", ->
           return done(error)
         assert.equal rows[0]['members_from_shares'], 0
         done()
-        
-    it "should result in effective_sharer sharing once, with two incoming users, one of whom becomes a member", (done) ->
-      fileProcessorHelper.db.query("select num_visits, num_members from shares where sharing_user_id = 'effective_sharer'").execute (error, rows, columns) ->
+
+    it "should result in effective_sharer sharing once, with three incoming users, one of whom becomes a member and one of whom becomes an invite_requested_member", (done) ->
+      fileProcessorHelper.db.query("select num_visits, num_members, num_invite_requested_members from shares where sharing_user_id = 'effective_sharer'").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           return done(error)
         assert.equal rows.length, 1
-        assert.equal rows[0]['num_visits'], 2
+        assert.equal rows[0]['num_visits'], 3
         assert.equal rows[0]['num_members'], 1
+        assert.equal rows[0]['num_invite_requested_members'], 1
         done()
 
     it "should result in one incoming member for effective_sharer", (done) ->
@@ -72,12 +73,11 @@ describe "a share worker", ->
           return done(error)
         assert.equal rows[0]['members_from_shares'], 1
         done()
-                
-    it "should result in two users not sharing at all", (done) ->
+
+    it "should result in three users not sharing at all", (done) ->
       fileProcessorHelper.db.query("select count(*) as num_nonsharers from olap_users where shares_created=0").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           return done(error)
-        assert.equal rows[0]['num_nonsharers'], 2
+        assert.equal rows[0]['num_nonsharers'], 3
         done()
-                
