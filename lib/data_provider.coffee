@@ -17,8 +17,32 @@ class DataProvider extends EventEmitter
     @db.escape str...
     
   incrementOlapUserCounter: (userId, counterName, callback) =>
-    myQuery = "UPDATE olap_users set #{@escape counterName}=#{@escape counterName}+1 where id='#{@escape userId}';"
+    myQuery = "INSERT INTO olap_users (id, #{@escape counterName}) VALUES ('#{@escape userId}',1) ON DUPLICATE KEY update #{@escape counterName}=#{@escape counterName}+1;"
     @db.query(myQuery).execute callback
+
+  addToTimeseries: (measureName, timestamp, callback) =>
+    dateFirster = new DateFirster(new Date(1000*timestamp))
+    async.parallel [
+      (timeseries_cb) =>
+        # update timeseries for day
+        aggregate_moment = dateFirster.date()
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'day', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        @db.query(myQuery).execute timeseries_cb
+      (timeseries_cb) =>
+        # update timeseries for month
+        aggregate_moment = dateFirster.firstOfMonth()
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'month', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        @db.query(myQuery).execute timeseries_cb
+      (timeseries_cb) =>
+        # update timeseries for year
+        aggregate_moment = dateFirster.firstOfYear()
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'year', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        @db.query(myQuery).execute timeseries_cb
+      (timeseries_cb) =>
+        # update timeseries for total
+        myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'total', 0, '', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
+        @db.query(myQuery).execute timeseries_cb
+    ], callback
     
   createObject: (objectType, objectId, createdAt, callback) =>
     async.parallel [
@@ -28,11 +52,12 @@ class DataProvider extends EventEmitter
       (cb) =>
         myQuery = "UPDATE summarized_metrics SET raw_data_last_updated_at=UNIX_TIMESTAMP(NOW()) WHERE object_filter_type='#{@escape objectType}' AND measurement_transform='ever_performed'"
         @db.query(myQuery).execute cb
+      (cb) =>
+        @addToTimeseries "new #{objectType} created", createdAt, cb
     ], (err, results) =>
       callback err, results
       
   measure: (actorType, actorId, timestamp, measureName, activityId, measureTarget='', measureAmount=1, callback) =>
-    dateFirster = new DateFirster(new Date(1000*timestamp))
     async.parallel [
       (cb) =>
         # console.log("dp measuring ",actorType, actorId, timestamp, measureName, activityId)
@@ -48,28 +73,10 @@ class DataProvider extends EventEmitter
         myQuery = "UPDATE summarized_metrics SET raw_data_last_updated_at=UNIX_TIMESTAMP(NOW()) WHERE measure_name='#{@escape measureName}'"
         @db.query(myQuery).execute cb
       (cb) => 
-        async.parallel [
-          (timeseries_cb) =>
-            # update timeseries for day
-            aggregate_moment = dateFirster.date()
-            myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'day', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
-            @db.query(myQuery).execute timeseries_cb
-          (timeseries_cb) =>
-            # update timeseries for month
-            aggregate_moment = dateFirster.firstOfMonth()
-            myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'month', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
-            @db.query(myQuery).execute timeseries_cb
-          (timeseries_cb) =>
-            # update timeseries for year
-            aggregate_moment = dateFirster.firstOfYear()
-            myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'year', #{aggregate_moment.unix()}, '#{aggregate_moment.format()} US/Pacific', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
-            @db.query(myQuery).execute timeseries_cb
-          (timeseries_cb) =>
-            # update timeseries for total
-            myQuery = "INSERT INTO timeseries (measure_name, aggregation_level, timestamp, formatted_timestamp, amount) VALUES ('#{@escape measureName}', 'total', 0, '', 1) ON DUPLICATE KEY UPDATE amount = amount + 1;"
-            @db.query(myQuery).execute timeseries_cb
-        ], (err, results) =>
-          cb(err, results)
+        if actorType == 'user'
+          @addToTimeseries measureName, timestamp, cb
+        else
+          cb()
     ], (err, results) =>
       callback err, results
 
