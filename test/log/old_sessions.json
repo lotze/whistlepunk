@@ -1,5 +1,6 @@
 [learnist] {"eventName":"request","userId":"","timestamp":961,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_0","userAgent":"Chrome","fromShare":null}
 [learnist] {"eventName":"firstRequest","userId":"joe_active_four","timestamp":961,"service":"service","ip":"1.2.3.4","referrer":"http://somerandomsite.com","requestUri":"/randompage_0","userAgent":"Chrome","fromShare":null}
+[learnist] {"eventName":"membershipStatusChange","newState":"member","timestamp":961,"userId":"joe_active_four"}
 [learnist] {"eventName":"request","userId":"joe_active_four","timestamp":1510,"service":"service","ip":"1.2.3.4","referrer":"/randompage_0","requestUri":"/randompage_3","userAgent":"Chrome"}
 [learnist] {"eventName":"request","userId":"joe_active_four","timestamp":1778,"service":"service","ip":"1.2.3.4","referrer":"/randompage_3","requestUri":"/randompage_4","userAgent":"Chrome"}
 [learnist] {"eventName":"request","userId":"joe_active_four","timestamp":1781,"service":"service","ip":"1.2.3.4","referrer":"/randompage_4","requestUri":"/randompage_2","userAgent":"Chrome"}

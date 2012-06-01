@@ -16,7 +16,7 @@ describe "a sessionizer worker", ->
       fileProcessorHelper = new FileProcessorHelper(unionRep)
       worker = new Sessionizer(fileProcessorHelper)
       client = redis.createClient(config.redis.port, config.redis.host)
-      finalMessage = JSON.parse('{"eventName":"request","userId":"finale","timestamp":9980170,"service":"service","ip":"1.2.3.4","referrer":"/","requestUri":"/","userAgent":"Chrome"}')
+      finalMessage = JSON.parse('{"eventName":"request","userId":"finale","timestamp":999980170,"service":"service","ip":"1.2.3.4","referrer":"/","requestUri":"/","userAgent":"Chrome"}')
       client.flushdb (err, results) ->
         unionRep.addWorker('worker_being_tested', worker)
         

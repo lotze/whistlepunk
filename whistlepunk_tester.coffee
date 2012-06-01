@@ -48,7 +48,8 @@ class Application
     console.trace("WTF!?") unless fileName?
     console.log("WhistlePunk: processing old log: " + fileName)
     try
-      @fileProcessorHelper.processFileForForeman(fileName, @foreman, {timestamp: 99999999999999999}, file_cb)
+      @fileProcessorHelper.processFileForForeman fileName, @foreman, {timestamp: 0}, {timestamp: 99999999999999999}, (err, results) =>
+        file_cb(err, results)
     catch err
       console.error("Uncaught error processing file for foreman: ",err,err.stack)
       file_cb()

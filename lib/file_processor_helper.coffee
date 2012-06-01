@@ -56,7 +56,7 @@ class FileProcessorHelper extends EventEmitter
       catch error
         console.trace "event line " + line + " had a serious parsing issue: #{error}"
     reader.on 'end', ->
-      callback null if callback?
+      callback() if callback?
     reader.start()
 
   processFileForForeman: (file, foreman, firstEvent, lastEvent, callback) =>
@@ -84,7 +84,7 @@ class FileProcessorHelper extends EventEmitter
       catch error
         console.trace "event line " + line + " had a serious parsing issue: #{error}"
     reader.on 'end', ->
-      callback null
+      callback() if callback?
     reader.start()
 
   clearDatabase: (callback) =>
