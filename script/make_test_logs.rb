@@ -72,7 +72,7 @@ class MakeTestLogs
   end
 
   def sessions(outfile)
-    time_starts_at = Time.at(0)
+    time_starts_at = Time.at(315532800)
 
     # session test: 4 users: one with three separate sessions; one with two sessions very close to each other; one with one session of nonzero length; one with one single-request/0-length session
     # share test: one user sharing two times, with no incoming users; one user sharing once, with two incoming users, one of which becomes a member; one user not sharing at all
@@ -118,7 +118,7 @@ class MakeTestLogs
 
   def shares(outfile)
     log_hashes = []
-    time_starts_at = Time.at(0)
+    time_starts_at = Time.at(315532800)
 
     user_id = "sad_sharer"
     current_time = time_starts_at.to_i + rand(86400)
