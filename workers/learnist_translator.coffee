@@ -18,11 +18,9 @@ class LearnistTranslator extends Worker
     @foreman.on('createdLearning', @handleMessage)
     @foreman.on('createdTag', @handleMessage)
     @foreman.on('emailSent', @handleMessage)
-    @foreman.on('facebookLiked', @handleMessage)
     @foreman.on('followed', @handleMessage)
     @foreman.on('liked', @handleMessage)
     @foreman.on('objectShared', @handleMessage)
-    @foreman.on('request', @handleMessage)
     @foreman.on('respondedToInvitation', @handleMessage)
     @foreman.on('tagFollowed', @handleMessage)
     @foreman.on('tagUnfollowed', @handleMessage)
@@ -52,11 +50,9 @@ class LearnistTranslator extends Worker
         when "createdLearning" then @handleCreatedLearning(json)
         when "createdTag" then @handleCreatedTag(json)
         when "emailSent" then @handleEmailSent(json)
-        when "facebookLiked" then @handleFacebookLiked(json)
         when "followed" then @handleFollowed(json)
         when "liked" then @handleLiked(json)
         when "objectShared" then @handleObjectShared(json)
-        when "request" then @handleRequest(json)
         when "respondedToInvitation" then @handleRespondedToInvitation(json)
         when "tagFollowed" then @handleTagFollowed(json)
         when "tagUnfollowed" then @handleTagUnfollowed(json)
@@ -118,41 +114,12 @@ class LearnistTranslator extends Worker
         @dataProvider.createObject "system_email_#{json.emailType}", json.shareHash, json.timestamp, cb
     ], @emitResults
     
-  handleFacebookLiked: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'facebook_liked', json.activityId, json.likedUri, 1, @emitResults
-
   handleFollowed: (json) =>
     @dataProvider.measure 'user', json.userId, json.timestamp, 'followed', json.activityId, json.subscriptionTargetId?.toString(), 1, @emitResults
 
   handleLiked: (json) =>
     share_id = json.shareHash || "#{json.targetType}_#{json.targetId}"
-    async.parallel [
-      (cb) => 
-        @dataProvider.measure 'user', json.userId, json.timestamp, 'liked', json.activityId, share_id, 1, cb
-      (cb) => 
-        @dataProvider.createObject 'like', share_id, json.timestamp, cb
-    ], @emitResults
-
-  handleObjectShared: (json) =>
-    async.parallel [
-      (cb) => 
-        @dataProvider.measure 'user', json.userId, json.timestamp, 'shared', json.activityId, '', 1, cb
-      (cb) => 
-        @dataProvider.measure 'user', json.userId, json.timestamp, "shared_#{json.shareService}", json.activityId, '', 1, cb
-      (cb) => 
-        @dataProvider.createObject 'share', json.shareHash, json.timestamp, cb
-      (cb) => 
-        @dataProvider.createObject "share_#{json.shareService}", json.shareHash, json.timestamp, cb
-    ], @emitResults
-
-  handleRequest: (json) =>
-    async.parallel [
-      (cb) => 
-        if json.fromShare
-          @dataProvider.measure 'share', json.fromShare, json.timestamp, 'share_visited', json.activityId, json.userId, 1, cb
-        else
-          cb(null, null)
-    ], @emitResults
+    @dataProvider.measure 'user', json.userId, json.timestamp, 'liked', json.activityId, share_id, 1, @emitResults
 
   handleRespondedToInvitation: (json) =>
     @dataProvider.measure 'invitation', json.invitationId, json.timestamp, 'invitation_responded_to', json.activityId, json.userId, 1, @emitResults
