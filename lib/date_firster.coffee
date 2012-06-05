@@ -7,7 +7,7 @@ class DateFirster
     @moment = moment(dateOrMoment)
 
   date: =>
-    new DateFirster @moment.clone().hours(0).minutes(0).seconds(0)
+    new DateFirster @moment.clone().hours(0).minutes(0).seconds(0).milliseconds(0)
 
   firstOfMonth: =>
     new DateFirster @moment.clone().date(1).hours(0).minutes(0).seconds(0)

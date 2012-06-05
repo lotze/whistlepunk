@@ -14,6 +14,9 @@ config.redis.redis_db_num = 0;
 config.msg_source_redis.host = '127.0.0.1';
 config.msg_source_redis.port = 6379;
 config.msg_source_redis.redis_db_num = 0;
+config.mongo_db_name = process.env.NODE_ENV+'WhistlePunk';
+config.mongo_db_server = '127.0.0.1';
+config.mongo_db_port = 27017;
 
 switch(process.env.NODE_ENV) {
 case 'production':
