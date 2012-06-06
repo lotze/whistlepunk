@@ -12,8 +12,8 @@ module.exports =
       client.on "error", (err) ->
         console.log("Error " + err);
       client.once "ready", (err) =>
-        if config.redis.redis_db_num?
-          client.select config.redis.redis_db_num, =>
+        if config.redis.db_num?
+          client.select config.redis.db_num, =>
             callback(null, client) if callback?
         else
           callback(null, client) if callback?
