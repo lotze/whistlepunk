@@ -6,7 +6,7 @@ Sessionizer = require("../workers/sessionizer")
 MemberStatusWorker = require("../workers/membership_status_worker")
 LearnistTranslatorWorker = require("../workers/learnist_translator")
 UnionRep = require("../lib/union_rep")
-redis = require("redis")
+Redis = require("../lib/redis")
 config = require('../config')
 
 fileProcessorHelper = null
@@ -18,7 +18,7 @@ describe "a sessionizer and learnist translator worker", ->
       fileProcessorHelper = new FileProcessorHelper(unionRep)
       sessionizer_worker = new Sessionizer(fileProcessorHelper)
       learnist_translator_worker = new LearnistTranslatorWorker(fileProcessorHelper)
-      client = redis.createClient(config.redis.port, config.redis.host)
+      client = Redis.getClient()
       client.flushdb (err, results) ->
         unionRep.addWorker('sessionizer', sessionizer_worker)
         unionRep.addWorker('learnist_translator', learnist_translator_worker)
@@ -52,7 +52,7 @@ describe "a sessionizer and membership status worker", ->
       fileProcessorHelper = new FileProcessorHelper(unionRep)
       sessionizer_worker = new Sessionizer(fileProcessorHelper)
       member_status_worker = new MemberStatusWorker(fileProcessorHelper)
-      client = redis.createClient(config.redis.port, config.redis.host)
+      client = Redis.getClient()
       finalMessage = JSON.parse('{"eventName":"request","userId":"finale","timestamp":9980170,"service":"service","ip":"1.2.3.4","referrer":"/","requestUri":"/","userAgent":"Chrome"}')
       client.flushdb (err, results) ->
         unionRep.addWorker('sessionizer', sessionizer_worker)

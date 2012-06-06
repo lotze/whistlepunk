@@ -4,7 +4,7 @@ async = require("async")
 FileProcessorHelper = require('../lib/file_processor_helper')
 LearnistTranslator = require("../workers/learnist_translator")
 UnionRep = require("../lib/union_rep")
-redis = require("redis")
+Redis = require("../lib/redis")
 config = require('../config')
 
 fileProcessorHelper = null
@@ -15,7 +15,7 @@ describe "a learnist translator worker", ->
       unionRep = new UnionRep(1)
       fileProcessorHelper = new FileProcessorHelper(unionRep)
       worker = new LearnistTranslator(fileProcessorHelper)
-      client = redis.createClient(config.redis.port, config.redis.host)
+      client = Redis.getClient()
       client.flushdb (err, results) ->
         unionRep.addWorker('worker_being_tested', worker)
         fileProcessorHelper.clearDatabase (err, results) =>

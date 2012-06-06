@@ -4,7 +4,7 @@ async = require("async")
 FileProcessorHelper = require('../lib/file_processor_helper')
 Sessionizer = require("../workers/sessionizer")
 UnionRep = require("../lib/union_rep")
-redis = require("redis")
+Redis = require("../lib/redis")
 config = require('../config')
 
 fileProcessorHelper = null
@@ -36,7 +36,7 @@ describe "a sessionizer worker", ->
       fileProcessorHelper = new FileProcessorHelper(unionRep)
       worker = new Sessionizer(fileProcessorHelper)
       finalMessage = JSON.parse('{"eventName":"request","userId":"finale","timestamp":999980170,"service":"service","ip":"1.2.3.4","referrer":"/","requestUri":"/","userAgent":"Chrome"}')
-      client = redis.createClient(config.redis.port, config.redis.host)
+      client = Redis.getClient()
       client.flushdb (err, results) ->
         unionRep.addWorker('worker_being_tested', worker)
         fileProcessorHelper.clearDatabase (err, results) =>
