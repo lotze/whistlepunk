@@ -1,0 +1,3 @@
+{ "eventName": "commentAdd", "userId": "double_user", "timestamp": 0, "activityId": "myActivityId"}
+{ "eventName": "commentAdd", "userId": "double_user", "timestamp": 86400, "activityId": "myActivityId"}
+{ "eventName": "commentAdd", "userId": "single_user", "timestamp": 0, "activityId": "myActivityId"}

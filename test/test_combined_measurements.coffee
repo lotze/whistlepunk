@@ -18,8 +18,7 @@ describe "a sessionizer and learnist translator worker", ->
       fileProcessorHelper = new FileProcessorHelper(unionRep)
       sessionizer_worker = new Sessionizer(fileProcessorHelper)
       learnist_translator_worker = new LearnistTranslatorWorker(fileProcessorHelper)
-      client = Redis.getClient()
-      client.flushdb (err, results) ->
+      fileProcessorHelper.clearDatabase (err, results) =>
         unionRep.addWorker('sessionizer', sessionizer_worker)
         unionRep.addWorker('learnist_translator', learnist_translator_worker)
         

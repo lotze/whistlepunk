@@ -12,7 +12,6 @@ class BoardCompressor extends Worker
   constructor: (foreman) ->
     @foreman = foreman    
     @mongo = new Db(config.mongo_db_name, new Server(config.mongo_db_server, config.mongo_db_port, {}), {})
-    @foreman.on('measureMe', @handleMeasureMe)
     super()
 
   init: (callback) ->
@@ -21,6 +20,7 @@ class BoardCompressor extends Worker
       @mongo.collection 'compressedBoardActivity', (err, compressedBoardActivity) =>
         @daily = compressedBoardActivity
         @daily.ensureIndex {boardId: 1, day: 1}, {unique:true}, (err, results) =>
+          @foreman.on('measureMe', @handleMeasureMe)
           callback(err, results)
 
   handleMeasureMe: (json) =>

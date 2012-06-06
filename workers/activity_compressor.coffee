@@ -12,15 +12,15 @@ class ActivityCompressor extends Worker
   constructor: (foreman) ->
     @foreman = foreman    
     @mongo = new Db(config.mongo_db_name, new Server(config.mongo_db_server, config.mongo_db_port, {}), {})
-    @foreman.on('measureMe', @handleMeasureMe)
     super()
 
-  init: (callback) ->
+  init: (callback) =>
     # generally here we need to make sure db connections are opened properly before executing the callback
     @mongo.open (err, db) =>
       @mongo.collection 'compressedActivity', (err, compressedActivity) =>
         @daily = compressedActivity
         @daily.ensureIndex {userId: 1, day: 1}, {unique:true}, (err, results) =>
+          @foreman.on('measureMe', @handleMeasureMe)
           callback(err, results)
 
   handleMeasureMe: (json) =>
