@@ -30,10 +30,10 @@ describe "a sessionizer and learnist translator worker", ->
           (cb) => fileProcessorHelper.processFile "test/log/tiny_session_test.json", cb
         ], (err, results) =>
           if unionRep.total == 0
-            done()
+            done(err, results)
           else
             unionRep.once 'drain', =>
-              done()
+              done(err, results)
 
     it "should store the measurement on the user and the session", (done) ->
       fileProcessorHelper.db.query("select object_type, amount from all_measurements where measure_name = 'tagged'").execute (error, rows, columns) ->
