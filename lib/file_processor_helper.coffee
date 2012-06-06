@@ -5,6 +5,9 @@ FileLineStreamer = require("../lib/file_line_streamer")
 fs = require("fs")
 Redis = require("../lib/redis")
 config = require("../config")
+Db = require('mongodb').Db
+Connection = require('mongodb').Connection
+Server = require('mongodb').Server
 
 class FileProcessorHelper extends EventEmitter
   constructor: (@unionRep, callback) ->
@@ -117,6 +120,23 @@ class FileProcessorHelper extends EventEmitter
           @client.hdel 'sessionizer:next_day_start', userId, user_cb
         , parallel_callback
       (parallel_callback) => @client.zremrangebyscore 'sessionizer:next_day_end', -1, 99999999999999999, parallel_callback
+      (parallel_callback) =>
+        mongo = new Db(config.mongo_db_name, new Server(config.mongo_db_server, config.mongo_db_port, {}), {})
+        mongo.open (err, db) =>
+          async.series [
+            (series_callback) => mongo.collection 'compressedActivity', (err, compressedActivity) =>
+              compressedActivity.drop (err, results) =>
+                if !err? || err.errmsg == 'ns not found'
+                  series_callback()
+                else
+                  series_callback(err, results)
+            (series_callback) => mongo.collection 'compressedBoardActivity', (err, compressedActivity) =>
+              compressedActivity.drop (err, results) =>
+                if !err? || err.errmsg == 'ns not found'
+                  series_callback()
+                else
+                  series_callback(err, results)
+          ], parallel_callback
      ], (err, results) =>
       callback err, results
 
