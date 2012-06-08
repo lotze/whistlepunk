@@ -13,20 +13,21 @@ describe "a learnist translator worker", ->
   describe "after processing createdBoard events", ->
     before (done) ->
       unionRep = new UnionRep(1)
-      fileProcessorHelper = new FileProcessorHelper(unionRep)
-      worker = new LearnistTranslator(fileProcessorHelper)
-      client = Redis.getClient()
-      client.flushdb (err, results) ->
-        unionRep.addWorker('worker_being_tested', worker)
-        fileProcessorHelper.clearDatabase (err, results) =>
-          fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('joe_active_four');").execute (err, results) =>
-            worker.init (err, results) =>
-              fileProcessorHelper.processFile "test/log/board_creation.json", =>
-                if unionRep.total == 0
-                  done()
-                else
-                  unionRep.once 'drain', =>
+      Redis.getClient (err, client) =>
+        done(err) if err?
+        fileProcessorHelper = new FileProcessorHelper(unionRep, client)
+        worker = new LearnistTranslator(fileProcessorHelper)
+        fileProcessorHelper.clearDatabase (err, results) ->
+          unionRep.addWorker('worker_being_tested', worker)
+          fileProcessorHelper.clearDatabase (err, results) =>
+            fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('joe_active_four');").execute (err, results) =>
+              worker.init (err, results) =>
+                fileProcessorHelper.processFile "test/log/board_creation.json", =>
+                  if unionRep.total == 0
                     done()
+                  else
+                    unionRep.once 'drain', =>
+                      done()
 
     it "should result in the user creating ten boards", (done) ->
       fileProcessorHelper.db.query("select boards_created from olap_users").execute (error, rows, columns) ->

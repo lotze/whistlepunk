@@ -5,26 +5,29 @@ FileProcessorHelper = require('../lib/file_processor_helper')
 fileProcessorHelper = null
 ShareWorker = require("../workers/share_worker")
 UnionRep = require("../lib/union_rep")
+Redis = require("../lib/redis")
 
 describe "a share worker", ->
   describe "after processing share events", ->
     before (done) ->
       unionRep = new UnionRep(1)
-      fileProcessorHelper = new FileProcessorHelper(unionRep)
-      worker = new ShareWorker(fileProcessorHelper)
-      all_lines_read_in = false
-      drained = false
-      unionRep.addWorker('worker_being_tested', worker)
+      Redis.getClient (err, client) =>
+        done(err) if err?      
+        fileProcessorHelper = new FileProcessorHelper(unionRep, client)
+        worker = new ShareWorker(fileProcessorHelper)
+        all_lines_read_in = false
+        drained = false
+        unionRep.addWorker('worker_being_tested', worker)
 
-      fileProcessorHelper.clearDatabase (err, results) =>
-        fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('effective_sharer'),('incoming_nonmember'),('incoming_member'),('sad_sharer'),('incoming_invite_requested_member');").execute (err, results) ->
-          worker.init (err, results) =>
-            fileProcessorHelper.processFile "test/log/shares.json", =>
-              if unionRep.total == 0
-                done()
-              else
-                unionRep.once 'drain', =>
+        fileProcessorHelper.clearDatabase (err, results) =>
+          fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('effective_sharer'),('incoming_nonmember'),('incoming_member'),('sad_sharer'),('incoming_invite_requested_member');").execute (err, results) ->
+            worker.init (err, results) =>
+              fileProcessorHelper.processFile "test/log/shares.json", =>
+                if unionRep.total == 0
                   done()
+                else
+                  unionRep.once 'drain', =>
+                    done()
 
     it "should result in three shares and two sharers", (done) ->
       fileProcessorHelper.db.query("select count(*) as shares, count(distinct sharing_user_id) as sharers from shares").execute (error, rows, columns) ->

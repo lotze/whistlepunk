@@ -1,13 +1,15 @@
 DataProvider = require('../lib/data_provider')
 UnionRep = require('../lib/union_rep')
 FileProcessorHelper = require('../lib/file_processor_helper')
+Redis = require('../lib/redis')
 should = require('should')
 assert = require('assert')
 
 describe 'DataProvider', =>
   before (done) =>
     unionRep = new UnionRep(1)
-    @fileProcessorHelper = new FileProcessorHelper unionRep, =>
+    Redis.getClient (err, client) =>
+      @fileProcessorHelper = new FileProcessorHelper unionRep, client
       @dataProvider = new DataProvider(@fileProcessorHelper)
       @actorType = 'user'
       @actorId = 'testActor'

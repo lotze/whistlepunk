@@ -4,6 +4,7 @@ async = require("async")
 UnionRep = require("../lib/union_rep")
 FileProcessorHelper = require('../lib/file_processor_helper')
 fileProcessorHelper = null
+Redis = require("../lib/redis")
 worker = null
 MembershipStatusWorker = require("../workers/membership_status_worker")
 
@@ -12,15 +13,17 @@ describe "a membership status worker", ->
     before (done) ->
       processed = 0
       unionRep = new UnionRep(1)
-      fileProcessorHelper = new FileProcessorHelper unionRep
-      worker = new MembershipStatusWorker(fileProcessorHelper)
-      worker.on "done", (e, r) ->
-        processed++
-        done()  if processed is 4
-      fileProcessorHelper.clearDatabase (err, results) ->
-        fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('super_member'),('non-member'),('regular member');").execute (err, results) ->
-          worker.init ->
-            fileProcessorHelper.processFile "test/log/member_status.json"
+      Redis.getClient (err1, client) =>
+        done(err1) if err1?
+        fileProcessorHelper = new FileProcessorHelper(unionRep, client)
+        worker = new MembershipStatusWorker(fileProcessorHelper)
+        worker.on "done", (e, r) ->
+          processed++
+          done()  if processed is 4
+        fileProcessorHelper.clearDatabase (err2, results) ->
+          fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('super_member'),('non-member'),('regular member');").execute (err3, results) ->
+            worker.init ->
+              fileProcessorHelper.processFile "test/log/member_status.json"
 
     it "should update regular member's name and email address", (done) ->
       fileProcessorHelper.db.query("select name, email from olap_users where id='regular member'").execute (error, rows, columns) ->

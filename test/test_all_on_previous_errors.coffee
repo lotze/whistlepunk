@@ -2,21 +2,25 @@ should = require("should")
 assert = require("assert")
 async = require("async")
 fs = require('fs')
+Redis = require('../lib/redis')
 FileProcessorHelper = require("../lib/file_processor_helper")
-fileProcessorHelper = new FileProcessorHelper()
+fileProcessorHelper = null
 
 describe "the set of all workers", ->
   before (done) =>
-    files = fs.readdirSync('./workers')
-    workers = {}
-    async.forEach files, (workerFile, worker_callback) =>
-      workerName = workerFile.replace('.js', '')
-      WorkerClass = require('../workers/'+workerFile)
-      worker = new WorkerClass(fileProcessorHelper)
-      workers[workerName] = worker
-      workers[workerName].init(worker_callback)
-    , (err) =>
-      done()
+    Redis.getClient (err, client) =>
+      callback(err, this) if callback?
+      fileProcessorHelper = new FileProcessorHelper(null, client)
+      files = fs.readdirSync('./workers')
+      workers = {}
+      async.forEach files, (workerFile, worker_callback) =>
+        workerName = workerFile.replace('.js', '')
+        WorkerClass = require('../workers/'+workerFile)
+        worker = new WorkerClass(fileProcessorHelper)
+        workers[workerName] = worker
+        workers[workerName].init(worker_callback)
+      , (err) =>
+        done()
       
   describe "when processing an entry with a single quote", ->
     it "should not have an error", ->

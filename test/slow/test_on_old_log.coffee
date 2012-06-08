@@ -4,18 +4,14 @@ async = require("async")
 FileProcessorHelper = require('../lib/file_processor_helper')
 Sessionizer = require("../workers/sessionizer")
 UnionRep = require("../lib/union_rep")
-Redis = require("../lib/redis")
-config = require('../config')
 unionRep = new UnionRep(1000)
 fileProcessorHelper = null
 
 describe "a sessionizer worker", ->
   describe "after processing old session events", ->
     before (done) ->
-      fileProcessorHelper = new FileProcessorHelper(unionRep)
-      worker = new Sessionizer(fileProcessorHelper)
-      client = Redis.getClient()
-      client.flushdb (err, results) ->
+      fileProcessorHelper = new FileProcessorHelper unionRep, (err, result) =>
+        worker = new Sessionizer(fileProcessorHelper)
         unionRep.addWorker('worker_being_tested', worker)
         fileProcessorHelper.clearDatabase (err, results) =>
           worker.init (err, results) =>

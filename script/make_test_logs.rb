@@ -71,6 +71,32 @@ class MakeTestLogs
     return log_hashes
   end
 
+  def dau(outfile)
+    time_starts_at = Time.at(1338534000)  # midnight PST on June 1st, 2012
+    
+    # June 2012 has 30 days of one distinct user each day
+    # July 2012 has 30 days of an additional distinct user each day (1 on the 1st, that same one plus one more on the 2nd, etc.)
+
+    log_hashes = []
+
+    (1..30).each do |june_day|
+      current_time = time_starts_at.to_i + (june_day - 1) * 86400
+      user_id = "june_#{june_day}"
+      log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
+    end
+
+    (1..30).each do |july_day|
+      current_time = time_starts_at.to_i + (july_day - 1 + 30) * 86400
+      (1..july_day).each do |july_user_id|
+        user_id = "july_#{july_user_id}"
+        log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
+      end
+    end
+
+    write_logs(outfile, log_hashes)
+  end
+
+
   def sessions(outfile)
     time_starts_at = Time.at(315532800)
 
@@ -252,13 +278,9 @@ end
 
 makeTestLogs = MakeTestLogs.new
 
-file_types = [:sessions, :shares, :measure_me, :first_sessions, :member_status]
-
 ARGV.each do |file_type|
-  if file_types.include?(file_type.to_sym)
-    outfile = File.expand_path("#{File.dirname(__FILE__)}/../test/log/#{file_type}.json")
-    makeTestLogs.send(file_type, outfile)
-  end
+  outfile = File.expand_path("#{File.dirname(__FILE__)}/../test/log/#{file_type}.json")
+  makeTestLogs.send(file_type, outfile)
 end
 
 #

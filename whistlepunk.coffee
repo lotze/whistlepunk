@@ -24,7 +24,8 @@ process.on('SIGKILL', quit)
 
 class Application
   constructor: (@foreman) ->
-    @client = Redis.getClient()
+    Redis.getClient (err, client) =>
+      @client = client
 
   terminate: =>
     @foreman.terminate()
@@ -60,7 +61,7 @@ class Application
 
   reprocess: =>
     console.log "Reprocessing"
-    @fileProcessorHelper = new FileProcessorHelper(@unionRep)
+    @fileProcessorHelper = new FileProcessorHelper(@unionRep, @client)
 
     async.parallel [
       (cb) => @client.get 'whistlepunk:last_event_processed', cb

@@ -33,11 +33,11 @@ describe "a sessionizer worker", ->
   describe "after processing current session events", ->
     before (done) ->
       unionRep = new UnionRep(1)
-      fileProcessorHelper = new FileProcessorHelper(unionRep)
-      worker = new Sessionizer(fileProcessorHelper)
-      finalMessage = JSON.parse('{"eventName":"request","userId":"finale","timestamp":999980170,"service":"service","ip":"1.2.3.4","referrer":"/","requestUri":"/","userAgent":"Chrome"}')
-      client = Redis.getClient()
-      client.flushdb (err, results) ->
+      Redis.getClient (err, client) =>
+        done(err) if err?
+        fileProcessorHelper = new FileProcessorHelper(unionRep, client)
+        worker = new Sessionizer(fileProcessorHelper)
+        finalMessage = JSON.parse('{"eventName":"request","userId":"finale","timestamp":999980170,"service":"service","ip":"1.2.3.4","referrer":"/","requestUri":"/","userAgent":"Chrome"}')
         unionRep.addWorker('worker_being_tested', worker)
         fileProcessorHelper.clearDatabase (err, results) =>
           fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('joe_active_four'),('close_two'),('bounce'),('just_once');").execute (err, results) =>

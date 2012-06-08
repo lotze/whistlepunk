@@ -8,13 +8,14 @@ module.exports =
     if client?
       callback(null, client) if callback?
     else
-      client = redis.createClient(config.redis.port, config.redis.host)
-      client.on "error", (err) ->
+      temp_client = redis.createClient(config.redis.port, config.redis.host)
+      temp_client.on "error", (err) ->
         console.log("Error " + err);
-      client.once "ready", (err) =>
+      temp_client.once "ready", (err) =>
         if config.redis.db_num?
-          client.select config.redis.db_num, =>
+          temp_client.select config.redis.db_num, =>
+            client = temp_client
             callback(null, client) if callback?
         else
+          client = temp_client
           callback(null, client) if callback?
-    return client

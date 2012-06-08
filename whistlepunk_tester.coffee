@@ -3,7 +3,7 @@
 process.env.NODE_ENV ?= 'development'
 
 require('coffee-script')
-redis = require('redis')
+Redis = require('./lib/redis')
 config = require('./config')
 FileProcessorHelper = require('./lib/file_processor_helper')
 UnionRep = require('./lib/union_rep')
@@ -29,20 +29,23 @@ class Application
 
   run: (file) =>
     @unionRep = new UnionRep()
-    @fileProcessorHelper = new FileProcessorHelper(@unionRep)
+    Redis.getClient (err, client) =>
+      @client = client
+      callback(err, this) if callback?
+      @fileProcessorHelper = new FileProcessorHelper(@unionRep, @client)
 
-    @foreman.init (err) =>
-      files = fs.readdirSync(__dirname + '/workers')
-      async.forEach files, (workerFile, worker_callback) =>
-        workerName = workerFile.replace('.js', '')
-        WorkerClass = require('./workers/'+workerFile)
-        worker = new WorkerClass(foreman)
-        worker.init(worker_callback)
-        @unionRep.addWorker(workerName, worker)
-      , (err) =>
-        throw err if err?
-        @processFile file, =>
-          process.exit(0)
+      @foreman.init (err) =>
+        files = fs.readdirSync(__dirname + '/workers')
+        async.forEach files, (workerFile, worker_callback) =>
+          workerName = workerFile.replace('.js', '')
+          WorkerClass = require('./workers/'+workerFile)
+          worker = new WorkerClass(foreman)
+          worker.init(worker_callback)
+          @unionRep.addWorker(workerName, worker)
+        , (err) =>
+          throw err if err?
+          @processFile file, =>
+            process.exit(0)
     
   processFile: (fileName, file_cb) =>
     console.trace("WTF!?") unless fileName?

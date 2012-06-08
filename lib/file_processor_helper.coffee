@@ -3,20 +3,17 @@ EventEmitter = require("events").EventEmitter
 util = require("util")
 FileLineStreamer = require("../lib/file_line_streamer")
 fs = require("fs")
-Redis = require("../lib/redis")
 config = require("../config")
 Db = require('mongodb').Db
 Connection = require('mongodb').Connection
 Server = require('mongodb').Server
 
 class FileProcessorHelper extends EventEmitter
-  constructor: (@unionRep, callback) ->
+  constructor: (@unionRep, @client) ->
     @jsonFinderRegEx = new RegExp(/^[^\{]*(\{.*\})/)
     DbLoader = require("../lib/db_loader.js")
     dbloader = new DbLoader()
     @db = dbloader.db()
-    @client = Redis.getClient()
-    callback(null, this) if callback?
 
   processLine: (line) =>
     json_data = JSON.parse(line)
@@ -102,6 +99,7 @@ class FileProcessorHelper extends EventEmitter
       (parallel_callback) => @db.query("TRUNCATE TABLE timeseries").execute parallel_callback
       (parallel_callback) => @db.query("TRUNCATE TABLE shares").execute parallel_callback
       (parallel_callback) => @db.query("TRUNCATE TABLE in_from_shares").execute parallel_callback
+      (parallel_callback) => @client.flushdb parallel_callback
       (parallel_callback) => @client.smembers 'sessionizer:is_first', (err, results) =>
         async.forEach results, (userId, user_cb) =>
           @client.srem 'sessionizer:is_first', userId, user_cb

@@ -5,6 +5,7 @@ FileProcessorHelper = require('../lib/file_processor_helper')
 fileProcessorHelper = new FileProcessorHelper()
 FirstRequest = require("../workers/first_request")
 UnionRep = require("../lib/union_rep")
+Redis = require("../lib/redis")
 
 describe "a first_request worker", ->
   describe "#country", ->
@@ -53,21 +54,23 @@ describe "a first_request worker", ->
   describe "after processing a firstRequest event", ->
     before (done) ->
       unionRep = new UnionRep(1)
-      fileProcessorHelper = new FileProcessorHelper(unionRep)
-      worker = new FirstRequest(fileProcessorHelper)
-      all_lines_read_in = false
-      drained = false
-      unionRep.addWorker('worker_being_tested', worker)
-      unionRep.once 'drain', =>
-        drained = true
-        if all_lines_read_in
-          done()
-      fileProcessorHelper.clearDatabase (err, results) =>
-        worker.init (err, results) =>
-          fileProcessorHelper.processFile "test/log/first_sessions.json", =>
-            all_lines_read_in = true
-            if drained
-              done()
+      Redis.getClient (err, client) =>
+        done(err) if err?
+        fileProcessorHelper = new FileProcessorHelper(unionRep, client)
+        worker = new FirstRequest(fileProcessorHelper)
+        all_lines_read_in = false
+        drained = false
+        unionRep.addWorker('worker_being_tested', worker)
+        unionRep.once 'drain', =>
+          drained = true
+          if all_lines_read_in
+            done()
+        fileProcessorHelper.clearDatabase (err, results) =>
+          worker.init (err, results) =>
+            fileProcessorHelper.processFile "test/log/first_sessions.json", =>
+              all_lines_read_in = true
+              if drained
+                done()
 
     it "results in three users in all_objects", (done) ->
       fileProcessorHelper.db.query().select([ "object_id" ]).from("all_objects").where("object_type = ?", [ "user" ]).execute (error, rows, columns) ->
