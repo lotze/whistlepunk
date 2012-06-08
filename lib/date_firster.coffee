@@ -6,6 +6,15 @@ class DateFirster
   constructor: (dateOrMoment) ->
     @moment = moment(dateOrMoment)
 
+  year: =>
+    @moment.format("YYYY")
+
+  month: =>
+    @moment.format("MM")
+
+  day: =>
+    @moment.format("DD")
+
   date: =>
     new DateFirster @moment.clone().hours(0).minutes(0).seconds(0).milliseconds(0)
 
