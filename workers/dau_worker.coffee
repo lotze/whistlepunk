@@ -26,13 +26,23 @@ class DauWorker extends Worker
       callback(err)
 
   handleEvent: (json) =>
-    if json.userId != ""
+    userId = json.userId
+    if userId != ""
       @emit 'start'
       try
         # get date from timestamp
         df = new DateFirster(new Date(json.timestamp*1000))
-        @client.sadd "dau:#{df.year()}:#{df.month()}:#{df.day()}", json.userId, (err, results) =>
-          @emitResults err, results
+        
+        myQuery = "SELECT status from users_membership_status_at where user_id = '#{@escape userId}' and timestamp = (SELECT MAX(timestamp) from users_membership_status_at where user_id = '#{@escape userId}');"
+        @db.query(myQuery).execute (err, rows, cols) =>
+          return @emitResults(err) if err?
+          if rows.length > 0
+            status = rows[0].status
+          else
+            status = "visitor"
+
+          @client.sadd "dau:#{status}:#{df.year()}:#{df.month()}:#{df.day()}", userId, (err, results) =>
+            @emitResults err, results
       catch error
         console.error "Error processing",json," (#{error}): #{error.stack}"
         @emitResults error

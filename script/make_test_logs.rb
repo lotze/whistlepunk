@@ -71,11 +71,12 @@ class MakeTestLogs
     return log_hashes
   end
 
-  def dau(outfile)
+  def dau_visitor(outfile)
     time_starts_at = Time.at(1338534000)  # midnight PST on June 1st, 2012
     
     # June 2012 has 30 days of one distinct user each day
     # July 2012 has 30 days of an additional distinct user each day (1 on the 1st, that same one plus one more on the 2nd, etc.)
+    # all visitors are just visitors
 
     log_hashes = []
 
@@ -90,6 +91,34 @@ class MakeTestLogs
       (1..july_day).each do |july_user_id|
         user_id = "july_#{july_user_id}"
         log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
+      end
+    end
+
+    write_logs(outfile, log_hashes)
+  end
+
+  def dau_member(outfile)
+    time_starts_at = Time.at(1338534000)  # midnight PST on June 1st, 2012
+    
+    # June 2012 has 30 days of one distinct user each day
+    # July 2012 has 30 days of an additional distinct user each day (1 on the 1st, that same one plus one more on the 2nd, etc.)
+    # all visitors immediately upgrade to members
+
+    log_hashes = []
+
+    (1..30).each do |june_day|
+      current_time = time_starts_at.to_i + (june_day - 1) * 86400
+      user_id = "june_#{june_day}"
+      log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
+      log_hashes = log_hashes + become_member(user_id, current_time + 100, 'member', {:activityId => "#{current_time}#{user_id}"})
+    end
+
+    (1..30).each do |july_day|
+      current_time = time_starts_at.to_i + (july_day - 1 + 30) * 86400
+      (1..july_day).each do |july_user_id|
+        user_id = "july_#{july_user_id}"
+        log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
+        log_hashes = log_hashes + become_member(user_id, current_time + 100, 'member', {:activityId => "#{current_time}#{user_id}"})
       end
     end
 
