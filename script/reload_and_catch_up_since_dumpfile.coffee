@@ -48,10 +48,24 @@ process.on 'uncaughtException', (e) ->
 
 async.series [
   (cb) =>
-    # run downloading/sorting script to get logs up to date on S3 and downloaded into local directory    
+    # run downloading/sorting script to get logs up to date on S3
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       console.log("forcing an update to S3 and getting latest logs from the app...")
-      child_process.exec "RAILS_ENV=#{process.env.NODE_ENV} /bin/bash /opt/grockit/metricizer/current/script/update_stored_logs.sh", cb
+      child_process.exec "ssh 174.129.119.21 'RAILS_ENV=#{process.env.NODE_ENV} ROTATE_LOGS=TRUE /bin/bash /home/grockit/metricizer/script/update_stored_logs.sh'", cb
+    else
+      cb()
+  (cb) =>
+    # after having run downloading/sorting script to get logs up to date on S3, download into local directory
+    if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
+      console.log("syncing latest logs from S3...")
+      child_process.exec "s3cmd --no-delete-removed --rexclude='^[^201]' sync s3://com.grockit.distillery/learnist/#{process.env.NODE_ENV}/sorted/ /opt/grockit/log/", cb
+    else
+      cb()
+  (cb) =>
+    # after downloaded into local directory, copy them to the top level of that directory
+    if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
+      console.log("centralizing local logs from S3...")
+      child_process.exec "find /opt/grockit/log/ -type f -exec cp {} /opt/grockit/log/ \\;", cb
     else
       cb()
   (cb) =>
@@ -69,13 +83,13 @@ async.series [
       redis = client
       cb()
   (cb) =>
-    # dump data
+    # load data
     async.parallel [
-      (dump_cb) =>
+      (load_cb) =>
         # load SQL
         console.log("loading mysql...")
-        child_process.exec "mysql -u#{config.db.user} -p#{config.db.password} -h#{config.db.hostname} #{config.db.database} < #{config.backup.dir}/#{timestamp}/mysql.sql", dump_cb
-      (dump_cb) =>
+        child_process.exec "mysql -u#{config.db.user} -p#{config.db.password} -h#{config.db.hostname} #{config.db.database} < #{config.backup.dir}/#{timestamp}/mysql.sql", load_cb
+      (load_cb) =>
         async.series [
           # shut down redis, copy file, restart redis
           (redis_cb) =>
@@ -96,11 +110,11 @@ async.series [
               child_process.exec "launchctl load -w ~/Library/LaunchAgents/homebrew.mxcl.redis.plist", redis_cb
             else
               child_process.exec "sudo service redis-server start", redis_cb
-        ], dump_cb
-      (dump_cb) =>
+        ], load_cb
+      (load_cb) =>
         # load mongo
         console.log("loading mongodb...")
-        child_process.exec "mongorestore --host #{config.mongo_db_server} --port #{config.mongo_db_port} --db #{config.mongo_db_name} --drop #{config.backup.dir}/#{timestamp}/mongo/#{config.mongo_db_name}", dump_cb
+        child_process.exec "mongorestore --host #{config.mongo_db_server} --port #{config.mongo_db_port} --db #{config.mongo_db_name} --drop #{config.backup.dir}/#{timestamp}/mongo/#{config.mongo_db_name}", load_cb
     ], cb
   (cb) =>
     # get the next event to be processed from the msg queue
@@ -128,8 +142,10 @@ async.series [
     # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]  
     console.log("Time to reprocess, after #{last_event_processed.timestamp} and up to #{last_event_to_process.timestamp}.")
     
-    unionRep = new UnionRep()
+    foreman.processFilesBetween(last_event_processed, last_event_to_process, cb)
+    
     foreman.init (err) =>      
+      unionRep = new UnionRep()
       files = fs.readdirSync('./workers')
       async.forEach files, (workerFile, worker_callback) =>
         workerName = workerFile.replace('.js', '')
@@ -150,6 +166,8 @@ async.series [
             fileProcessorHelper.processFileForForeman(fileName, foreman, last_event_processed, last_event_to_process, file_cb)
           , (err) =>
             cb(err)
+
+    
   (cb) =>
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       console.log("starting whistlepunk...")
