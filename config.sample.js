@@ -4,6 +4,10 @@ config.db = {};
 config.redis = {};
 config.msg_source_redis = {};
 
+config.backup = {};
+config.backup.dir = '/tmp';
+config.backup.redis_rdb_dir = '/usr/local/var/db/redis';
+
 config.db.hostname = 'localhost';
 config.db.user = 'root';
 config.db.password = 'password';
@@ -24,6 +28,8 @@ case 'production':
   config.db.database = 'metricizer_prod';
   config.db.password = 'PROD_PASSWORD';
   config.msg_source_redis.host = 'REDIS_HOST';
+  config.backup.dir = '/mnt/whistlepunk_backup';
+  config.backup.redis_rdb_dir = '/var/lib/redis/6379';
   break;
 case 'test':
   config.db.database = 'metricizer_test';
