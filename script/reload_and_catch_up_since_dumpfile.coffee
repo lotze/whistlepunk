@@ -83,7 +83,7 @@ async.series [
             if (process.env.NODE_ENV == 'development')
               child_process.exec "launchctl unload -w ~/Library/LaunchAgents/homebrew.mxcl.redis.plist", redis_cb
             else
-              redis.shutdown redis_cb
+              child_process.exec "sudo service redis-server stop", redis_cb
           (redis_cb) =>
             console.log("copying redis backup...")
             # copy redis dump file from backup dir
