@@ -11,7 +11,7 @@ UnionRep = require('./lib/union_rep')
 
 fs = require('fs')
 async = require('async')
-foreman = require('./lib/foreman.js')
+foreman = require('./lib/foreman')
 
 process.on 'uncaughtException', (e) ->
   console.error("UNCAUGHT EXCEPTION: ", e, e.stack)
