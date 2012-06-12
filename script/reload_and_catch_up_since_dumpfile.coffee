@@ -6,7 +6,7 @@ require('coffee-script')
 
 FileProcessorHelper = require('../lib/file_processor_helper')
 UnionRep = require('../lib/union_rep')
-foreman = require('../lib/foreman.js')
+Foreman = require('../lib/foreman')
 
 config = require('../config')
 Redis = require("../lib/redis")
@@ -142,8 +142,10 @@ async.series [
     # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]  
     console.log("Time to reprocess, after #{last_event_processed.timestamp} and up to #{last_event_to_process.timestamp}.")
     
-    foreman.processFilesBetween(last_event_processed, last_event_to_process, cb)
+    foreman = new Foreman()
     
+    #foreman.processFilesBetween(last_event_processed, last_event_to_process, cb)
+    # TODO: move below into new function processFilesBetween
     foreman.init (err) =>      
       unionRep = new UnionRep()
       files = fs.readdirSync('./workers')

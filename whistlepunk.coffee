@@ -11,7 +11,7 @@ UnionRep = require('./lib/union_rep')
 
 fs = require('fs')
 async = require('async')
-foreman = require('./lib/foreman')
+Foreman = require('./lib/foreman')
 
 process.on 'uncaughtException', (e) ->
   console.error("UNCAUGHT EXCEPTION: ", e, e.stack)
@@ -131,7 +131,7 @@ class Application
       console.error("Uncaught error processing file for foreman: ",err,err.stack)
       file_cb()
 
-app = new Application(foreman)
+app = new Application(new Foreman())
 
 
 process.on 'SIGKILL', ->

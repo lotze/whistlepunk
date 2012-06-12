@@ -48,5 +48,4 @@ class Foreman extends EventEmitter
     @emit message.eventName, message
     console.log message.eventName, message  if process.env.NODE_ENV is "development"
 
-foreman = new Foreman()
-module.exports = foreman
+module.exports = Foreman
