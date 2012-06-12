@@ -100,24 +100,6 @@ class FileProcessorHelper extends EventEmitter
       (parallel_callback) => @db.query("TRUNCATE TABLE shares").execute parallel_callback
       (parallel_callback) => @db.query("TRUNCATE TABLE in_from_shares").execute parallel_callback
       (parallel_callback) => @client.flushdb parallel_callback
-      (parallel_callback) => @client.smembers 'sessionizer:is_first', (err, results) =>
-        async.forEach results, (userId, user_cb) =>
-          @client.srem 'sessionizer:is_first', userId, user_cb
-        , parallel_callback
-      (parallel_callback) => @client.hkeys 'sessionizer:start_time', (err, results) =>
-        async.forEach results, (userId, user_cb) =>
-          @client.hdel 'sessionizer:start_time', userId, user_cb
-        , parallel_callback
-      (parallel_callback) => @client.hkeys 'sessionizer:activity_id', (err, results) =>
-        async.forEach results, (userId, user_cb) =>
-          @client.hdel 'sessionizer:activity_id', userId, user_cb
-        , parallel_callback
-      (parallel_callback) => @client.zremrangebyscore 'sessionizer:end_time', -1, 99999999999999999, parallel_callback
-      (parallel_callback) => @client.hkeys 'sessionizer:next_day_start', (err, results) =>
-        async.forEach results, (userId, user_cb) =>
-          @client.hdel 'sessionizer:next_day_start', userId, user_cb
-        , parallel_callback
-      (parallel_callback) => @client.zremrangebyscore 'sessionizer:next_day_end', -1, 99999999999999999, parallel_callback
       (parallel_callback) =>
         mongo = new Db(config.mongo_db_name, new Server(config.mongo_db_server, config.mongo_db_port, {}), {})
         mongo.open (err, db) =>
