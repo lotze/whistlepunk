@@ -47,7 +47,7 @@ class MembershipStatusWorker extends Worker
       actual_date = dateFirster.format()
       first_of_week = dateFirster.firstOfWeek().format()
       first_of_month = dateFirster.firstOfMonth().format()
-    
+
       async.parallel [
         (cb) => 
           @dataProvider.createObject json['newState'], userId, timestamp, cb

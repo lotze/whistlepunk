@@ -4,7 +4,6 @@ process.env.NODE_ENV ?= 'development'
 
 require('coffee-script')
 
-FileProcessorHelper = require('../lib/file_processor_helper')
 UnionRep = require('../lib/union_rep')
 Foreman = require('../lib/foreman')
 
@@ -147,7 +146,6 @@ async.series [
     #foreman.processFilesBetween(last_event_processed, last_event_to_process, cb)
     # TODO: move below into new function processFilesBetween
     foreman.init (err) =>      
-      unionRep = new UnionRep()
       files = fs.readdirSync('./workers')
       async.forEach files, (workerFile, worker_callback) =>
         workerName = workerFile.replace('.js', '')
@@ -157,15 +155,14 @@ async.series [
         unionRep.addWorker(workerName, worker)
       , (err) =>
         return cb(err) if err?
-        fileProcessorHelper = new FileProcessorHelper(unionRep, redis)
         
         logPath = if process.env.NODE_ENV == 'development' then "/Users/grockit/workspace/whistlepunk/test/log" else "/opt/grockit/log"
-        fileProcessorHelper.getLogFilesInOrder logPath, (err, fileList) =>
+        foreman.getLogFilesInOrder logPath, (err, fileList) =>
           return cb(err) if err?
           console.log "Processing log file list: ", fileList
           async.forEachSeries fileList, (fileName, file_cb) =>
             console.log("WhistlePunk: processing file: " + fileName)
-            fileProcessorHelper.processFileForForeman(fileName, foreman, last_event_processed, last_event_to_process, file_cb)
+            foreman.processFile(fileName, last_event_processed, last_event_to_process, file_cb)
           , (err) =>
             cb(err)
 

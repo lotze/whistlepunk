@@ -58,6 +58,7 @@ class DataProvider extends EventEmitter
       callback err, results
       
   measure: (actorType, actorId, timestamp, measureName, activityId, measureTarget='', measureAmount=1, callback) =>
+    #console.trace("meeeeaasssure: #{actorType}, #{actorId}, #{measureName}, #{timestamp}")
     async.parallel [
       (cb) =>
         # console.log("dp measuring ",actorType, actorId, timestamp, measureName, activityId)

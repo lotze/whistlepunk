@@ -1,32 +1,33 @@
 should = require("should")
 assert = require("assert")
 async = require("async")
-UnionRep = require("../lib/union_rep")
-FileProcessorHelper = require('../lib/file_processor_helper')
-fileProcessorHelper = null
+Foreman = require('../lib/foreman')
 Redis = require("../lib/redis")
 worker = null
 MembershipStatusWorker = require("../workers/membership_status_worker")
+DbLoader = require("../lib/db_loader")
+
+dbloader = new DbLoader()
+foreman = new Foreman()
 
 describe "a membership status worker", ->
   describe "after processing membership status events", ->
     before (done) ->
-      processed = 0
-      unionRep = new UnionRep(1)
-      Redis.getClient (err1, client) =>
-        done(err1) if err1?
-        fileProcessorHelper = new FileProcessorHelper(unionRep, client)
-        worker = new MembershipStatusWorker(fileProcessorHelper)
-        worker.on "done", (e, r) ->
-          processed++
-          done()  if processed is 4
-        fileProcessorHelper.clearDatabase (err2, results) ->
-          fileProcessorHelper.db.query("INSERT INTO olap_users (id) VALUES ('super_member'),('non-member'),('regular member');").execute (err3, results) ->
-            worker.init ->
-              fileProcessorHelper.processFile "test/log/member_status.json"
+      async.series [
+        (cb) => foreman.init cb
+        (cb) => foreman.clearDatabase cb
+        (cb) => foreman.addWorker('membership_status', new MembershipStatusWorker(foreman), cb)
+        (cb) => dbloader.db().query("INSERT INTO olap_users (id) VALUES ('super_member'),('non-member'),('regular member');").execute cb
+        (cb) => foreman.processFile "test/log/member_status.json", cb
+      ], (err, results) =>
+        if foreman.unionRep.total == 0
+          done()
+        else
+          foreman.unionRep.once 'drain', =>
+            done()
 
     it "should update regular member's name and email address", (done) ->
-      fileProcessorHelper.db.query("select name, email from olap_users where id='regular member'").execute (error, rows, columns) ->
+      dbloader.db().query("select name, email from olap_users where id='regular member'").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           return done(error)
@@ -35,7 +36,7 @@ describe "a membership status worker", ->
         done()
 
     it "should have two members in all_objects", (done) ->
-      fileProcessorHelper.db.query("select count(*) as num_members from all_objects where object_type = 'member'").execute (error, rows, columns) ->
+      dbloader.db().query("select count(*) as num_members from all_objects where object_type = 'member'").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           return done(error)
@@ -43,7 +44,7 @@ describe "a membership status worker", ->
         done()
 
     it "should have one super member in all_objects", (done) ->
-      fileProcessorHelper.db.query("select count(*) as num_members from all_objects where object_type = 'super_member'").execute (error, rows, columns) ->
+      dbloader.db().query("select count(*) as num_members from all_objects where object_type = 'super_member'").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           return done(error)
@@ -51,7 +52,7 @@ describe "a membership status worker", ->
         done()
 
     it "should have two users marked as having become members in users_membership_status_at", (done) ->
-      fileProcessorHelper.db.query("select count(*) as num_members from olap_users join users_membership_status_at on users_membership_status_at.user_id = olap_users.id where users_membership_status_at.status='member'").execute (error, rows, columns) ->
+      dbloader.db().query("select count(*) as num_members from olap_users join users_membership_status_at on users_membership_status_at.user_id = olap_users.id where users_membership_status_at.status='member'").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           return done(error)
@@ -59,7 +60,7 @@ describe "a membership status worker", ->
         done()
 
     it "should have one user marked as having become a super member in users_membership_status_at", (done) ->
-      fileProcessorHelper.db.query("select count(*) as num_members from olap_users join users_membership_status_at on users_membership_status_at.user_id = olap_users.id where users_membership_status_at.status='super_member'").execute (error, rows, columns) ->
+      dbloader.db().query("select count(*) as num_members from olap_users join users_membership_status_at on users_membership_status_at.user_id = olap_users.id where users_membership_status_at.status='super_member'").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           return done(error)
@@ -67,7 +68,7 @@ describe "a membership status worker", ->
         done()
 
     it "should have one user in olap_users marked as a member", (done) ->
-      fileProcessorHelper.db.query("select count(*) as num_members from olap_users where status='member'").execute (error, rows, columns) ->
+      dbloader.db().query("select count(*) as num_members from olap_users where status='member'").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           return done(error)
@@ -75,7 +76,7 @@ describe "a membership status worker", ->
         done()
 
     it "should have one user in olap_users marked as a super member", (done) ->
-      fileProcessorHelper.db.query("select count(*) as num_members from olap_users where status='super_member'").execute (error, rows, columns) ->
+      dbloader.db().query("select count(*) as num_members from olap_users where status='super_member'").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           return done(error)

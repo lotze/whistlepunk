@@ -1,11 +1,9 @@
 should = require("should")
 assert = require("assert")
 async = require("async")
-FileProcessorHelper = require('../lib/file_processor_helper')
-fileProcessorHelper = null
+Foreman = require('../lib/foreman')
 LearnistTranslatorWorker = require("../workers/learnist_translator")
 ActivityCompressor = require("../workers/activity_compressor")
-UnionRep = require("../lib/union_rep")
 config = require("../config")
 Redis = require("../lib/redis")
 Db = require('mongodb').Db
@@ -15,28 +13,23 @@ Server = require('mongodb').Server
 describe "an activity compressor worker", ->
   describe "after processing user events", ->
     before (done) ->
-      unionRep = new UnionRep(1)
-      Redis.getClient (err, client) =>
+      foreman = new Foreman()
+      foreman.init (err, result) =>
         done(err) if err?
-        fileProcessorHelper = new FileProcessorHelper(unionRep, client)
-        worker = new ActivityCompressor(fileProcessorHelper)
         all_lines_read_in = false
         drained = false
-        unionRep.addWorker('worker_being_tested', worker)
-        activity_compressor_worker = new ActivityCompressor(fileProcessorHelper)
-        learnist_translator_worker = new LearnistTranslatorWorker(fileProcessorHelper)
-        fileProcessorHelper.clearDatabase (err, results) =>
-          unionRep.addWorker('activity_compressor', activity_compressor_worker)
-          unionRep.addWorker('learnist_translator', learnist_translator_worker)
+        activity_compressor_worker = new ActivityCompressor(foreman)
+        learnist_translator_worker = new LearnistTranslatorWorker(foreman)
+        foreman.clearDatabase (err, results) =>
           async.series [
-            (cb) => activity_compressor_worker.init cb
-            (cb) => learnist_translator_worker.init cb
-            (cb) => fileProcessorHelper.processFile "test/log/user_activity.json", cb
+            (cb) => foreman.addWorker('activity_compressor', activity_compressor_worker, cb)
+            (cb) => foreman.addWorker('learnist_translator', learnist_translator_worker, cb)
+            (cb) => foreman.processFile "test/log/user_activity.json", cb
           ], (err, results) =>
-            if unionRep.total == 0
+            if foreman.unionRep.total == 0
               done(err, results)
             else
-              unionRep.once 'drain', =>
+              foreman.unionRep.once 'drain', =>
                 done(err, results)
 
     it "should result in three entries in mongo, for two users", (done) ->

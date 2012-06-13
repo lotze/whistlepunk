@@ -17,7 +17,9 @@ class ActivityCompressor extends Worker
   init: (callback) =>
     # generally here we need to make sure db connections are opened properly before executing the callback
     @mongo.open (err, db) =>
+      callback(err) if err?
       @mongo.collection 'compressedActivity', (err, compressedActivity) =>
+        callback(err) if err?
         @daily = compressedActivity
         @daily.ensureIndex {userId: 1, day: 1}, {unique:true}, (err, results) =>
           @foreman.on('measureMe', @handleMeasureMe)
