@@ -7,6 +7,7 @@ config.msg_source_redis = {};
 config.backup = {};
 config.backup.dir = '/tmp';
 config.backup.redis_rdb_dir = '/usr/local/var/db/redis';
+config.backup.full_log_dir = '/tmp';
 
 config.db.hostname = 'localhost';
 config.db.user = 'root';

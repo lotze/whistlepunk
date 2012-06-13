@@ -57,14 +57,14 @@ async.series [
     # after having run downloading/sorting script to get logs up to date on S3, download into local directory
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       console.log("syncing latest logs from S3...")
-      child_process.exec "s3cmd --no-delete-removed --rexclude='^[^201]' sync s3://com.grockit.distillery/learnist/#{process.env.NODE_ENV}/sorted/ /opt/grockit/log/", cb
+      child_process.exec "s3cmd --no-delete-removed --rexclude='^[^201]' sync s3://com.grockit.distillery/learnist/#{process.env.NODE_ENV}/sorted/ #{config.backup.full_log_dir}/", cb
     else
       cb()
   (cb) =>
-    # after downloaded into local directory, copy them to the top level of that directory
+    # after downloaded into local directory, move them to the top level of that directory
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       console.log("centralizing local logs from S3...")
-      child_process.exec "find /opt/grockit/log/ -type f -exec cp {} /opt/grockit/log/ \\;", cb
+      child_process.exec "find #{config.backup.full_log_dir}/ -type f -exec mv {} #{config.backup.full_log_dir}/ \\;", cb
     else
       cb()
   (cb) =>
@@ -140,33 +140,10 @@ async.series [
   (cb) =>
     # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]  
     console.log("Time to reprocess, after #{last_event_processed.timestamp} and up to #{last_event_to_process.timestamp}.")
-    
     foreman = new Foreman()
-    
-    #foreman.processFilesBetween(last_event_processed, last_event_to_process, cb)
-    # TODO: move below into new function processFilesBetween
-    foreman.init (err) =>      
-      files = fs.readdirSync('./workers')
-      async.forEach files, (workerFile, worker_callback) =>
-        workerName = workerFile.replace('.js', '')
-        WorkerClass = require('../workers/'+workerFile)
-        worker = new WorkerClass(foreman)
-        worker.init(worker_callback)
-        unionRep.addWorker(workerName, worker)
-      , (err) =>
-        return cb(err) if err?
-        
-        logPath = if process.env.NODE_ENV == 'development' then "/Users/grockit/workspace/whistlepunk/test/log" else "/opt/grockit/log"
-        foreman.getLogFilesInOrder logPath, (err, fileList) =>
-          return cb(err) if err?
-          console.log "Processing log file list: ", fileList
-          async.forEachSeries fileList, (fileName, file_cb) =>
-            console.log("WhistlePunk: processing file: " + fileName)
-            foreman.processFile(fileName, last_event_processed, last_event_to_process, file_cb)
-          , (err) =>
-            cb(err)
-
-    
+    foreman.init (err) =>
+      cb(err) if err?
+      foreman.processFiles(config.backup.full_log_dir, last_event_processed, last_event_to_process, cb)
   (cb) =>
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       console.log("starting whistlepunk...")

@@ -9,6 +9,7 @@ DbLoader = require("../lib/db_loader")
 Db = require('mongodb').Db
 Server = require('mongodb').Server
 
+fs = require("fs")
 FileLineStreamer = require("../lib/file_line_streamer")
 UnionRep = require("../lib/union_rep")
 
@@ -115,8 +116,6 @@ class Foreman extends EventEmitter
         a_num = "#{a_matches[1]}#{a_matches[2]}"
         b_num = "#{b_matches[1]}#{b_matches[2]}"
         return(parseInt(a_num) - parseInt(b_num))
-      matchedFiles.unshift "learnist.log.old"
-      matchedFiles.push "learnist.log"
 
       matchedFiles = ("#{directory}/#{file}" for file in matchedFiles)
       callback err, matchedFiles
@@ -124,6 +123,35 @@ class Foreman extends EventEmitter
   addWorker: (name, worker, callback) =>
     @unionRep.addWorker(name, worker)
     worker.init callback
+    
+  addAllWorkers: (callback) =>
+    files = fs.readdirSync(__dirname + '/workers')
+    async.forEach files, (workerFile, worker_callback) =>
+      workerName = workerFile.replace('.js', '')
+      WorkerClass = require('../workers/'+workerFile)
+      addWorker(workerName, new WorkerClass(this), worker_callback)
+    , (err) =>
+      return callback(err) if err?
+      
+  # for testing/confirming that there are no jobs in progress: either callback immediately or when the unionRep is next drained
+  callbackWhenClear: (callback) =>
+    if @unionRep.total == 0
+      callback()
+    else
+      @unionRep.once 'drain', =>
+        callback()
+  
+  processFiles: (logPath, eventBounds..., callback) =>
+    [firstEvent, lastEvent] = eventBounds
+    logPath ||= if process.env.NODE_ENV == 'development' then "/Users/grockit/workspace/whistlepunk/test/log" else "/opt/grockit/log"
+    @getLogFilesInOrder logPath, (err, fileList) =>
+      return callback(err) if err?
+      console.log "Processing log file list: ", fileList  unless process.env.NODE_ENV == 'test'
+      async.forEachSeries fileList, (fileName, file_cb) =>
+        console.log("WhistlePunk: processing file: " + fileName) unless process.env.NODE_ENV == 'test'
+        @processFile(fileName, firstEvent, lastEvent, file_cb)
+      , (err) =>
+        callback(err)    
 
   processFile: (file, eventBounds..., callback) =>
     [firstEvent, lastEvent] = eventBounds
