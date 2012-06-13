@@ -22,7 +22,7 @@ class DateFirster
     new DateFirster @moment.clone().date(1).hours(0).minutes(0).seconds(0)
 
   firstOfWeek: =>
-    newDay = if @moment.day() >= 1 then 1 else -1
+    newDay = (if @moment.day() >= 1 then 1 else -6)
     new DateFirster @moment.clone().day(newDay).hours(0).minutes(0).seconds(0)
 
   firstOfYear: =>
