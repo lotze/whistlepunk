@@ -44,7 +44,24 @@ process.on 'SIGINT', ->
 process.on 'uncaughtException', (e) ->
   console.error("UNCAUGHT EXCEPTION: ", e, e.stack)  
 
+whistlepunk_running = false
+
 async.series [
+  (cb) =>
+    if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
+      child_process.exec "sudo status whistlepunk_#{process.env.NODE_ENV}", (err, result) =>
+        cb(err) if err?
+        whistlepunk_running = (result.match(/whistlepunk_production start\/running/))?
+        cb()
+    else
+      cb()
+  (cb) =>
+    # stop whistlepunk
+    if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging') && whistlepunk_running
+      console.log("stopping whistlepunk...")
+      child_process.exec "sudo stop whistlepunk_#{process.env.NODE_ENV}", cb
+    else
+      cb()
   (cb) =>
     # run downloading/sorting script to get logs up to date on S3
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
@@ -64,13 +81,6 @@ async.series [
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       console.log("centralizing local logs from S3...")
       child_process.exec "find #{config.backup.full_log_dir}/ -type f -exec mv {} #{config.backup.full_log_dir}/ \\;", cb
-    else
-      cb()
-  (cb) =>
-    # stop whistlepunk
-    if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
-      console.log("stopping whistlepunk...")
-      child_process.exec "sudo stop whistlepunk_#{process.env.NODE_ENV}", cb
     else
       cb()
   (cb) =>
@@ -144,7 +154,7 @@ async.series [
       cb(err) if err?
       foreman.processFiles(config.backup.full_log_dir, last_event_processed, last_event_to_process, cb)
   (cb) =>
-    if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
+    if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging') && whistlepunk_running
       console.log("starting whistlepunk...")
       child_process.exec "sudo start whistlepunk_#{process.env.NODE_ENV}", cb
     else
