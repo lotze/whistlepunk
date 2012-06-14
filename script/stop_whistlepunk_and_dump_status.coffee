@@ -77,6 +77,12 @@ async.series [
       child_process.exec "sudo start whistlepunk_#{process.env.NODE_ENV}", cb
     else
       cb()
+  (cb) =>
+    if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
+      console.log("uploading to s3...")
+      child_process.exec "s3cmd --no-delete-removed sync #{config.backup.dir}/#{timestamp} s3://com.grockit.whistlepunk_backups/#{process.env.NODE_ENV}/#{timestamp}", cb
+    else
+      cb()
 ], (err, results) =>
   console.log("Error was #{err}, results were #{results}") if err?
   process.exit(0)
