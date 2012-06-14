@@ -80,7 +80,7 @@ async.series [
   (cb) =>
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       console.log("uploading to s3...")
-      child_process.exec "s3cmd --no-delete-removed sync #{config.backup.dir}/#{timestamp} s3://com.grockit.whistlepunk_backups/#{process.env.NODE_ENV}/#{timestamp}", cb
+      child_process.exec "s3cmd --no-delete-removed sync #{config.backup.dir}/#{timestamp} s3://com.grockit.whistlepunk/backups/#{process.env.NODE_ENV}/#{timestamp}/", cb
     else
       cb()
 ], (err, results) =>
