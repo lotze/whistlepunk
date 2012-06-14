@@ -95,9 +95,19 @@ async.series [
     async.parallel [
       (load_cb) =>
         # load SQL
-        console.log("loading mysql...")
-        child_process.exec "mysql -u#{config.db.user} -p#{config.db.password} -h#{config.db.hostname} #{config.db.database} < #{config.backup.dir}/#{timestamp}/mysql.sql", (err, results) =>
-          console.log("...finished loading mysql")
+        async.series [
+          (mysql_cb) => 
+            console.log("gunzipping mysql...")
+            child_process.exec "gunzip #{config.backup.dir}/#{timestamp}/mysql.sql.gz", mysql_cb
+          (mysql_cb) => 
+            console.log("loading mysql...")
+            child_process.exec "mysql -u#{config.db.user} -p#{config.db.password} -h#{config.db.hostname} #{config.db.database} < #{config.backup.dir}/#{timestamp}/mysql.sql", (err, results) =>
+              console.log("...finished loading mysql")
+              mysql_cb()
+          (mysql_cb) => 
+            console.log("gzipping mysql...")
+            child_process.exec "gzip #{config.backup.dir}/#{timestamp}/mysql.sql", mysql_cb          
+        ], load_cb
           load_cb(err, results)
       (load_cb) =>
         async.series [

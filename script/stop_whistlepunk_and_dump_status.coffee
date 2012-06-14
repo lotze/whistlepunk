@@ -55,8 +55,14 @@ async.series [
     # dump data
     async.parallel [
       (dump_cb) =>
-        console.log("dumping mysql...")
-        child_process.exec "mysqldump -u#{config.db.user} -p#{config.db.password} -h#{config.db.hostname} #{config.db.database} > #{config.backup.dir}/#{timestamp}/mysql.sql", dump_cb
+        async.series [
+          (mysql_cb) => 
+            console.log("dumping mysql...")
+            child_process.exec "mysqldump -u#{config.db.user} -p#{config.db.password} -h#{config.db.hostname} #{config.db.database} > #{config.backup.dir}/#{timestamp}/mysql.sql", mysql_cb
+          (mysql_cb) => 
+            console.log("gzipping mysql...")
+            child_process.exec "gzip #{config.backup.dir}/#{timestamp}/mysql.sql", mysql_cb
+        ], dump_cb
       (dump_cb) =>
         console.log("saving redis...")
         redis.save (err, result) =>
