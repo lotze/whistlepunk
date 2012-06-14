@@ -5,10 +5,14 @@ process.env.NODE_ENV ?= 'development'
 require('coffee-script')
 
 Foreman = require('../lib/foreman')
+Db = require('mongodb').Db
+Connection = require('mongodb').Connection
+Server = require('mongodb').Server
 
 config = require('../config')
 Redis = require("../lib/redis")
-redis = null
+redis = require('redis')
+local_redis_client = null
 
 child_process = require('child_process')
 fs = require('fs')
@@ -43,6 +47,7 @@ process.on 'SIGINT', ->
   
 process.on 'uncaughtException', (e) ->
   console.error("UNCAUGHT EXCEPTION: ", e, e.stack)  
+  process.exit(0)
 
 whistlepunk_running = false
 
@@ -52,6 +57,8 @@ async.series [
       child_process.exec "sudo status whistlepunk_#{process.env.NODE_ENV}", (err, result) =>
         cb(err) if err?
         whistlepunk_running = (result.match(/whistlepunk_production start\/running/))?
+        if !whistlepunk_running
+          console.log "Whistlepunk is not currently running; will not attempt to stop or restart it at the end."
         cb()
     else
       cb()
@@ -77,10 +84,10 @@ async.series [
     else
       cb()
   (cb) =>
-    # after downloaded into local directory, move them to the top level of that directory
+    # after downloaded into local directory, copy them to the top level of that directory
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       console.log("centralizing local logs from S3...")
-      child_process.exec "find #{config.backup.full_log_dir}/ -type f -exec mv {} #{config.backup.full_log_dir}/ \\;", cb
+      child_process.exec "find #{config.backup.full_log_dir}/2012/ -type f -exec cp {} #{config.backup.full_log_dir}/ \\;", cb
     else
       cb()
   (cb) =>
@@ -88,7 +95,7 @@ async.series [
     console.log("getting redis client...")
     Redis.getClient (err, client) =>
       return cb(err) if err?
-      redis = client
+      local_redis_client = client
       cb()
   (cb) =>
     # load data
@@ -96,7 +103,9 @@ async.series [
       (load_cb) =>
         # load SQL
         console.log("loading mysql...")
-        child_process.exec "mysql -u#{config.db.user} -p#{config.db.password} -h#{config.db.hostname} #{config.db.database} < #{config.backup.dir}/#{timestamp}/mysql.sql", load_cb
+        child_process.exec "mysql -u#{config.db.user} -p#{config.db.password} -h#{config.db.hostname} #{config.db.database} < #{config.backup.dir}/#{timestamp}/mysql.sql", (err, results) =>
+          console.log("...finished loading mysql")
+          load_cb(err, results)
       (load_cb) =>
         async.series [
           # shut down redis, copy file, restart redis
@@ -109,50 +118,74 @@ async.series [
           (redis_cb) =>
             console.log("copying redis backup...")
             # copy redis dump file from backup dir
-            input_stream = fs.createReadStream("#{config.backup.dir}/#{timestamp}/redis.rdb")
-            output_stream = fs.createWriteStream("#{config.backup.redis_rdb_dir}/dump.rdb")
-            util.pump input_stream, output_stream, redis_cb
+            child_process.exec "sudo cp -f #{config.backup.dir}/#{timestamp}/redis.rdb #{config.backup.redis_rdb_dir}/dump.rdb", redis_cb
           (redis_cb) =>
             console.log("starting redis...")
             if (process.env.NODE_ENV == 'development')
               child_process.exec "launchctl load -w ~/Library/LaunchAgents/homebrew.mxcl.redis.plist", redis_cb
             else
               child_process.exec "sudo service redis-server start", redis_cb
-        ], load_cb
+        ], (err, results) =>
+          console.log("...finished loading redis")
+          load_cb(err, results)
       (load_cb) =>
         # load mongo
-        console.log("loading mongodb...")
-        child_process.exec "mongorestore --host #{config.mongo_db_server} --port #{config.mongo_db_port} --db #{config.mongo_db_name} --drop #{config.backup.dir}/#{timestamp}/mongo/#{config.mongo_db_name}", load_cb
-    ], cb
+        async.series [
+          (mongo_cb) =>
+            console.log("dropping mongodb...")
+            mongo = new Db(config.mongo_db_name, new Server(config.mongo_db_server, config.mongo_db_port, {}), {})
+            mongo.open (err, db) =>
+              mongo.dropDatabase(mongo_cb)
+          (mongo_cb) =>
+            console.log("loading mongodb...")
+            child_process.exec "mongorestore --host #{config.mongo_db_server} --db #{config.mongo_db_name} #{config.backup.dir}/#{timestamp}/mongo/#{config.mongo_db_name}", mongo_cb
+        ], (err, results) =>
+          console.log("...finished loading mongo")
+          load_cb(err, results)
+    ], (err, results) =>
+      console.log("...finished loading all data; ready to catch up using logs")
+      cb(err, results)
   (cb) =>
     # get the next event to be processed from the msg queue
+    console.log("...getting latest event from remote redis queue")
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       redis_key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
       remote_redis_client = redis.createClient(config.msg_source_redis.port, config.msg_source_redis.host)
-      if config.msg_source_redis.redis_db_num?
-        remote_redis_client.select(config.msg_source_redis.redis_db_num)
-      remote_redis_client.brpop redis_key, 0, (err, reply) =>
-        return cb(err) if err?
-        console.log("Got next event -- will reprocess up to ", reply)
-        jsonString = reply[1]
-        last_event_to_process = JSON.parse(jsonString)
-        redis.set 'whistlepunk:last_event_to_process', jsonString, cb
+      async.series [
+        (redis_cb) =>
+          if config.msg_source_redis.db_num?
+            console.log("selecting config.msg_source_redis.db_num")
+            remote_redis_client.select config.msg_source_redis.db_num, redis_cb
+          else
+            console.log("no need for db_num")
+            redis_cb()
+        (redis_cb) =>
+          remote_redis_client.brpop redis_key, 60, (err, reply) =>
+            return redis_cb(err) if err?
+            console.log("Got next event -- will reprocess up to ", reply)
+            jsonString = reply[1]
+            last_event_to_process = JSON.parse(jsonString)
+            local_redis_client.set 'whistlepunk:last_event_to_process', jsonString, redis_cb
+      ], cb
     else
       last_event_to_process = {timestamp:999999999999999999}
       cb()
   (cb) =>
     # get the last event processed
-    redis.get 'whistlepunk:last_event_processed', (err, last_event) =>
+    local_redis_client.get 'whistlepunk:last_event_processed', (err, last_event) =>
       return cb(err) if err?
       last_event_processed = JSON.parse(last_event)
+      console.log("Got last event processed, will reprocess after ", last_event_processed)      
       cb()
   (cb) =>
     # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]  
     console.log("Time to reprocess, after #{last_event_processed.timestamp} and up to #{last_event_to_process.timestamp}.")
     foreman = new Foreman()
     foreman.init (err) =>
-      cb(err) if err?
-      foreman.processFiles(config.backup.full_log_dir, last_event_processed, last_event_to_process, cb)
+      return cb(err) if err?
+      foreman.addAllWorkers (err) =>
+        return cb(err) if err?
+        foreman.processFiles(config.backup.full_log_dir, last_event_processed, last_event_to_process, cb)
   (cb) =>
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging') && whistlepunk_running
       console.log("starting whistlepunk...")
