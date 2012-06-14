@@ -7,6 +7,7 @@ redis = require('redis')
 Redis = require("./lib/redis")
 config = require('./config')
 FileProcessorHelper = require('./lib/file_processor_helper')
+UnionRep = require('./lib/union_rep')
 
 fs = require('fs')
 async = require('async')
