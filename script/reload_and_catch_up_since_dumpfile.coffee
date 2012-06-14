@@ -187,6 +187,9 @@ async.series [
         return cb(err) if err?
         foreman.processFiles(config.backup.full_log_dir, last_event_processed, last_event_to_process, cb)
   (cb) =>
+    console.log("caught up!  ready to restart whistlepunk!")
+    local_redis_client.del 'whistlepunk:last_event_to_process', cb
+  (cb) =>
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging') && whistlepunk_running
       console.log("starting whistlepunk...")
       child_process.exec "sudo start whistlepunk_#{process.env.NODE_ENV}", cb

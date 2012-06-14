@@ -145,7 +145,6 @@ class Foreman extends EventEmitter
     logPath ||= if process.env.NODE_ENV == 'development' then "/Users/grockit/workspace/whistlepunk/test/log" else "/opt/grockit/log"
     @getLogFilesInOrder logPath, (err, fileList) =>
       return callback(err) if err?
-      console.log "Processing log file list: ", fileList  unless process.env.NODE_ENV == 'test'
       async.forEachSeries fileList, (fileName, file_cb) =>
         console.log("WhistlePunk: processing file: " + fileName) unless process.env.NODE_ENV == 'test'
         @processFile(fileName, firstEvent, lastEvent, file_cb)
