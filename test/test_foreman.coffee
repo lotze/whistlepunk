@@ -50,7 +50,7 @@ describe 'Foreman', =>
     describe "when NOT successful", =>
       it "should NOT store the message in the last processed redis entry"
 
-  describe '#attachWorkers', =>
+  describe '#addAllWorkers', =>
     it 'should instantiate and attach all workers in the workers directory'
 
   describe "#getLogFilesInOrder", =>

@@ -22,11 +22,7 @@ describe "a sessionizer and learnist translator worker", ->
           (cb) => @foreman.addWorker('learnist_translator_worker',new LearnistTranslatorWorker(@foreman),cb)
           (cb) => @foreman.processFile "test/log/tiny_session_test.json", cb
         ], (err, results) =>
-          if @foreman.unionRep.total == 0
-            done(err, results)
-          else
-            @foreman.unionRep.once 'drain', =>
-              done(err, results)
+          @foreman.callbackWhenClear(done)
 
     it "should store the measurement on the user and the session", (done) ->
       dbloader.db().query("select object_type, amount from all_measurements where measure_name = 'tagged'").execute (error, rows, columns) ->

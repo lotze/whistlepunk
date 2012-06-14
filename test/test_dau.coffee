@@ -26,11 +26,7 @@ describe "a dau worker", ->
             (cb) => foreman.addWorker('first_request_worker', new FirstRequestWorker(foreman), cb)
             (cb) => foreman.processFile "test/log/dau_member.json", cb
           ], (err, results) =>
-            if foreman.unionRep.total == 0
-              done()
-            else
-              foreman.unionRep.once 'drain', =>
-                done()
+            foreman.callbackWhenClear(done)
   
     it "should result in the first 30 days DAU being 1 member each", (done) ->
       @client.keys "dau:member:2012:06:*", (err, results) =>
@@ -58,7 +54,7 @@ describe "a dau worker", ->
 
   describe "with a member worker, processing 60 days of visitor activity", ->
     before (done) ->
-      this.timeout(9000);
+      this.timeout(10000);
       Redis.getClient (err, client) =>
         return done(err) if err?
         @client = client
@@ -71,11 +67,7 @@ describe "a dau worker", ->
             (cb) => foreman.addWorker('first_request_worker', new FirstRequestWorker(foreman), cb)
             (cb) => foreman.processFile "test/log/dau_visitor.json", cb
           ], (err, results) =>
-            if foreman.unionRep.total == 0
-              done()
-            else
-              foreman.unionRep.once 'drain', =>
-                done()
+            foreman.callbackWhenClear(done)
   
     it "should result in the first 30 days DAU being 1 visitor each", (done) ->
       @client.keys "dau:visitor:2012:06:*", (err, results) =>

@@ -11,15 +11,7 @@ describe "the set of all workers", ->
   before (done) =>
     foreman.init (err, result) =>
       done(err) if err?
-      files = fs.readdirSync('./workers')
-      workers = {}
-      async.forEach files, (workerFile, worker_callback) =>
-        workerName = workerFile.replace('.js', '')
-        WorkerClass = require('../workers/'+workerFile)
-        worker = new WorkerClass(foreman)
-        workers[workerName] = worker
-        foreman.addWorker(workerName, worker,worker_callback)
-      , (err) =>
+      foreman.addAllWorkers (err) =>
         done()
       
   describe "when processing an entry with a single quote", ->

@@ -125,13 +125,12 @@ class Foreman extends EventEmitter
     worker.init callback
     
   addAllWorkers: (callback) =>
-    files = fs.readdirSync(__dirname + '/workers')
+    files = fs.readdirSync(__dirname + '/../workers')
     async.forEach files, (workerFile, worker_callback) =>
       workerName = workerFile.replace('.js', '')
       WorkerClass = require('../workers/'+workerFile)
-      addWorker(workerName, new WorkerClass(this), worker_callback)
-    , (err) =>
-      return callback(err) if err?
+      @addWorker(workerName, new WorkerClass(this), worker_callback)
+    , callback
       
   # for testing/confirming that there are no jobs in progress: either callback immediately or when the unionRep is next drained
   callbackWhenClear: (callback) =>

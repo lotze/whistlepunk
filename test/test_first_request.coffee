@@ -61,11 +61,7 @@ describe "a first_request worker", ->
         (cb) => foreman.addWorker('first_request_worker', new FirstRequest(foreman), cb)
         (cb) => foreman.processFile "test/log/first_sessions.json", cb
       ], (err, results) =>
-        if foreman.unionRep.total == 0
-          done()
-        else
-          foreman.unionRep.once 'drain', =>
-            done()
+        foreman.callbackWhenClear(done)
 
     it "results in three users in all_objects", (done) ->
       dbloader.db().query().select([ "object_id" ]).from("all_objects").where("object_type = ?", [ "user" ]).execute (error, rows, columns) ->

@@ -20,11 +20,7 @@ describe "a learnist translator worker", ->
         (cb) => dbloader.db().query("INSERT INTO olap_users (id) VALUES ('joe_active_four');").execute cb
         (cb) => foreman.processFile "test/log/board_creation.json", cb
       ], (err, results) =>
-        if foreman.unionRep.total == 0
-          done()
-        else
-          foreman.unionRep.once 'drain', =>
-            done()
+        foreman.callbackWhenClear(done)
 
     it "should result in the user creating ten boards", (done) ->
       dbloader.db().query("select boards_created from olap_users").execute (error, rows, columns) ->

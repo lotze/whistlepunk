@@ -28,11 +28,7 @@ describe "a sessionizer worker", ->
           foreman.processMessage(finalMessage)
           cb()
       ], (err, results) =>
-        if foreman.unionRep.total == 0
-          done()
-        else
-          foreman.unionRep.once 'drain', =>
-            done()
+        foreman.callbackWhenClear(done)
   
     it "should result in the users having four, two, one, and one sessions each", (done) ->
       dbloader.db().query("select num_sessions from olap_users order by num_sessions").execute (error, rows, columns) ->

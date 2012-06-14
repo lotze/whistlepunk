@@ -7,7 +7,6 @@ redis = require('redis')
 Redis = require("./lib/redis")
 config = require('./config')
 FileProcessorHelper = require('./lib/file_processor_helper')
-UnionRep = require('./lib/union_rep')
 
 fs = require('fs')
 async = require('async')
@@ -34,14 +33,7 @@ class Application
     @unionRep = new UnionRep()
 
     @foreman.init (err) =>
-      files = fs.readdirSync('./workers')
-      async.forEach files, (workerFile, worker_callback) =>
-        workerName = workerFile.replace('.js', '')
-        WorkerClass = require('./workers/'+workerFile)
-        worker = new WorkerClass(@foreman)
-        worker.init(worker_callback)
-        @unionRep.addWorker(workerName, worker)
-      , (err) =>
+      @foreman.addAllWorkers (err) =>
         throw err if err?
         @startProcessing()
 

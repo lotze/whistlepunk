@@ -20,11 +20,7 @@ describe "a share worker", ->
         (cb) => dbloader.db().query("INSERT INTO olap_users (id) VALUES ('effective_sharer'),('incoming_nonmember'),('incoming_member'),('sad_sharer'),('incoming_invite_requested_member');").execute cb
         (cb) => foreman.processFile "test/log/shares.json", cb
       ], (err, results) =>
-        if foreman.unionRep.total == 0
-          done()
-        else
-          foreman.unionRep.once 'drain', =>
-            done()
+        foreman.callbackWhenClear(done)
 
     it "should result in three shares and two sharers", (done) ->
       dbloader.db().query("select count(*) as shares, count(distinct sharing_user_id) as sharers from shares").execute (error, rows, columns) ->

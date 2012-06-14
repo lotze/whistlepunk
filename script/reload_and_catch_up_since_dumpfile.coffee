@@ -4,7 +4,6 @@ process.env.NODE_ENV ?= 'development'
 
 require('coffee-script')
 
-UnionRep = require('../lib/union_rep')
 Foreman = require('../lib/foreman')
 
 config = require('../config')
