@@ -84,13 +84,6 @@ async.series [
     else
       cb()
   (cb) =>
-    # after downloaded into local directory, copy them to the top level of that directory
-    if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
-      console.log("centralizing local logs from S3...")
-      child_process.exec "find #{config.backup.full_log_dir}/2012/ -type f -exec cp {} #{config.backup.full_log_dir}/ \\;", cb
-    else
-      cb()
-  (cb) =>
     # get redis client
     console.log("getting redis client...")
     Redis.getClient (err, client) =>

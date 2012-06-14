@@ -9,6 +9,8 @@ DbLoader = require("../lib/db_loader")
 Db = require('mongodb').Db
 Server = require('mongodb').Server
 
+glob = require("glob")
+
 fs = require("fs")
 FileLineStreamer = require("../lib/file_line_streamer")
 UnionRep = require("../lib/union_rep")
@@ -108,8 +110,9 @@ class Foreman extends EventEmitter
 
   getLogFilesInOrder: (directory, callback) =>
     return callback(null, [ "#{directory}/shares.json", "#{directory}/sessions.json" ]) if process.env.NODE_ENV is "development"
-    fs.readdir directory, (err, files) ->
-      matchedFiles = (file for file in files when file.match(/^learnist\.log\.1.*/))
+
+    glob "**/learnist.log.1.*", null, (err, files) =>
+      matchedFiles = (file for file in files when file.match(/learnist\.log\.1.*/))
       matchedFiles = matchedFiles.sort (a, b) =>
         a_matches = a.match(/(\d{8})_(\d{6})/)
         b_matches = b.match(/(\d{8})_(\d{6})/)
@@ -117,7 +120,6 @@ class Foreman extends EventEmitter
         b_num = "#{b_matches[1]}#{b_matches[2]}"
         return(parseInt(a_num) - parseInt(b_num))
 
-      matchedFiles = ("#{directory}/#{file}" for file in matchedFiles)
       callback err, matchedFiles
       
   addWorker: (name, worker, callback) =>

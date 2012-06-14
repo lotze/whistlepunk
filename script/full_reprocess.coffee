@@ -36,27 +36,20 @@ class Application
 
   startReprocessing: (callback) =>
     async.series [
-      # (cb) =>
-      #   # run downloading/sorting script to get logs up to date on S3
-      #   if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
-      #     console.log("forcing an update to S3 and getting latest logs from the app...")
-      #     child_process.exec "ssh 174.129.119.21 'RAILS_ENV=#{process.env.NODE_ENV} ROTATE_LOGS=TRUE /bin/bash /home/grockit/metricizer/script/update_stored_logs.sh'", cb
-      #   else
-      #     cb()
-      # (cb) =>
-      #   # after having run downloading/sorting script to get logs up to date on S3, download into local directory
-      #   if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
-      #     console.log("syncing latest logs from S3...")
-      #     child_process.exec "s3cmd --no-delete-removed --rexclude='^[^201]' sync s3://com.grockit.distillery/learnist/#{process.env.NODE_ENV}/sorted/ #{config.backup.full_log_dir}/", cb
-      #   else
-      #     cb()
-      # (cb) =>
-      #   # after downloaded into local directory, copy them to the top level of that directory
-      #   if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
-      #     console.log("centralizing local logs from S3...")
-      #     child_process.exec "find #{config.backup.full_log_dir}/2012/ -type f -exec cp {} #{config.backup.full_log_dir}/ \\;", cb
-      #   else
-      #     cb()
+      (cb) =>
+        # run downloading/sorting script to get logs up to date on S3
+        if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
+          console.log("forcing an update to S3 and getting latest logs from the app...")
+          child_process.exec "ssh 174.129.119.21 'RAILS_ENV=#{process.env.NODE_ENV} ROTATE_LOGS=TRUE /bin/bash /home/grockit/metricizer/script/update_stored_logs.sh'", cb
+        else
+          cb()
+      (cb) =>
+        # after having run downloading/sorting script to get logs up to date on S3, download into local directory
+        if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
+          console.log("syncing latest logs from S3...")
+          child_process.exec "s3cmd --no-delete-removed --rexclude='^[^201]' sync s3://com.grockit.distillery/learnist/#{process.env.NODE_ENV}/sorted/ #{config.backup.full_log_dir}/", cb
+        else
+          cb()
       (cb) =>
         # get the next event to be processed from the msg queue
         if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')

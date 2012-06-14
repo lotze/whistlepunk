@@ -3,6 +3,8 @@ Redis = require('../lib/redis')
 should = require('should')
 assert = require('assert')
 sinon = require("sinon")
+fs = require("fs")
+async = require("async")
 
 describe 'Foreman', =>
   before (done) =>
@@ -54,13 +56,20 @@ describe 'Foreman', =>
     it 'should instantiate and attach all workers in the workers directory'
 
   describe "#getLogFilesInOrder", =>
-    it "should return all files in the directory matching the pattern", (done) =>
+    it "should return all files in the directory or subdirectories matching the pattern", (done) =>
       @foreman.getLogFilesInOrder "#{__dirname}/fixture_logs", (err, results) =>
         results.length.should.eql 3
-        results[0].should.eql "#{__dirname}/fixture_logs/learnist.log.1.some_other_machine.19990101_000000"
-        results[1].should.eql "#{__dirname}/fixture_logs/learnist.log.1.learnist.20010101_000000"
-        results[2].should.eql "#{__dirname}/fixture_logs/learnist.log.1.learnist.20120414_203806"
-        done(err)
+        async.parallel [
+          (cb) => fs.realpath results[0], (err, fullpath) =>
+            fullpath.should.eql "#{__dirname}/fixture_logs/learnist.log.1.some_other_machine.19990101_000000"
+            cb(err, fullpath)
+          (cb) => fs.realpath results[1], (err, fullpath) =>
+            fullpath.should.eql "#{__dirname}/fixture_logs/subdir/learnist.log.1.learnist.20010101_000000"
+            cb(err, fullpath)
+          (cb) => fs.realpath results[2], (err, fullpath) =>
+            fullpath.should.eql "#{__dirname}/fixture_logs/learnist.log.1.learnist.20120414_203806"
+            cb(err, fullpath)
+        ], done
         
   describe '#processFiles', (done) =>
     it 'should process all files in the log directory, in order', (done) =>
