@@ -12,7 +12,7 @@ describe "a sessionizer worker", ->
     before (done) ->
       foreman = new Foreman
       foreman.init (err, result) =>
-        worker = new Sessionizer(fileProcessorHelper)
+        worker = new Sessionizer(foreman)
         unionRep.addWorker('worker_being_tested', worker)
         foreman.clearDatabase (err, results) =>
           worker.init (err, results) =>

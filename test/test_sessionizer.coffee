@@ -19,13 +19,13 @@ describe "a sessionizer worker", ->
   #       processed = 0
   #       client = redis.createClient(config.redis.port, config.redis.host)
   #       client.flushdb (err, results) ->
-  #         worker = new Sessionizer(fileProcessorHelper)
+  #         worker = new Sessionizer(foreman)
   #         worker.on "done", (e, r) ->
   #           processed++
   #           done()  if processed is 47
-  #         fileProcessorHelper.clearDatabase (err, results) ->
+  #         foreman.clearDatabase (err, results) ->
   #           worker.init (err, results) ->
-  #             fileProcessorHelper.processFile "test/log/long.log"
+  #             foreman.processFile "test/log/long.log"
   #     catch e
   #       console.log("ERROR:", e)
   #       done(e)
