@@ -71,6 +71,7 @@ class Sessionizer extends Worker
           #console.log("   it has activity")
           @dataProvider.measure 'session', json.activityId, json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
         else
+          #console.log("   no activity")
           async.parallel [
             (cb) => @client.hget 'sessionizer:start_time', json.actorId, cb
             (cb) => @client.hget 'sessionizer:activity_id', json.actorId, cb
@@ -78,7 +79,7 @@ class Sessionizer extends Worker
             return callback(err) if err?
             [startTime, activityId] = results
             if startTime?
-              #console.log("   it has start time")
+              #console.log("   it has start time #{startTime}, activity #{activityId}")
               @dataProvider.measure 'session', activityId || @sessionId(startTime,json.actorId), json.timestamp, json.measureName, json.activityId, json.measureTarget, json.measureAmount, callback
             else
               #console.log("   it has no activity")
@@ -87,7 +88,7 @@ class Sessionizer extends Worker
         #console.log("   we don't care")
         callback()
     catch error
-      console.error "Error processing",json," (#{error}): #{error.stack}"
+      #console.error "Error processing",json," (#{error}): #{error.stack}"
       callback(error)
 
   handleRequest: (json, callback) =>

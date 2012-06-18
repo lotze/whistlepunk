@@ -1,17 +1,22 @@
 DataProvider = require('../lib/data_provider')
 UnionRep = require('../lib/union_rep')
-FileProcessorHelper = require('../lib/file_processor_helper')
+Foreman = require('../lib/foreman')
+Redis = require('../lib/redis')
 should = require('should')
 assert = require('assert')
+DbLoader = require("../lib/db_loader")
+
+foreman = new Foreman()
+dbloader = new DbLoader()
 
 describe 'DataProvider', =>
   before (done) =>
     unionRep = new UnionRep(1)
-    @fileProcessorHelper = new FileProcessorHelper unionRep, =>
-      @dataProvider = new DataProvider(@fileProcessorHelper)
+    Redis.getClient (err, client) =>
+      @dataProvider = new DataProvider(foreman)
       @actorType = 'user'
       @actorId = 'testActor'
-      done()
+      foreman.init done
 
   describe '#measure', =>
     before (done) =>
@@ -20,12 +25,12 @@ describe 'DataProvider', =>
       timestamp = 1337540783.254368
       measureTarget = ''
       measureAmount = 1
-      @fileProcessorHelper.clearDatabase =>
+      foreman.clearDatabase =>
         @dataProvider.measure @actorType, @actorId, timestamp, measureName, activityId, measureTarget, measureAmount, =>
           done()
 
     it 'should result in a correct entry in the all_measurements table', (done) =>
-      @fileProcessorHelper.db.query().select(["amount"])
+      dbloader.db().query().select(["amount"])
              .from("all_measurements")
              .where("object_id = ?", [@actorId])
              .and("object_type = ?", [@actorType])
@@ -40,7 +45,7 @@ describe 'DataProvider', =>
                 done()
                 
     it 'should result in entries in the timeseries table', (done) =>
-      @fileProcessorHelper.db.query("select aggregation_level, amount ,timestamp,formatted_timestamp from timeseries where measure_name = 'testMeasureName' order by timestamp desc").execute (error, rows, columns) => 
+      dbloader.db().query("select aggregation_level, amount ,timestamp,formatted_timestamp from timeseries where measure_name = 'testMeasureName' order by timestamp desc").execute (error, rows, columns) => 
         if (error)
           console.log('ERROR: ' + error)
           done(error)
@@ -60,9 +65,9 @@ describe 'DataProvider', =>
   describe '#createObject', =>
     it 'should result in a new object in the all_objects table', (done) =>
       timestamp = 0.0
-      @fileProcessorHelper.clearDatabase =>
+      foreman.clearDatabase =>
         @dataProvider.createObject @actorType, @actorId, timestamp, =>
-          @fileProcessorHelper.db.query().select(["object_id"])
+          dbloader.db().query().select(["object_id"])
                  .from("all_objects")
                  .where("object_id = ?", [@actorId])
                  .and("object_type = ?", [@actorType])

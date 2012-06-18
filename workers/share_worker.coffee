@@ -48,6 +48,10 @@ class ShareWorker extends Worker
 
     async.parallel [
       (cb) =>
+        @dataProvider.measure 'user', userId, timestamp, 'shared', json.activityId, '', 1, cb
+      (cb) =>
+        @dataProvider.measure 'user', userId, timestamp, "shared_#{@escape json['shareService']}", json.activityId, '', 1, cb
+      (cb) =>
         myQuery = "
           INSERT IGNORE INTO shares (sharing_user_id, share_id, share_or_invitation, share_method, created_at)
           VALUES ('#{@escape userId}', '#{@escape json['shareHash']}', 'share', '#{@escape json['shareService']}', FROM_UNIXTIME(#{timestamp}));
@@ -65,6 +69,10 @@ class ShareWorker extends Worker
     userId = json.userId
 
     async.parallel [
+      (cb) =>
+        @dataProvider.measure 'user', userId, timestamp, 'shared', json.activityId, '', 1, cb
+      (cb) =>
+        @dataProvider.measure 'user', userId, timestamp, "shared_facebook_like", json.activityId, '', 1, cb
       (cb) =>
         myQuery = "
           INSERT IGNORE INTO shares (sharing_user_id, share_id, share_or_invitation, share_method, created_at)
@@ -85,6 +93,8 @@ class ShareWorker extends Worker
     if json['fromShare']
       async.parallel [
         (cb) =>
+          @dataProvider.addToTimeseries 'share_visited', json.timestamp, cb
+        (cb) =>
           myQuery = "
             INSERT IGNORE INTO in_from_shares (user_id, share_id, created_at)
             VALUES ('#{@escape userId}', '#{@escape json['fromShare']}', FROM_UNIXTIME(#{timestamp}))
@@ -92,14 +102,19 @@ class ShareWorker extends Worker
           @db.query(myQuery).execute cb
         (cb) =>
           myQuery = "
-            SELECT sharing_user_id from shares where share_id = '#{@escape json['fromShare']}'
+            SELECT sharing_user_id, share_method from shares where share_id = '#{@escape json['fromShare']}'
           "
           @db.query(myQuery).execute (err, rows, cols) =>
             if !err && rows.length > 0
-              myQuery = "
-                UPDATE shares set num_visits=num_visits+1 where share_id='#{@escape json['fromShare']}';
-              "
-              @db.query(myQuery).execute cb
+              async.parallel [
+                (found_cb) =>
+                  @dataProvider.addToTimeseries "share_via_#{@escape rows[0]['share_method']}_visited", json.timestamp, found_cb
+                (found_cb) =>
+                  myQuery = "
+                    UPDATE shares set num_visits=num_visits+1 where share_id='#{@escape json['fromShare']}';
+                  "
+                  @db.query(myQuery).execute found_cb
+              ], cb
             else
               cb()
       ], @emitResults
@@ -111,6 +126,8 @@ class ShareWorker extends Worker
     userId = json.userId
 
     async.parallel [
+      (cb) =>
+        @dataProvider.measure 'user', userId, timestamp, 'invited', json.activityId, '', 1, cb
       (cb) =>
         myQuery = "
           INSERT IGNORE INTO shares (sharing_user_id, share_id, share_or_invitation, share_method, created_at)
@@ -129,6 +146,8 @@ class ShareWorker extends Worker
     userId = json.userId
 
     async.parallel [
+      (cb) =>
+        @dataProvider.addToTimeseries 'invitation_visited', json.timestamp, cb
       (cb) =>
         myQuery = "
           INSERT IGNORE INTO in_from_shares (user_id, share_id, created_at)
@@ -162,14 +181,19 @@ class ShareWorker extends Worker
           cb()
       (cb) =>
         myQuery = "
-          SELECT sharing_user_id, share_or_invitation, shares.share_id as share_id from in_from_shares join shares on shares.share_id=in_from_shares.share_id where in_from_shares.user_id = '#{@escape userId}'
+          SELECT sharing_user_id, share_or_invitation, shares.share_id as share_id, share_method from in_from_shares join shares on shares.share_id=in_from_shares.share_id where in_from_shares.user_id = '#{@escape userId}'
         "
         @db.query(myQuery).execute (err, rows, cols) =>
           if !err && rows.length > 0
             sharingUserId = rows[0]['sharing_user_id']
             shareOrInvitation = rows[0]['share_or_invitation']
             shareId = rows[0]['share_id']
+            shareMethod = rows[0]['share_method']
             async.parallel [
+              (cb2) =>
+                @dataProvider.addToTimeseries "#{shareOrInvitation}_visitor_became_#{json.newState}", json.timestamp, cb
+              (cb2) =>
+                @dataProvider.addToTimeseries "#{shareOrInvitation}_visitor_via_#{shareMethod}_became_#{json.newState}", json.timestamp, cb
               (cb2) =>
                 if json.newState == 'member' || json.newState == 'invite_requested_member'
                   myQuery = "

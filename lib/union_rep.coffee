@@ -19,7 +19,7 @@ class UnionRep extends EventEmitter
     worker.on 'start', =>
       @count[name]++
       @total++
-      if @total >= @max && !@saturated
+      if @total >= @max
         @saturated = true
         @drained = false
         @emit 'saturate' 
@@ -33,7 +33,7 @@ class UnionRep extends EventEmitter
   done: (name) =>
     @count[name]--
     @total--
-    if @total <= 0 && !@drained
+    if @total <= 0
       @drained = true
       @saturated = false
       @emit 'drain'

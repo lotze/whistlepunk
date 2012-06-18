@@ -1,0 +1,2 @@
+{ "eventName": "request", "userId": "myUserId", "timestamp": 1000, "activityId": "myActivityId"}
+{ "eventName": "createdTag", "userId": "myUserId", "timestamp": 1001, "activityId": "myActivityId"}

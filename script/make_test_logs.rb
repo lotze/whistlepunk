@@ -71,8 +71,63 @@ class MakeTestLogs
     return log_hashes
   end
 
+  def dau_visitor(outfile)
+    time_starts_at = Time.at(1338534000)  # midnight PST on June 1st, 2012
+    
+    # June 2012 has 30 days of one distinct user each day
+    # July 2012 has 30 days of an additional distinct user each day (1 on the 1st, that same one plus one more on the 2nd, etc.)
+    # all visitors are just visitors
+
+    log_hashes = []
+
+    (1..30).each do |june_day|
+      current_time = time_starts_at.to_i + (june_day - 1) * 86400
+      user_id = "june_#{june_day}"
+      log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
+    end
+
+    (1..30).each do |july_day|
+      current_time = time_starts_at.to_i + (july_day - 1 + 30) * 86400
+      (1..july_day).each do |july_user_id|
+        user_id = "july_#{july_user_id}"
+        log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
+      end
+    end
+
+    write_logs(outfile, log_hashes)
+  end
+
+  def dau_member(outfile)
+    time_starts_at = Time.at(1338534000)  # midnight PST on June 1st, 2012
+    
+    # June 2012 has 30 days of one distinct user each day
+    # July 2012 has 30 days of an additional distinct user each day (1 on the 1st, that same one plus one more on the 2nd, etc.)
+    # all visitors immediately upgrade to members
+
+    log_hashes = []
+
+    (1..30).each do |june_day|
+      current_time = time_starts_at.to_i + (june_day - 1) * 86400
+      user_id = "june_#{june_day}"
+      log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
+      log_hashes = log_hashes + become_member(user_id, current_time + 100, 'member', {:activityId => "#{current_time}#{user_id}"})
+    end
+
+    (1..30).each do |july_day|
+      current_time = time_starts_at.to_i + (july_day - 1 + 30) * 86400
+      (1..july_day).each do |july_user_id|
+        user_id = "july_#{july_user_id}"
+        log_hashes = log_hashes + make_session_logs(user_id, current_time, 1000, true, nil, {:activityId => "#{current_time}#{user_id}"})
+        log_hashes = log_hashes + become_member(user_id, current_time + 100, 'member', {:activityId => "#{current_time}#{user_id}"})
+      end
+    end
+
+    write_logs(outfile, log_hashes)
+  end
+
+
   def sessions(outfile)
-    time_starts_at = Time.at(0)
+    time_starts_at = Time.at(315532800)
 
     # session test: 4 users: one with three separate sessions; one with two sessions very close to each other; one with one session of nonzero length; one with one single-request/0-length session
     # share test: one user sharing two times, with no incoming users; one user sharing once, with two incoming users, one of which becomes a member; one user not sharing at all
@@ -118,7 +173,7 @@ class MakeTestLogs
 
   def shares(outfile)
     log_hashes = []
-    time_starts_at = Time.at(0)
+    time_starts_at = Time.at(315532800)
 
     user_id = "sad_sharer"
     current_time = time_starts_at.to_i + rand(86400)
@@ -252,13 +307,9 @@ end
 
 makeTestLogs = MakeTestLogs.new
 
-file_types = [:sessions, :shares, :measure_me, :first_sessions, :member_status]
-
 ARGV.each do |file_type|
-  if file_types.include?(file_type.to_sym)
-    outfile = File.expand_path("#{File.dirname(__FILE__)}/../test/log/#{file_type}.json")
-    makeTestLogs.send(file_type, outfile)
-  end
+  outfile = File.expand_path("#{File.dirname(__FILE__)}/../test/log/#{file_type}.json")
+  makeTestLogs.send(file_type, outfile)
 end
 
 #

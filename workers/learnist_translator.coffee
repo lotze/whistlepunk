@@ -21,11 +21,10 @@ class LearnistTranslator extends Worker
     @foreman.on('facebookLiked', @handleMessage)
     @foreman.on('followed', @handleMessage)
     @foreman.on('liked', @handleMessage)
-    @foreman.on('objectShared', @handleMessage)
-    @foreman.on('request', @handleMessage)
     @foreman.on('respondedToInvitation', @handleMessage)
     @foreman.on('tagFollowed', @handleMessage)
     @foreman.on('tagUnfollowed', @handleMessage)
+    @foreman.on('updatedBoard', @handleMessage)
     @foreman.on('updatedLearning', @handleMessage)
     @foreman.on('userCreated', @handleMessage)
     @foreman.on('viewedBoard', @handleMessage)
@@ -55,15 +54,14 @@ class LearnistTranslator extends Worker
         when "facebookLiked" then @handleFacebookLiked(json)
         when "followed" then @handleFollowed(json)
         when "liked" then @handleLiked(json)
-        when "objectShared" then @handleObjectShared(json)
-        when "request" then @handleRequest(json)
         when "respondedToInvitation" then @handleRespondedToInvitation(json)
         when "tagFollowed" then @handleTagFollowed(json)
         when "tagUnfollowed" then @handleTagUnfollowed(json)
+        when "updatedBoard" then @handleUpdatedBoard(json)
         when "updatedLearning" then @handleUpdatedLearning(json)
         when "userCreated" then @handleUserCreated(json)
         when "viewedBoard" then @handleViewedBoard(json)
-        else throw new Error('unhandled eventName');
+        else throw new Error("unhandled eventName: #{json.eventName}");
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
       @emitResults error
@@ -82,7 +80,12 @@ class LearnistTranslator extends Worker
     ], @emitResults
       
   handleCommentAdd: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'commented', json.activityId, '', 1, @emitResults
+    async.parallel [
+      (cb) => 
+        @dataProvider.measure 'board', json.boardId?.toString(), json.timestamp, 'commented_on', json.activityId, json.userId, 1, cb
+      (cb) =>
+        @dataProvider.measure 'user', json.userId, json.timestamp, 'commented', json.activityId, '', 1, cb
+    ], @emitResults
 
   handleCreatedBoard: (json) =>
     async.parallel [
@@ -103,7 +106,15 @@ class LearnistTranslator extends Worker
     ], @emitResults
 
   handleCreatedLearning: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'created_learning', json.activityId, json.boardId?.toString(), 1, @emitResults
+    async.parallel [
+      (cb) => 
+        @dataProvider.measure 'user', json.userId, json.timestamp, 'created_learning', json.activityId, json.boardId?.toString(), 1, cb
+      (cb) => 
+        if json.boardId?
+          @dataProvider.measure 'board', json.boardId.toString(), json.timestamp, 'added_learning', json.activityId, json.userId, 1, cb
+        else
+          cb()
+    ], @emitResults
 
   handleCreatedTag: (json) =>
     @dataProvider.measure 'user', json.userId, json.timestamp, 'tagged', json.activityId, json.taggableId?.toString(), 1, @emitResults
@@ -119,40 +130,14 @@ class LearnistTranslator extends Worker
     ], @emitResults
     
   handleFacebookLiked: (json) =>
-    @dataProvider.measure 'user', json.userId, json.timestamp, 'facebook_liked', json.activityId, json.likedUri, 1, @emitResults
+    @dataProvider.measure 'board', json.boardId?.toString(), json.timestamp, 'facebook_liked', json.activityId, json.userId, 1, @emitResults
 
   handleFollowed: (json) =>
     @dataProvider.measure 'user', json.userId, json.timestamp, 'followed', json.activityId, json.subscriptionTargetId?.toString(), 1, @emitResults
 
   handleLiked: (json) =>
     share_id = json.shareHash || "#{json.targetType}_#{json.targetId}"
-    async.parallel [
-      (cb) => 
-        @dataProvider.measure 'user', json.userId, json.timestamp, 'liked', json.activityId, share_id, 1, cb
-      (cb) => 
-        @dataProvider.createObject 'like', share_id, json.timestamp, cb
-    ], @emitResults
-
-  handleObjectShared: (json) =>
-    async.parallel [
-      (cb) => 
-        @dataProvider.measure 'user', json.userId, json.timestamp, 'shared', json.activityId, '', 1, cb
-      (cb) => 
-        @dataProvider.measure 'user', json.userId, json.timestamp, "shared_#{json.shareService}", json.activityId, '', 1, cb
-      (cb) => 
-        @dataProvider.createObject 'share', json.shareHash, json.timestamp, cb
-      (cb) => 
-        @dataProvider.createObject "share_#{json.shareService}", json.shareHash, json.timestamp, cb
-    ], @emitResults
-
-  handleRequest: (json) =>
-    async.parallel [
-      (cb) => 
-        if json.fromShare
-          @dataProvider.measure 'share', json.fromShare, json.timestamp, 'share_visited', json.activityId, json.userId, 1, cb
-        else
-          cb(null, null)
-    ], @emitResults
+    @dataProvider.measure 'user', json.userId, json.timestamp, 'liked', json.activityId, share_id, 1, @emitResults
 
   handleRespondedToInvitation: (json) =>
     @dataProvider.measure 'invitation', json.invitationId, json.timestamp, 'invitation_responded_to', json.activityId, json.userId, 1, @emitResults
@@ -163,12 +148,22 @@ class LearnistTranslator extends Worker
   handleTagUnfollowed: (json) =>
     @dataProvider.measure 'user', json.userId, json.timestamp, 'tag_unfollowed', json.activityId, json.tagId?.toString(), 1, @emitResults
 
+  handleUpdatedBoard: (json) =>
+    async.parallel [
+      (cb) => 
+        @dataProvider.measure 'user', json.userId, json.timestamp, 'updated_board', json.activityId, '', 1, cb
+      (cb) => 
+        @dataProvider.measure 'board', json.boardId, json.timestamp, "updated", json.activityId, '', 1, cb
+    ], @emitResults
+
   handleUpdatedLearning: (json) =>
     async.parallel [
       (cb) => 
         @dataProvider.measure 'user', json.userId, json.timestamp, 'updated_board', json.activityId, '', 1, cb
       (cb) => 
         @dataProvider.measure 'user', json.userId, json.timestamp, "updated_learning", json.activityId, '', 1, cb
+      (cb) => 
+        @dataProvider.measure 'board', json.boardId, json.timestamp, "updated_learning", json.activityId, '', 1, cb
     ], @emitResults
 
   handleUserCreated: (json) =>
@@ -183,7 +178,8 @@ class LearnistTranslator extends Worker
   handleViewedBoard: (json) =>
     async.parallel [
       (cb) => 
-        # console.log "uid is #{json.userId}, ts is #{json.timestamp}, board id is #{json.boardI}"
+        @dataProvider.measure 'board', json.boardId?.toString(), json.timestamp, 'viewed', json.activityId, json.userId, 1, cb
+      (cb) => 
         @dataProvider.measure 'user', json.userId, json.timestamp, 'viewed_board', json.activityId, json.boardId?.toString(), 1, cb
       (cb) => 
         @dataProvider.incrementOlapUserCounter json.userId, 'board_viewings', cb
