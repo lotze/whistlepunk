@@ -28,6 +28,7 @@ class LearnistTranslator extends Worker
     @foreman.on('updatedLearning', @handleMessage)
     @foreman.on('userCreated', @handleMessage)
     @foreman.on('viewedBoard', @handleMessage)
+    @foreman.on('viewedLearning', @handleMessage)
     @dataProvider = new DataProvider(foreman)
     super()
 
@@ -61,6 +62,7 @@ class LearnistTranslator extends Worker
         when "updatedLearning" then @handleUpdatedLearning(json)
         when "userCreated" then @handleUserCreated(json)
         when "viewedBoard" then @handleViewedBoard(json)
+        when "viewedLearning" then @handleViewedLearning(json)
         else throw new Error("unhandled eventName: #{json.eventName}");
     catch error
       console.error "Error processing",json," (#{error}): #{error.stack}"
@@ -183,6 +185,14 @@ class LearnistTranslator extends Worker
         @dataProvider.measure 'user', json.userId, json.timestamp, 'viewed_board', json.activityId, json.boardId?.toString(), 1, cb
       (cb) => 
         @dataProvider.incrementOlapUserCounter json.userId, 'board_viewings', cb
+    ], @emitResults
+
+  handleViewedLearning: (json) =>
+    async.parallel [
+      (cb) =>
+        @dataProvider.measure 'board', json.boardId?.toString(), json.timestamp, 'viewed_learning', json.activityId, json.userId, 1, cb
+      (cb) =>
+        @dataProvider.measure 'user', json.userId, json.timestamp, 'viewed_learning', json.activityId, json.learningId?.toString(), 1, cb
     ], @emitResults
 
 module.exports = LearnistTranslator
