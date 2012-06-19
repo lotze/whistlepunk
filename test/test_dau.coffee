@@ -12,7 +12,7 @@ foreman = new Foreman()
 describe "a dau worker", ->
   describe "with a member worker, processing 60 days of member activity", ->
     before (done) ->
-      this.timeout(6000);
+      this.timeout(10000);
       Redis.getClient (err, client) =>
         return done(err) if err?
         @client = client
