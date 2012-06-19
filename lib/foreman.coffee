@@ -21,6 +21,7 @@ class Foreman extends EventEmitter
 
   init: (callback) =>
     @unionRep = new UnionRep()
+    @setMaxListeners(12)
     @redis_key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
     Redis.getClient (err, client) =>
       @local_redis = client
