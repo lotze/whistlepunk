@@ -42,49 +42,49 @@ class ShareWorker extends Worker
       console.error "Error processing",json," (#{error}): #{error.stack}"
       @emitResults error
 
-  handleObjectShared: (json) =>
+  #
+  # Notes... on insert of new share:
+  #   1) look up existing count of shares with same share_id from in_from_shares
+  #   2) look up status of users from olap_users according to user_id in in_from_shares
+  #   3) insert counts of members, invite members, etc back into shares table.
+  #
+
+  recordShareOrInvitation: (json, measureNames, shareId, shareOrInvitation, shareMethod) =>
     timestamp = json.timestamp
     userId = json.userId
 
     async.parallel [
       (cb) =>
-        @dataProvider.measure 'user', userId, timestamp, 'shared', json.activityId, '', 1, cb
+        async.forEach measureNames, (measureName, measureNameCb) =>
+          @dataProvider.measure 'user', userId, timestamp, measureName, json.activityId, '', 1, measureNameCb
+        , cb
       (cb) =>
-        @dataProvider.measure 'user', userId, timestamp, "shared_#{@escape json['shareService']}", json.activityId, '', 1, cb
+        async.series [
+          (seriesCb) =>
+            myQuery = "
+              INSERT IGNORE INTO shares (sharing_user_id, share_id, share_or_invitation, share_method, created_at)
+              VALUES ('#{@escape userId}', '#{@escape shareId}', '#{@escape shareOrInvitation}', '#{@escape shareMethod}', FROM_UNIXTIME(#{timestamp}));
+            "
+            @db.query(myQuery).execute seriesCb
+        ], cb
       (cb) =>
         myQuery = "
-          INSERT IGNORE INTO shares (sharing_user_id, share_id, share_or_invitation, share_method, created_at)
-          VALUES ('#{@escape userId}', '#{@escape json['shareHash']}', 'share', '#{@escape json['shareService']}', FROM_UNIXTIME(#{timestamp}));
-        "
-        @db.query(myQuery).execute cb
-      (cb) =>
-        myQuery = "
-          UPDATE olap_users set shares_created=shares_created+1 where id='#{@escape userId}';
+          UPDATE olap_users set #{shareOrInvitation}s_created=#{shareOrInvitation}s_created+1 where id='#{@escape userId}';
         "
         @db.query(myQuery).execute cb
     ], @emitResults
+
+  handleCreatedInvitation: (json) =>
+    measureNames = ['invited']
+    @recordShareOrInvitation json, measureNames, json.invitationId, "invitation", "invitation"
+
+  handleObjectShared: (json) =>
+    measureNames = ['shared' , "shared_#{@escape json['shareService']}"]
+    @recordShareOrInvitation json, measureNames, json.shareHash, "share", json.shareService
 
   handleFacebookLike: (json) =>
-    timestamp = json.timestamp
-    userId = json.userId
-
-    async.parallel [
-      (cb) =>
-        @dataProvider.measure 'user', userId, timestamp, 'shared', json.activityId, '', 1, cb
-      (cb) =>
-        @dataProvider.measure 'user', userId, timestamp, "shared_facebook_like", json.activityId, '', 1, cb
-      (cb) =>
-        myQuery = "
-          INSERT IGNORE INTO shares (sharing_user_id, share_id, share_or_invitation, share_method, created_at)
-          VALUES ('#{@escape userId}', '#{@escape json['shareHash']}', 'share', 'facebook_like', FROM_UNIXTIME(#{timestamp}));
-        "
-        @db.query(myQuery).execute cb
-      (cb) =>
-        myQuery = "
-          UPDATE olap_users set shares_created=shares_created+1 where id='#{@escape userId}';
-        "
-        @db.query(myQuery).execute cb
-    ], @emitResults
+    measureNames = ['shared' , "shared_facebook_like"]
+    @recordShareOrInvitation json, measureNames, json.shareHash, "share", "facebook_like"
 
   handleFirstRequest: (json) =>
     timestamp = json.timestamp
@@ -121,25 +121,6 @@ class ShareWorker extends Worker
     else
       @emit 'done'
 
-  handleCreatedInvitation: (json) =>
-    timestamp = json.timestamp
-    userId = json.userId
-
-    async.parallel [
-      (cb) =>
-        @dataProvider.measure 'user', userId, timestamp, 'invited', json.activityId, '', 1, cb
-      (cb) =>
-        myQuery = "
-          INSERT IGNORE INTO shares (sharing_user_id, share_id, share_or_invitation, share_method, created_at)
-          VALUES ('#{@escape userId}', '#{@escape json['invitationId']}', 'invitation', 'invitation', FROM_UNIXTIME(#{timestamp}));
-        "
-        @db.query(myQuery).execute cb
-      (cb) =>
-        myQuery = "
-          UPDATE olap_users set invitations_created=invitations_created+1 where id='#{@escape userId}';
-        "
-        @db.query(myQuery).execute cb
-    ], @emitResults
 
   handleRespondedToInvitation: (json) =>
     timestamp = json.timestamp
