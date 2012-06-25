@@ -47,7 +47,7 @@ class Application
         # after having run downloading/sorting script to get logs up to date on S3, download into local directory
         if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
           console.log("syncing latest logs from S3...")
-          child_process.exec "s3cmd --no-delete-removed --rexclude='^[^201]' sync s3://com.grockit.distillery/learnist/#{process.env.NODE_ENV}/sorted/ #{config.backup.full_log_dir}/", cb
+          child_process.exec "s3cmd sync s3://com.grockit.distillery/learnist/#{process.env.NODE_ENV}/sorted/ #{config.backup.full_log_dir}/", cb
         else
           cb()
       (cb) =>
