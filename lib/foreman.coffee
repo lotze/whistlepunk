@@ -112,7 +112,8 @@ class Foreman extends EventEmitter
   getLogFilesInOrder: (directory, callback) =>
     return callback(null, [ "#{directory}/shares.json", "#{directory}/sessions.json" ]) if process.env.NODE_ENV is "development"
 
-    glob "**/learnist.log.1.*", null, (err, files) =>
+    glob "#{directory}/**/learnist.log.1.*", null, (err, files) =>
+#      console.dir files
       matchedFiles = (file for file in files when file.match(/learnist\.log\.1.*/))
       matchedFiles = matchedFiles.sort (a, b) =>
         a_matches = a.match(/(\d{8})_(\d{6})/)
