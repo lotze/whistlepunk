@@ -63,7 +63,7 @@ class Foreman extends EventEmitter
     @emit message.eventName, message
     jsonString ||= JSON.stringify(message)
     @local_redis.set "whistlepunk:last_event_processed", jsonString
-    console.log message.eventName, message  if process.env.NODE_ENV is "development"
+    console.log message.eventName, message  if process.env.NODE_ENV is "test"
     
   processLine: (jsonString) =>
     @processMessage JSON.parse(jsonString)

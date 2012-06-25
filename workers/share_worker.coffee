@@ -49,6 +49,30 @@ class ShareWorker extends Worker
   #   3) insert counts of members, invite members, etc back into shares table.
   #
 
+
+  updateShareMetricsForShare: (shareId, cb) =>
+    console.log("updating metrics for #{shareId}")
+    myQuery = "
+      UPDATE shares, (SELECT 
+        sum(in_from_shares.user_id is not null) as up_to_date_num_visits,
+        (case when sum(olap_users.status = 'invite_requested_member') is not null then sum(olap_users.status = 'invite_requested_member')
+        else 0
+        end) as up_to_date_num_requested_members,
+        (case when sum(olap_users.status = 'member') is not null then sum(olap_users.status = 'member')
+        else 0
+        end) as up_to_date_num_members
+        FROM
+        shares LEFT OUTER JOIN in_from_shares ON shares.share_id=in_from_shares.share_id LEFT OUTER JOIN olap_users ON in_from_shares.user_id = olap_users.id               
+        WHERE shares.share_id = '#{@escape shareId}'
+      ) as up_to_date_share_results
+      SET shares.num_visits=up_to_date_share_results.up_to_date_num_visits, 
+      shares.num_invite_requested_members=up_to_date_share_results.up_to_date_num_requested_members, 
+      shares.num_members=up_to_date_share_results.up_to_date_num_members
+      WHERE shares.share_id = '#{@escape shareId}';
+    "
+    console.log("executing #{myQuery}")
+    @db.query(myQuery).execute cb
+
   recordShareOrInvitation: (json, measureNames, shareId, shareOrInvitation, shareMethod) =>
     timestamp = json.timestamp
     userId = json.userId
@@ -66,6 +90,8 @@ class ShareWorker extends Worker
               VALUES ('#{@escape userId}', '#{@escape shareId}', '#{@escape shareOrInvitation}', '#{@escape shareMethod}', FROM_UNIXTIME(#{timestamp}));
             "
             @db.query(myQuery).execute seriesCb
+          (seriesCb) =>
+            @updateShareMetricsForShare(shareId, seriesCb)
         ], cb
       (cb) =>
         myQuery = "
@@ -110,10 +136,7 @@ class ShareWorker extends Worker
                 (found_cb) =>
                   @dataProvider.addToTimeseries "share_via_#{@escape rows[0]['share_method']}_visited", json.timestamp, found_cb
                 (found_cb) =>
-                  myQuery = "
-                    UPDATE shares set num_visits=num_visits+1 where share_id='#{@escape json['fromShare']}';
-                  "
-                  @db.query(myQuery).execute found_cb
+                  @updateShareMetricsForShare(json['fromShare'], found_cb)
               ], cb
             else
               cb()
@@ -130,6 +153,7 @@ class ShareWorker extends Worker
       (cb) =>
         @dataProvider.addToTimeseries 'invitation_visited', json.timestamp, cb
       (cb) =>
+        # TODO: remove ignore, catch error; only if there is no error should we update the num_visits (since an invitation can be visited by the same user more than once, but we shouldn't count that as multiple visitors)
         myQuery = "
           INSERT IGNORE INTO in_from_shares (user_id, share_id, created_at)
           VALUES ('#{@escape userId}', '#{@escape json['invitationId']}', FROM_UNIXTIME(#{timestamp}))
@@ -141,10 +165,7 @@ class ShareWorker extends Worker
         "
         @db.query(myQuery).execute (err, rows, cols) =>
           if !err && rows.length > 0
-            myQuery = "
-              UPDATE shares set num_visits=num_visits+1 where share_id='#{@escape json['invitationId']}';
-            "
-            @db.query(myQuery).execute cb
+            @updateShareMetricsForShare json['invitationId'], cb
           else
             cb()
     ], @emitResults
@@ -153,7 +174,7 @@ class ShareWorker extends Worker
     timestamp = json.timestamp
     userId = json.userId
 
-    async.parallel [
+    async.series [
       (cb) =>
         if json.newState == 'member'
           myQuery = "UPDATE in_from_shares set user_now_member=1 where user_id='#{@escape userId}';"
@@ -167,22 +188,17 @@ class ShareWorker extends Worker
         @db.query(myQuery).execute (err, rows, cols) =>
           if !err && rows.length > 0
             sharingUserId = rows[0]['sharing_user_id']
+            console.log("row is", rows[0])
             shareOrInvitation = rows[0]['share_or_invitation']
             shareId = rows[0]['share_id']
             shareMethod = rows[0]['share_method']
-            async.parallel [
+            async.series [
               (cb2) =>
                 @dataProvider.addToTimeseries "#{shareOrInvitation}_visitor_became_#{json.newState}", json.timestamp, cb
               (cb2) =>
                 @dataProvider.addToTimeseries "#{shareOrInvitation}_visitor_via_#{shareMethod}_became_#{json.newState}", json.timestamp, cb
               (cb2) =>
-                if json.newState == 'member' || json.newState == 'invite_requested_member'
-                  myQuery = "
-                    UPDATE shares set num_#{json.newState}s=num_#{json.newState}s+1 where share_id='#{@escape shareId}';
-                  "
-                  @db.query(myQuery).execute cb2
-                else
-                  cb2()
+                @updateShareMetricsForShare shareId, cb2
               (cb2) =>
                 if json.newState == 'member'
                   myQuery = "
@@ -195,6 +211,8 @@ class ShareWorker extends Worker
               cb err, results
           else
             cb()
-    ], @emitResults
+    ], (err, values) =>
+      console.log("err is #{err}, results are #{values}")
+      @emitResults err, values
 
 module.exports = ShareWorker

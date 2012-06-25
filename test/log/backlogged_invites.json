@@ -1,0 +1,3 @@
+{"userId":"effective_sharer","timestamp":30577,"eventName":"createdInvitation","invitationId":"share_by_effective_sharer","share_method":"myface"}
+{"userId":"sad_sharer","timestamp":47672,"eventName":"createdInvitation","invitationId":"share_by_sad_sharer","share_method":"myface"}
+{"userId":"sad_sharer","timestamp":127741,"eventName":"createdInvitation","invitationId":"second_share_by_sad_sharer","share_method":"myface"}
