@@ -121,8 +121,8 @@ class Application
       (cb) =>
         # load data -- check for reprocess by looking at whistlepunk:
         async.parallel [
-          (cb) => @local_redis_client.get 'whistlepunk:last_event_processed', cb
-          (cb) => @local_redis_client.get 'whistlepunk:last_event_to_process', cb
+          (pcp) => @local_redis_client.get 'whistlepunk:last_event_processed', pcp
+          (pcp) => @local_redis_client.get 'whistlepunk:last_event_to_process', pcp
         ], (err, results) =>
           return throw err if err?
           [from, to] = results
