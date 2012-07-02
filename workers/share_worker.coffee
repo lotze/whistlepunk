@@ -11,6 +11,7 @@ class ShareWorker extends Worker
     dbloader = new DbLoader()
     @db = dbloader.db()
     @foreman.on('createdInvitation', @handleMessage)
+    @foreman.on('sentFacebookInvitation', @handleMessage)
     @foreman.on('facebookLiked', @handleMessage)
     @foreman.on('firstRequest', @handleMessage)
     @foreman.on('membershipStatusChange', @handleMessage)
@@ -32,6 +33,7 @@ class ShareWorker extends Worker
     try
       switch json.eventName
         when "createdInvitation" then @handleCreatedInvitation(json)
+        when "sentFacebookInvitation" then @handleSentFacebookInvitation(json)
         when "facebookLiked" then @handleFacebookLike(json)
         when "firstRequest" then @handleFirstRequest(json)
         when "membershipStatusChange" then @handleMembershipStatusChange(json)
@@ -75,6 +77,10 @@ class ShareWorker extends Worker
     ], @emitResults
 
   handleCreatedInvitation: (json) =>
+    measureNames = ['invited']
+    @recordShareOrInvitation json, measureNames, json.invitationId, "invitation", "invitation"
+
+  handleSentFacebookInvitation: (json) =>
     measureNames = ['invited']
     @recordShareOrInvitation json, measureNames, json.invitationId, "invitation", "invitation"
 

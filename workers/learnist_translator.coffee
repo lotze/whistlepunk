@@ -15,6 +15,7 @@ class LearnistTranslator extends Worker
     @foreman.on('createdBoard', @handleMessage)
     @foreman.on('completedLearning', @handleMessage)
     @foreman.on('createdInvitation', @handleMessage)
+    @foreman.on('sentFacebookInvitation', @handleMessage)
     @foreman.on('createdLearning', @handleMessage)
     @foreman.on('createdTag', @handleMessage)
     @foreman.on('emailSent', @handleMessage)
@@ -49,6 +50,7 @@ class LearnistTranslator extends Worker
         when "createdBoard" then @handleCreatedBoard(json)
         when "completedLearning" then @handleCompletedLearning(json)
         when "createdInvitation" then @handleCreatedInvitation(json)
+        when "sentFacebookInvitation" then @handleSentFacebookInvitation(json)
         when "createdLearning" then @handleCreatedLearning(json)
         when "createdTag" then @handleCreatedTag(json)
         when "emailSent" then @handleEmailSent(json)
@@ -100,6 +102,14 @@ class LearnistTranslator extends Worker
     ], @emitResults
 
   handleCreatedInvitation: (json) =>
+    async.parallel [
+      (cb) => 
+        @dataProvider.measure 'user', json.userId, json.timestamp, 'created_invitation', json.activityId, json.boardId, 1, cb
+      (cb) => 
+        @dataProvider.createObject 'invitation', json.invitationId, json.timestamp, cb
+    ], @emitResults
+
+  handleSentFacebookInvitation: (json) =>
     async.parallel [
       (cb) => 
         @dataProvider.measure 'user', json.userId, json.timestamp, 'created_invitation', json.activityId, json.boardId, 1, cb
