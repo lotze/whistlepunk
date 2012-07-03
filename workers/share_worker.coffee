@@ -82,7 +82,7 @@ class ShareWorker extends Worker
 
   handleSentFacebookInvitation: (json) =>
     measureNames = ['invited']
-    @recordShareOrInvitation json, measureNames, json.invitationId, "invitation", "invitation"
+    @recordShareOrInvitation json, measureNames, json.invitationId, "invitation", "facebook_invitation"
 
   handleObjectShared: (json) =>
     measureNames = ['shared' , "shared_#{@escape json['shareService']}"]

@@ -112,7 +112,7 @@ class LearnistTranslator extends Worker
   handleSentFacebookInvitation: (json) =>
     async.parallel [
       (cb) => 
-        @dataProvider.measure 'user', json.userId, json.timestamp, 'created_invitation', json.activityId, json.boardId, 1, cb
+        @dataProvider.measure 'user', json.userId, json.timestamp, 'facebook_invitation', json.activityId, json.boardId, 1, cb
       (cb) => 
         @dataProvider.createObject 'invitation', json.invitationId, json.timestamp, cb
     ], @emitResults
