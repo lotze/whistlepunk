@@ -33,7 +33,7 @@ class SplitTestWorker extends Worker
         ('#{@db.escape(json.splitTest)}',
         '#{@db.escape(json.assignment)}',
         '#{@db.escape(userId)}',
-        #{FROM_UNIXTIME(timestamp)})
+        FROM_UNIXTIME(#{timestamp}))
       "
       @db.query(myQuery).execute @emitResults
     catch error

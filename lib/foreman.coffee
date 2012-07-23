@@ -93,6 +93,8 @@ class Foreman extends EventEmitter
         (parallel_callback) => db.query("TRUNCATE TABLE timeseries").execute parallel_callback
         (parallel_callback) => db.query("TRUNCATE TABLE shares").execute parallel_callback
         (parallel_callback) => db.query("TRUNCATE TABLE in_from_shares").execute parallel_callback
+        (parallel_callback) => db.query("TRUNCATE TABLE split_test_assignments").execute parallel_callback
+        (parallel_callback) => db.query("TRUNCATE TABLE split_test_outcomes").execute parallel_callback
         (parallel_callback) => local_redis.flushdb parallel_callback
         (parallel_callback) => mongo.collection 'compressedActivity', (err, compressedActivity) =>
           compressedActivity.drop (err, results) =>
