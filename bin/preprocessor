@@ -1,6 +1,25 @@
 #!/usr/bin/env ../node_modules/.bin/coffee
+process.env.NODE_ENV ?= 'development'
 
-app = require("../lib/preprocessor")
+Preprocessor = require("../lib/preprocessor")
+Filter = require("../lib/filter")
+
+process.on 'uncaughtException', (e) ->
+  console.error("UNCAUGHT EXCEPTION: ", e, e.stack)
+
+quit = ->
+  process.exit(0)
+
+process.on('SIGINT', quit)
+process.on('SIGKILL', quit)
+
+app = new Preprocessor(new Filter())
+
+process.on 'SIGKILL', ->
+  app.terminate()
+
+process.on 'SIGINT', ->
+  app.terminate()
 
 app.init (err) =>
   app.run()

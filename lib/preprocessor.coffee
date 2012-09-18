@@ -1,19 +1,8 @@
 #!/usr/bin/env coffee
 config = require("../config")
 redisBuilder = require('../lib/redis_builder')
-process.env.NODE_ENV ?= 'development'
 
 require('coffee-script')
-Filter = require('./filter')
-
-process.on 'uncaughtException', (e) ->
-  console.error("UNCAUGHT EXCEPTION: ", e, e.stack)
-
-quit = ->
-  process.exit(0)
-
-process.on('SIGINT', quit)
-process.on('SIGKILL', quit)
 
 class Application
   constructor: (@filter) ->
@@ -33,14 +22,10 @@ class Application
     quit()
     
   processMessage: (jsonString) =>
-    console.log("I am totally processing #{jsonString}")
-    # TODO: actually build filter ;)
-    # @filter.processMessage JSON.parse(jsonString), jsonString    
+    @filter.dispatchMessage jsonString
     
   startProcessing: =>
-    console.log("I am for reals processing from #{@distillery_redis_client}")
     @distillery_redis_client.brpop @distillery_redis_key, 0, (err, reply) =>
-      console.log("I got a thing!")
       if err?
         console.error "Error during Redis BRPOP: " + err
         @startProcessing()
@@ -56,15 +41,7 @@ class Application
   run: =>
     @startProcessing()
     
-app = new Application(new Filter())
-
-process.on 'SIGKILL', ->
-  app.terminate()
-
-process.on 'SIGINT', ->
-  app.terminate()
-
-module.exports = app
+module.exports = Application
 
 
 # NOTES ON SETUP

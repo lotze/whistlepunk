@@ -1,5 +1,4 @@
-redis = require("redis")
-config = require("../config")
+redisBuilder = require('../lib/redis_builder')
 
 util = require("util")
 EventEmitter = require("events").EventEmitter
@@ -23,26 +22,22 @@ class Filter extends EventEmitter
   init: (callback) =>
     @holding_zstore_key = "filter:" + process.env.NODE_ENV + ":holding_zstore"
     @valid_users_zstore_key = "filter:" + process.env.NODE_ENV + ":valid_users"
-    @connectRedis()
+    @connectRedis(callback)
     
-  connect: (callback) =>
-    @connectRedis()
-    @startProcessing()
-
   connectRedis: (callback) =>
-    async.series [
-      @filter_redis_client = redis.createClient(config.redis.port, config.redis.host)
-      @filter_redis_client.select config.redis.db_num  if config.redis.db_num
-      console.log "Filter Redis connected."
-      @filter_redis_client.once "end", =>
-        console.log "Lost connection to Filter Redis. Reconnecting..."
-        @connectRedis()
-    ], callback
+    async.parallel [
+      async.apply redisBuilder, process.env.NODE_ENV, 'distillery'
+      async.apply redisBuilder, process.env.NODE_ENV, 'internal'
+    ], (err, results) =>
+      [@distillery_redis_client, @filter_redis_client] = results
+      callback(err)
 
-  dispatchMessage: (message,jsonString) =>
-    console.log message.eventName, message  if process.env.NODE_ENV is "development"
-    @processValidation message, (err) =>
-      @processHolding message
+  dispatchMessage: (jsonString, callback = ->) =>
+    console.log message.eventName, message if process.env.NODE_ENV is "development"
+    message = JSON.parse(jsonString)
+    @pushToHolding message.timestamp, jsonString, callback
+    # @processValidation message, (err) =>
+    #   @processHolding message
     
   processValidation: (message, callback) =>
     # TODO: check if this message indicates the user is super valid and awesome
@@ -51,11 +46,11 @@ class Filter extends EventEmitter
       @storeValidation message.timestamp, message.oldGuid if message.oldGuid?
       @storeValidation message.timestamp, message.newGuid if message.newGuid?
     @churnValidation message.timestamp
-    callback
+    callback()
 
   storeValidation: (timestamp, guid, callback) =>
     @filter_redis_client.zadd @valid_users_zstore_key, timestamp, guid
-    callback
+    callback()
     
   validationEventList: =>
     ['jsCharacteristics', 'login', 'loginGuidChange']
@@ -64,19 +59,18 @@ class Filter extends EventEmitter
     ['iPad app', 'iPhone app']
     
   checkValidation: (message, callback) =>
-    callback
+    callback()
     
   churnValidation: (timestamp, callback) =>
-    callback
+    callback()
     
-  updateHolding: (message,jsonString,callback) =>
+  updateHolding: (message, jsonString, callback) =>
     @pushToHolding message.timestamp, jsonString
     @processFromHolding message.timestamp
-    callback
+    callback()
     
-  pushToHolding: (timestamp,jsonString,callback) =>
-    @filter_redis_client.zadd @holding_zstore_key, timestamp, jsonString
-    callback
+  pushToHolding: (timestamp, jsonString, callback = ->) =>
+    @filter_redis_client.zadd @holding_zstore_key, timestamp, jsonString, callback
 
   checkError: (err, results) =>
     console.log("Error: #{err}") if err?
