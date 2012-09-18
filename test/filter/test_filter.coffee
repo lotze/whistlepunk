@@ -12,6 +12,39 @@ describe 'Filter', =>
         @redis = client
         @redis.flushdb done
 
+  describe 'when flushing the holding/backlog queue of old events', =>
+    it 'flushes all events older than one hour', (done) =>
+      spy = sinon.spy @filter, "processOneEventFromHolding"
+      sampleEvents = ['{"eventName":"login", "userId":"George", "timestamp":86400}',
+        '{"eventName":"request", "userId":"George", "timestamp":86401}',
+        '{"eventName":"login", "userId":"George", "timestamp":86402}',
+        '{"eventName":"login", "userId":"George", "timestamp":86403}']
+      # add old events
+      async.forEach sampleEvents, @filter.dispatchMessage, (err) =>
+        return done(err) if err?
+        # call processOldEventsFromHolding with a newer event
+        newEvent = '{"eventName":"login", "userId":"George", "timestamp":90004}'
+        @filter.processOldEventsFromHolding (86403 + 3600 + 1), (err2) =>
+          # check that all old events got sent to processOneEventFromHolding
+          spy.callCount.should.eql(4)
+          for sampleEvent, i in sampleEvents
+            spy.getCall(i).args[0].should.eql(sampleEvent)
+          spy.restore()
+          done(err2)
+
+    it 'does not flush events younger than one hour', (done) =>
+      spy = sinon.spy @filter, "processOneEventFromHolding"
+      sampleEvents = ['{"eventName":"login", "userId":"George", "timestamp":86405}']
+      # add 'old' events
+      async.forEach sampleEvents, @filter.dispatchMessage, (err) =>
+        return done(err) if err?
+        # call processOldEventsFromHolding with a newer event
+        newEvent = '{"eventName":"login", "userId":"George", "timestamp":90004}'
+        @filter.processOldEventsFromHolding (86403 + 3600 + 1), (err2) =>
+          spy.callCount.should.eql(0)
+          spy.restore()
+          done(err2)
+
   describe 'when a user logs in', =>
     it 'marks them as validated', (done) =>
       @sampleLogin = JSON.parse('{"eventName":"login", "userId":"George", "timestamp":86400}')
@@ -78,7 +111,7 @@ describe 'Filter', =>
         # while (new Date().getTime() < startTime + 500)
         #   null
         cb()
-      spy = sinon.stub @filter, "processFromHolding", (ts, cb) =>
+      spy = sinon.stub @filter, "processOldEventsFromHolding", (ts, cb) =>
         @called_first.should.be.true
         cb()
       @filter.dispatchMessage sampleMessage, =>

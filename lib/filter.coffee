@@ -40,28 +40,31 @@ class Filter extends EventEmitter
     async.parallel [
       (cb) => @pushToHolding message.timestamp, jsonString, cb
       (cb) => @processValidation message, (err) =>
-        @processFromHolding message.timestamp, cb
+        @processOldEventsFromHolding message.timestamp, cb
     ], callback
     
   processValidation: (message, callback) =>
     # check if this message indicates the user is super valid and awesome
-    if message.eventName in @validationEventList || message.client in @validationClientList
-      async.parallel [
-        (cb) => @storeValidation message.timestamp, message.userId, cb
-        (cb) =>
-          if message.oldGuid?
-            @storeValidation message.timestamp, message.oldGuid, cb
-          else
-            cb()
-        (cb) =>
-          if message.newGuid?
-            @storeValidation message.timestamp, message.newGuid, cb
-          else
-            cb()
-      ], callback
-    else
-      callback()
-    #@churnValidation message.timestamp
+    async.parallel [
+      (cb0) =>
+        if message.eventName in @validationEventList || message.client in @validationClientList
+          async.parallel [
+            (cb) => @storeValidation message.timestamp, message.userId, cb
+            (cb) =>
+              if message.oldGuid?
+                @storeValidation message.timestamp, message.oldGuid, cb
+              else
+                cb()
+            (cb) =>
+              if message.newGuid?
+                @storeValidation message.timestamp, message.newGuid, cb
+              else
+                cb()
+          ], cb0
+        else
+          cb0()
+      (cb0) => @churnValidation message.timestamp, cb0
+    ], callback
 
   storeValidation: (timestamp, guid, callback) =>
     @filter_redis_client.zadd @valid_users_zstore_key, timestamp, guid
@@ -85,28 +88,28 @@ class Filter extends EventEmitter
 
   checkError: (err, results) =>
     console.log("Error: #{err}") if err?
-    
-  processFromHolding: (timestamp, callback) =>
-    callback()
-    # oneHourEarlier = timestamp - 3600
-    # async.series [
-    #   (cb) =>
-    #     @filter_redis_client.zrangebyscore @holding_zstore_key, 0, oneHourEarlier, (err, results) =>
-    #       cb(err) if err?
-    #       async.forEachSeries results, loggedEventJson, (cb2) =>
-    #         loggedEvent = parseJSON(loggedEventJson)
-    #         @checkValidation loggedEvent, (err2, isValid) =>
-    #           cb2(err2) if err2?
-    #           if isValid
-    #             @emit 'valid', loggedEventJson
-    #             @storeValidation timestamp, loggedEvent.userId, @checkError
-    #           else
-    #             @emit 'invalid', loggedEventJson
-    #           cb2()
-    #       , cb()
-    #   (cb) =>
-    #     @filter_redis_client.zremrangebyscore @holding_zstore_key, 0, oneHourEarlier, (err, results) =>
-    #       cb(err)
-    # ], callback
-    
+
+  processOneEventFromHolding: (logEventJson, callback) =>
+    loggedEvent = JSON.parse(logEventJson)
+    @checkValidation loggedEvent.userId, (err, isValid) =>
+      return callback(err) if err?
+      if isValid
+        @emit 'valid', logEventJson
+        @storeValidation loggedEvent.timestamp, loggedEvent.userId, @checkError
+      else
+        @emit 'invalid', logEventJson
+      callback()
+
+  processOldEventsFromHolding: (timestamp, callback) =>
+    oneHourEarlier = timestamp - 3600
+    async.series [
+      (cb) =>
+        @filter_redis_client.zrangebyscore @holding_zstore_key, 0, oneHourEarlier, (err, results) =>
+          return cb(err) if err?
+          async.forEachSeries results, @processOneEventFromHolding, cb
+      (cb) =>
+        @filter_redis_client.zremrangebyscore @holding_zstore_key, 0, oneHourEarlier, (err, results) =>
+          cb(err)
+    ], callback
+
 module.exports = Filter
