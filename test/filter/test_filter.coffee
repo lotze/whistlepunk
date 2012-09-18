@@ -19,3 +19,12 @@ describe 'Filter', =>
         @redis.zcard @filter.holding_zstore_key, (err, result) =>
           result.should.equal 1
           done(err)
+
+    it 'passes it to the user approval/classifier', (done) =>
+      sampleMessage = '{"eventName":"monkeyTime", "userId":"George", "timestamp":86400}'
+      spy = sinon.spy @filter, "processValidation"
+      @filter.dispatchMessage sampleMessage, =>
+        spy.calledOnce.should.be.true
+        spy.getCall(0).args[0].should.eql(JSON.parse(sampleMessage))
+        spy.restore()
+        done()

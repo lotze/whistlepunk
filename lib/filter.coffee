@@ -35,18 +35,22 @@ class Filter extends EventEmitter
   dispatchMessage: (jsonString, callback = ->) =>
     console.log message.eventName, message if process.env.NODE_ENV is "development"
     message = JSON.parse(jsonString)
-    @pushToHolding message.timestamp, jsonString, callback
-    # @processValidation message, (err) =>
-    #   @processHolding message
+    async.parallel [
+      (cb) => @pushToHolding message.timestamp, jsonString, cb
+      (cb) => @processValidation message, (err) =>
+          cb()
+          #@processFromHolding message, cb
+    ], callback
     
   processValidation: (message, callback) =>
-    # TODO: check if this message indicates the user is super valid and awesome
-    if message.eventName in validationEventList || message.client in validationClientList
-      @storeValidation message.timestamp, message.userId
-      @storeValidation message.timestamp, message.oldGuid if message.oldGuid?
-      @storeValidation message.timestamp, message.newGuid if message.newGuid?
-    @churnValidation message.timestamp
     callback()
+    # TODO: check if this message indicates the user is super valid and awesome
+    # if message.eventName in validationEventList || message.client in validationClientList
+    #   @storeValidation message.timestamp, message.userId
+    #   @storeValidation message.timestamp, message.oldGuid if message.oldGuid?
+    #   @storeValidation message.timestamp, message.newGuid if message.newGuid?
+    # @churnValidation message.timestamp
+    # callback()
 
   storeValidation: (timestamp, guid, callback) =>
     @filter_redis_client.zadd @valid_users_zstore_key, timestamp, guid
