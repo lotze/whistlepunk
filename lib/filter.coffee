@@ -22,6 +22,8 @@ class Filter extends EventEmitter
   init: (callback) =>
     @holding_zstore_key = "filter:" + process.env.NODE_ENV + ":holding_zstore"
     @valid_users_zstore_key = "filter:" + process.env.NODE_ENV + ":valid_users"
+    @validationEventList = ['jsCharacteristics', 'login', 'loginGuidChange']
+    @validationClientList = ['iPad app', 'iPhone app']
     @connectRedis(callback)
     
   connectRedis: (callback) =>
@@ -42,27 +44,33 @@ class Filter extends EventEmitter
     ], callback
     
   processValidation: (message, callback) =>
-    callback()
-    # TODO: check if this message indicates the user is super valid and awesome
-    # if message.eventName in validationEventList || message.client in validationClientList
-    #   @storeValidation message.timestamp, message.userId
-    #   @storeValidation message.timestamp, message.oldGuid if message.oldGuid?
-    #   @storeValidation message.timestamp, message.newGuid if message.newGuid?
-    # @churnValidation message.timestamp
-    # callback()
+    # check if this message indicates the user is super valid and awesome
+    if message.eventName in @validationEventList || message.client in @validationClientList
+      async.parallel [
+        (cb) => @storeValidation message.timestamp, message.userId, cb
+        (cb) =>
+          if message.oldGuid?
+            @storeValidation message.timestamp, message.oldGuid, cb
+          else
+            cb()
+        (cb) =>
+          if message.newGuid?
+            @storeValidation message.timestamp, message.newGuid, cb
+          else
+            cb()
+      ], callback
+    else
+      callback()
+    #@churnValidation message.timestamp
 
   storeValidation: (timestamp, guid, callback) =>
     @filter_redis_client.zadd @valid_users_zstore_key, timestamp, guid
     callback()
     
-  validationEventList: =>
-    ['jsCharacteristics', 'login', 'loginGuidChange']
-
-  validationClientList: =>
-    ['iPad app', 'iPhone app']
-    
-  checkValidation: (message, callback) =>
-    callback()
+  checkValidation: (userId, callback) =>
+    @filter_redis_client.zscore @valid_users_zstore_key, userId, (err, score) =>
+      # console.log("Checked #{userId} and got #{err}/#{score}")
+      callback(null, score != null)
     
   churnValidation: (timestamp, callback) =>
     callback()

@@ -7,7 +7,7 @@ sinon = require("sinon")
 config = require("../../config")
 
 describe 'Preprocessor', =>
-  before (done) =>
+  beforeEach (done) =>
     @filter = {
       dispatchMessage: ->
     }

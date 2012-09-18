@@ -5,13 +5,51 @@ async = require("async")
 sinon = require("sinon")
 
 describe 'Filter', =>
-  before (done) =>
+  beforeEach (done) =>
     @filter = new Filter()
     @filter.init =>
       redisBuilder process.env.NODE_ENV, 'internal', (err, client) =>
         @redis = client
         @redis.flushdb done
-    
+
+  describe 'when a user logs in', =>
+    it 'marks them as validated', (done) =>
+      @sampleLogin = JSON.parse('{"eventName":"login", "userId":"George", "timestamp":86400}')
+      @filter.processValidation @sampleLogin, (err0) =>
+        @filter.checkValidation @sampleLogin.userId, (err, isValid) =>
+          isValid.should.be.true
+          done()
+
+  describe 'when a user logs in with guid change', =>
+    it 'marks both old and new user id as validated', (done) =>
+      @sampleLogin = JSON.parse('{"eventName":"loginGuidChange", "userId":"George", "oldGuid":"Binky", "newGuid":"superNew", "timestamp":86400}')
+      @filter.processValidation @sampleLogin, (err0) =>
+        async.parallel [
+          @filter.checkValidation.bind(@filter,@sampleLogin.userId)
+          @filter.checkValidation.bind(@filter,@sampleLogin.oldGuid)
+          @filter.checkValidation.bind(@filter,@sampleLogin.newGuid)
+        ], (err, results) =>
+          results[0].should.be.true
+          results[1].should.be.true
+          results[2].should.be.true
+          done()
+
+  describe 'when a user shows javascript capability', =>
+    it 'marks them as validated', (done) =>
+      @sampleLogin = JSON.parse('{"eventName":"jsCharacteristics", "userId":"George", "timestamp":86400}')
+      @filter.processValidation @sampleLogin, (err0) =>
+        @filter.checkValidation @sampleLogin.userId, (err, isValid) =>
+          isValid.should.be.true
+          done()
+
+  describe 'when a user takes an action from an iOS app', =>
+    it 'marks them as validated', (done) =>
+      @sampleLogin = JSON.parse('{"eventName":"monkeyPath", "userId":"George", "timestamp":86400, "client":"iPad app"}')
+      @filter.processValidation @sampleLogin, (err0) =>
+        @filter.checkValidation @sampleLogin.userId, (err, isValid) =>
+          isValid.should.be.true
+          done()
+
   describe 'when a message is dispatched', =>
     it 'puts it in the holding/backlog', (done) =>
       sampleMessage = '{"eventName":"monkeyTime", "userId":"George", "timestamp":86400}'
@@ -47,4 +85,5 @@ describe 'Filter', =>
         spy.calledOnce.should.be.true
         spy.getCall(0).args[0].should.eql(JSON.parse(sampleMessage).timestamp)
         spy.restore()
+        stub.restore()
         done()
