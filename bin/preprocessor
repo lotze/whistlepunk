@@ -1,0 +1,6 @@
+#!/usr/bin/env ../node_modules/.bin/coffee
+
+app = require("../lib/preprocessor")
+
+app.init (err) =>
+  app.run()

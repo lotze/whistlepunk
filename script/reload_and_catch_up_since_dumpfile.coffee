@@ -153,12 +153,12 @@ async.series [
     console.log("...getting latest event from remote redis queue")
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       redis_key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
-      remote_redis_client = redis.createClient(config.msg_source_redis.port, config.msg_source_redis.host)
+      remote_redis_client = redis.createClient(config.filtered_redis.port, config.filtered_redis.host)
       async.series [
         (redis_cb) =>
-          if config.msg_source_redis.db_num?
-            console.log("selecting config.msg_source_redis.db_num")
-            remote_redis_client.select config.msg_source_redis.db_num, redis_cb
+          if config.filtered_redis.db_num?
+            console.log("selecting config.filtered_redis.db_num")
+            remote_redis_client.select config.filtered_redis.db_num, redis_cb
           else
             console.log("no need for db_num")
             redis_cb()

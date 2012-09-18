@@ -54,9 +54,9 @@ class Application
         # get the next event to be processed from the msg queue
         if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
           redis_key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
-          remote_redis_client = redis.createClient(config.msg_source_redis.port, config.msg_source_redis.host)
-          if config.msg_source_redis.db_num?
-            remote_redis_client.select(config.msg_source_redis.db_num)
+          remote_redis_client = redis.createClient(config.filtered_redis.port, config.filtered_redis.host)
+          if config.filtered_redis.db_num?
+            remote_redis_client.select(config.filtered_redis.db_num)
           remote_redis_client.brpop redis_key, 0, (err, reply) =>
             return cb(err) if err?
             console.log("Got next event -- will reprocess up to ", reply)
