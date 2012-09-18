@@ -28,3 +28,23 @@ describe 'Filter', =>
         spy.getCall(0).args[0].should.eql(JSON.parse(sampleMessage))
         spy.restore()
         done()
+
+    it 'triggers the backlog processor after passing the message to the user approval/classifier', (done) =>
+      # Note: the ordering test seems like it could be flaky in detecting failure
+      #   but in practice it does appear to reliably detect if they are called in the wrong order -- TL
+      sampleMessage = '{"eventName":"monkeyTime", "userId":"George", "timestamp":86400}'
+      @called_first = false
+      stub = sinon.stub @filter, "processValidation", (msg, cb) =>
+        @called_first = true
+        # startTime = new Date().getTime();
+        # while (new Date().getTime() < startTime + 500)
+        #   null
+        cb()
+      spy = sinon.stub @filter, "processFromHolding", (ts, cb) =>
+        @called_first.should.be.true
+        cb()
+      @filter.dispatchMessage sampleMessage, =>
+        spy.calledOnce.should.be.true
+        spy.getCall(0).args[0].should.eql(JSON.parse(sampleMessage).timestamp)
+        spy.restore()
+        done()

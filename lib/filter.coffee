@@ -38,8 +38,7 @@ class Filter extends EventEmitter
     async.parallel [
       (cb) => @pushToHolding message.timestamp, jsonString, cb
       (cb) => @processValidation message, (err) =>
-          cb()
-          #@processFromHolding message, cb
+        @processFromHolding message.timestamp, cb
     ], callback
     
   processValidation: (message, callback) =>
@@ -80,25 +79,26 @@ class Filter extends EventEmitter
     console.log("Error: #{err}") if err?
     
   processFromHolding: (timestamp, callback) =>
-    oneHourEarlier = timestamp - 3600
-    async.series [
-      (cb) =>
-        @filter_redis_client.zrangebyscore @holding_zstore_key, 0, oneHourEarlier, (err, results) =>
-          cb(err) if err?
-          async.forEachSeries results, loggedEventJson, (cb2) =>
-            loggedEvent = parseJSON(loggedEventJson)
-            @checkValidation loggedEvent, (err2, isValid) =>
-              cb2(err2) if err2?
-              if isValid
-                @emit 'valid', loggedEventJson
-                @storeValidation timestamp, loggedEvent.userId, @checkError
-              else
-                @emit 'invalid', loggedEventJson
-              cb2()
-          , cb()
-      (cb) =>
-        @filter_redis_client.zremrangebyscore @holding_zstore_key, 0, oneHourEarlier, (err, results) =>
-          cb(err)
-    ], callback
+    callback()
+    # oneHourEarlier = timestamp - 3600
+    # async.series [
+    #   (cb) =>
+    #     @filter_redis_client.zrangebyscore @holding_zstore_key, 0, oneHourEarlier, (err, results) =>
+    #       cb(err) if err?
+    #       async.forEachSeries results, loggedEventJson, (cb2) =>
+    #         loggedEvent = parseJSON(loggedEventJson)
+    #         @checkValidation loggedEvent, (err2, isValid) =>
+    #           cb2(err2) if err2?
+    #           if isValid
+    #             @emit 'valid', loggedEventJson
+    #             @storeValidation timestamp, loggedEvent.userId, @checkError
+    #           else
+    #             @emit 'invalid', loggedEventJson
+    #           cb2()
+    #       , cb()
+    #   (cb) =>
+    #     @filter_redis_client.zremrangebyscore @holding_zstore_key, 0, oneHourEarlier, (err, results) =>
+    #       cb(err)
+    # ], callback
     
 module.exports = Filter
