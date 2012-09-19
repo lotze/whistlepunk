@@ -1,0 +1,22 @@
+#!/usr/bin/env ../node_modules/.bin/coffee
+
+Dispatcher = require '../lib/dispatcher'
+BacklogProcessor = require '../lib/backlog_processor'
+Filter = require '../lib/filter'
+UserValidator = require '../lib/user_validator'
+FilterStream = require '../lib/filter_stream'
+
+# blockingIncomingRedis = redis_builder(process.env.NODE_ENV, 'distillery')
+incomingRedis = redis_builder(process.env.NODE_ENV, 'distillery')
+filteredRedis = redis_builder(process.env.NODE_ENV, 'filtered')
+internalRedis = redis_builder(process.env.NODE_ENV, 'whistlepunk')
+
+dispatcher        = new Dispatcher(redis_builder(process.env.NODE_ENV, 'distillery'))
+backlogFiller     = new BacklogFiller(dispatcher, redis_builder(process.env.NODE_ENV, 'whistlepunk'))
+backlogProcessor  = new BacklogProcessor(dispatcher, redis_builder(process.env.NODE_ENV, 'filtered'))
+userValidator     = new UserValidator(redis_builder(process.env.NODE_ENV, 'filtered'))
+filter            = new Filter(userValidator)
+filterStream      = new FilterStream(backlogProcessor, filter)
+whistlePunkStream = new RedisListWriter(redis_builder(process.env.NODE_ENV, 'whistlepunk'), 'nameOfList')
+
+dispatcher.pipe(filterStream).pipe(whistlePunkStream)

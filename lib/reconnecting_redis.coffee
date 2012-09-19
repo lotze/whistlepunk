@@ -11,5 +11,6 @@ class ReconnectingRedis
       console.log "Lost connection to Redis: #{@host}:#{@port}/#{@dbnum}. Reconnecting..."
       @connect()
     cb(null, @client) if cb?
+    @client
 
 module.exports = ReconnectingRedis

@@ -8,4 +8,7 @@ module.exports = (env, server, cb) ->
     else config.redis
 
   client = new ReconnectingRedis(redis_config.host, redis_config.port, redis_config.db_num)
-  client.connect cb
+  if cb?
+    client.connect cb
+  else
+    client.connect()
