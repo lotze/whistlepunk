@@ -67,8 +67,7 @@ class Filter extends EventEmitter
     ], callback
 
   storeValidation: (timestamp, guid, callback) =>
-    @filter_redis_client.zadd @valid_users_zstore_key, timestamp, guid
-    callback()
+    @filter_redis_client.zadd @valid_users_zstore_key, timestamp, guid, callback
     
   checkValidation: (userId, callback) =>
     @filter_redis_client.zscore @valid_users_zstore_key, userId, (err, score) =>
@@ -95,10 +94,10 @@ class Filter extends EventEmitter
       return callback(err) if err?
       if isValid
         @emit 'valid', logEventJson
-        @storeValidation loggedEvent.timestamp, loggedEvent.userId, @checkError
+        @storeValidation loggedEvent.timestamp, loggedEvent.userId, callback
       else
         @emit 'invalid', logEventJson
-      callback()
+        callback()
 
   processOldEventsFromHolding: (timestamp, callback) =>
     oneHourEarlier = timestamp - 3600

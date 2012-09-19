@@ -45,6 +45,21 @@ describe 'Filter', =>
           spy.restore()
           done(err2)
 
+  describe 'when processing an event from the holding/backlog queue', =>
+    describe 'if it is a validated user', =>
+      it "updates the validated user's timestamp", (done) =>
+        userId = "George"
+        ts = '86401'
+        updatedEvent = '{"eventName":"login", "userId":"' + userId + '", "timestamp":' + ts + '}'
+        @filter.storeValidation 86400, userId, (err) =>
+          return done(err) if err?
+          @filter.processOneEventFromHolding updatedEvent, (err2) =>
+            return done(err2) if err2?
+            @redis.zscore @filter.valid_users_zstore_key, userId, (err3, score) =>
+              return done(err3) if err3?
+              score.should.eql(ts)
+              done()
+
   describe 'when a user logs in', =>
     it 'marks them as validated', (done) =>
       @sampleLogin = JSON.parse('{"eventName":"login", "userId":"George", "timestamp":86400}')
