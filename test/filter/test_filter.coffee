@@ -12,6 +12,35 @@ describe 'Filter', =>
         @redis = client
         @redis.flushdb done
 
+  describe 'when flushing the valid user set', =>
+    it 'flushes all users with timestamps older than one day', (done) =>
+      oldUsers = [{user: 'alpha', ts: 0}, {user: 'beta', ts: 20}]
+      # add old users
+      async.forEach oldUsers, (obj, cb) =>
+        @filter.storeValidation(obj.ts, obj.user, cb)
+      , =>
+        @filter.churnValidation 86421, =>
+          async.map oldUsers, (obj, cb) =>
+            @filter.checkValidation(obj.user, cb)
+          , (err, results) =>
+            for result in results
+              result.should.eql(false)
+            done()
+
+    it 'does not flush users with timestamps younger than one day', (done) =>
+      newUsers = [{user: 'gamma', ts: 22}]
+      async.forEach newUsers, (obj, cb) =>
+        @filter.storeValidation(obj.ts, obj.user, cb)
+      , =>
+        @filter.churnValidation 86421, =>
+          async.map newUsers, (obj, cb) =>
+            @filter.checkValidation(obj.user, cb)
+          , (err, results) =>
+            for result in results
+              result.should.eql(true)
+            done()
+
+
   describe 'when flushing the holding/backlog queue of old events', =>
     it 'flushes all events older than one hour', (done) =>
       spy = sinon.spy @filter, "processOneEventFromHolding"

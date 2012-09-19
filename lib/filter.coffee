@@ -1,10 +1,10 @@
 redisBuilder = require('../lib/redis_builder')
 
 util = require("util")
+fs = require("fs")
 EventEmitter = require("events").EventEmitter
 async = require('async')
-
-fs = require("fs")
+_ = require('underscore')
 
 #
 # Filter is made up of:
@@ -18,6 +18,7 @@ fs = require("fs")
 class Filter extends EventEmitter
   constructor: ->
     super()
+    @churnValidation = _.throttle(@churnValidation, 1000 * 60)
 
   init: (callback) =>
     @holding_zstore_key = "filter:" + process.env.NODE_ENV + ":holding_zstore"
@@ -37,6 +38,7 @@ class Filter extends EventEmitter
   dispatchMessage: (jsonString, callback = ->) =>
     console.log message.eventName, message if process.env.NODE_ENV is "development"
     message = JSON.parse(jsonString)
+    @churnValidation message.timestamp
     async.parallel [
       (cb) => @pushToHolding message.timestamp, jsonString, cb
       (cb) => @processValidation message, (err) =>
@@ -45,26 +47,22 @@ class Filter extends EventEmitter
     
   processValidation: (message, callback) =>
     # check if this message indicates the user is super valid and awesome
-    async.parallel [
-      (cb0) =>
-        if message.eventName in @validationEventList || message.client in @validationClientList
-          async.parallel [
-            (cb) => @storeValidation message.timestamp, message.userId, cb
-            (cb) =>
-              if message.oldGuid?
-                @storeValidation message.timestamp, message.oldGuid, cb
-              else
-                cb()
-            (cb) =>
-              if message.newGuid?
-                @storeValidation message.timestamp, message.newGuid, cb
-              else
-                cb()
-          ], cb0
-        else
-          cb0()
-      (cb0) => @churnValidation message.timestamp, cb0
-    ], callback
+    if message.eventName in @validationEventList || message.client in @validationClientList
+      async.parallel [
+        (cb) => @storeValidation message.timestamp, message.userId, cb
+        (cb) =>
+          if message.oldGuid?
+            @storeValidation message.timestamp, message.oldGuid, cb
+          else
+            cb()
+        (cb) =>
+          if message.newGuid?
+            @storeValidation message.timestamp, message.newGuid, cb
+          else
+            cb()
+      ], callback
+    else
+      callback()
 
   storeValidation: (timestamp, guid, callback) =>
     @filter_redis_client.zadd @valid_users_zstore_key, timestamp, guid, callback
@@ -72,11 +70,13 @@ class Filter extends EventEmitter
   checkValidation: (userId, callback) =>
     @filter_redis_client.zscore @valid_users_zstore_key, userId, (err, score) =>
       # console.log("Checked #{userId} and got #{err}/#{score}")
-      callback(null, score != null)
+      callback(err, score != null)
     
-  churnValidation: (timestamp, callback) =>
-    callback()
-    
+  churnValidation: (timestamp, callback = ->) =>
+    # cleans out all users older than one day
+    oneDayEarlier = timestamp - 86400
+    @filter_redis_client.zremrangebyscore @valid_users_zstore_key, 0, oneDayEarlier, callback
+
   updateHolding: (message, jsonString, callback) =>
     @pushToHolding message.timestamp, jsonString
     @processFromHolding message.timestamp
