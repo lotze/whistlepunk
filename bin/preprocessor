@@ -9,11 +9,14 @@ FilterStream = require '../lib/filter_stream'
 
 dispatcher        = new Dispatcher(redis_builder('distillery'))
 backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
-backlogProcessor  = new BacklogProcessor(dispatcher, redis_builder('filtered'))
+backlogProcessor  = new BacklogProcessor(redis_builder('filtered'), 1000 * 60 * 60, filter) # pull from some config somewhere
 userValidator     = new UserValidator(redis_builder('filtered'))
 filter            = new Filter(userValidator)
 filterStream      = new FilterStream(backlogProcessor, filter)
 whistlePunkStream = new RedisListWriter(redis_builder('whistlepunk'))
 
+filter = new Filter([javascriptEnabledValidator, loggedInValidator, userAgentValidator])
+
 dispatcher.pipe(backlogFiller)
-dispatcher.pipe(filterStream).pipe(whistlePunkStream) # TODO: Need to send "bad" events somewhere
+dispatcher.pipe(userValidationStorer(filter))
+dispatcher.pipe(backlogProcessor(filter))
