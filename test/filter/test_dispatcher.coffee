@@ -4,8 +4,8 @@ Dispatcher = require '../../lib/filter/dispatcher'
 
 describe 'Dispatcher', ->
   it "streams data from the distillery list", (done) ->
-    redis = redis_builder(process.env.NODE_ENV, 'distillery')
-    dispatcher = new Dispatcher(redis_builder(process.env.NODE_ENV, 'distillery'))
+    redis = redis_builder('distillery')
+    dispatcher = new Dispatcher(redis_builder('distillery'))
     redis.flushdb (err, success) ->
 
       sourceEvents = ['an_event', 'another_event', 'a_third_event']

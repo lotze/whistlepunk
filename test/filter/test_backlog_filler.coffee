@@ -1,15 +1,16 @@
-{EventEmitter} = require 'events'
+Stream = require 'stream'
 redis_builder = require '../../lib/redis_builder'
 BacklogFiller = require '../../lib/filter/backlog_filler'
 
 describe 'Backlog Filler', ->
   beforeEach (done) ->
-    @redis = redis_builder(process.env.NODE_ENV, 'whistlepunk')
+    @redis = redis_builder('whistlepunk')
     @redis.flushdb done
 
   it "should chuck stuff into the backlog", (done) ->
-    dispatcher = new EventEmitter()
-    backlogFiller = new BacklogFiller(dispatcher, @redis)
+    dispatcher = new Stream()
+    backlogFiller = new BacklogFiller(@redis)
+    dispatcher.pipe(backlogFiller)
 
     targetData = [
       '{"some": "one", "timestamp": 100}'
