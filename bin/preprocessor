@@ -17,10 +17,11 @@ userValidators    = [javascriptEnabledValidator, loggedInValidator, userAgentVal
 dispatcher        = new Dispatcher(redis_builder('distillery'))
 backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
 filter            = new Filter(redis_builder('whistlepunk'), filterBackwardExpireDelay, filterForwardExpireDelay, userValidators)
-backlogProcessor  = new BacklogProcessor(redis_builder('filtered'), backlogProcessDelay, filter) # pull from some config somewhere
-
-whistlePunkStream = new RedisListWriter(redis_builder('whistlepunk')) #turns into good_stream & bad_stream
+backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), backlogProcessDelay, filter) # pull from some config somewhere
 
 dispatcher.pipe(backlogFiller)
 dispatcher.pipe(filter)
-dispatcher.pipe(backlogProcessor)
+backlogProcessorStream = dispatcher.pipe(backlogProcessor)
+backlogProcessorStream.pipe(new Logwrite('good.log', true))
+backlogProcessorStream.pipe(new RedisWriter(redis_builder('filtered')))
+backlogProcessorStream.pipe(new Logwrite('bad.log', false))

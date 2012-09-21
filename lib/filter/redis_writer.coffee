@@ -1,7 +1,7 @@
 _ = require 'underscore'
 Stream = require 'stream'
 
-class LogWriter extends Stream
+class RedisWriter extends Stream
 
   constructor: (@redis, @destination) ->
     super()
@@ -13,7 +13,7 @@ class LogWriter extends Stream
     @pendingWrites++
     event = JSON.parse eventJson
 
-    @redis.rpush @key, eventJson, =>
+    @redis.lpush @key, eventJson, =>
       @emit 'doneProcessing'
 
     if @pendingWrites >= 1000
@@ -38,4 +38,4 @@ class LogWriter extends Stream
     else
       @destroy()
 
-module.exports = LogWriter
+module.exports = RedisWriter
