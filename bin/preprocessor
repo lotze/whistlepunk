@@ -6,10 +6,18 @@ BacklogProcessor = require '../lib/backlog_processor'
 Filter = require '../lib/filter'
 FilterStream = require '../lib/filter_stream'
 
+
+backlogProcessDelay = 1000 * 60 * 60
+filterBackwardExpireDelay = 1000 * 60 * 60 * 24
+filterForwardExpireDelay = 1000 * 60 * 60 + 1000 * 60 * 5 # extra 5 minute delay from backlogProcessDelay
+                                                            # to ensure that users processed in "real time" aren't
+                                                            # mistakenly counted as invalid
+
+userValidators    = [javascriptEnabledValidator, loggedInValidator, userAgentValidator]
 dispatcher        = new Dispatcher(redis_builder('distillery'))
 backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
-filter            = new Filter(redis_builder('whistlepunk'), [javascriptEnabledValidator, loggedInValidator, userAgentValidator])
-backlogProcessor  = new BacklogProcessor(redis_builder('filtered'), 1000 * 60 * 60, filter) # pull from some config somewhere
+filter            = new Filter(redis_builder('whistlepunk'), filterBackwardExpireDelay, filterForwardExpireDelay, userValidators)
+backlogProcessor  = new BacklogProcessor(redis_builder('filtered'), backlogProcessDelay, filter) # pull from some config somewhere
 
 whistlePunkStream = new RedisListWriter(redis_builder('whistlepunk')) #turns into good_stream & bad_stream
 

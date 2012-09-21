@@ -1,6 +1,7 @@
 redis_builder = require '../../lib/redis_builder'
 Filter = require '../../lib/filter/filter'
 should = require 'should'
+async = require 'async'
 
 describe 'Filter', ->
   beforeEach (done) ->
@@ -9,7 +10,12 @@ describe 'Filter', ->
     @validator1 = { isValid: -> true }
     @validator2 = { isValid: -> true }
     @validators = [@validator1, @validator2]
-    @filter = new Filter(@redis, @validators, 1000 * 60 * 60 * 24)
+    @times =
+      oneHour: 1000 * 60 * 60
+      oneDay: 1000 * 60 * 60 * 24
+    @backwardDelta = @times.oneDay
+    @forwardDelta = @times.oneHour
+    @filter = new Filter(@redis, @validators, @backwardDelta, @forwardDelta)
     @event = {"name": "event", "timestamp": 1348186752000, "userId": "123"}
     @oldEventRecord = {"name": "event", "timestamp": 1, "userId": "456"}
 
@@ -27,6 +33,29 @@ describe 'Filter', ->
               reply.should.eql(@event.timestamp.toString())
               done()
           @filter.write JSON.stringify(@event)
+
+        context "and the event is a loginGuidChange event", ->
+          it "stores the user's old and new GUIDs in the datastore", (done) ->
+            @event.eventName = 'loginGuidChange'
+            @event.oldGuid = 'oldGuid'
+            @event.newGuid = 'newGuid'
+
+            matchesScore = (obj, callback) =>
+              @redis.zscore @filter.key, obj.id, (err, reply) =>
+                return callback(false) if err?
+                return callback(true) if reply == obj.score.toString()
+                callback(false)
+
+            @filter.on 'doneProcessing', =>
+              records = [
+                {id: @event.userId, score: @event.timestamp}
+                {id: @event.oldGuid, score: @event.timestamp}
+                {id: @event.newGuid, score: @event.timestamp}
+              ]
+              async.every records, matchesScore, (result) =>
+                result.should.be.true
+                done()
+            @filter.write JSON.stringify(@event)
 
       context "when the user is already in the store with a lower score", ->
         beforeEach (done) ->
@@ -52,9 +81,9 @@ describe 'Filter', ->
               done()
           @filter.write JSON.stringify(@event)
 
-    context "when one or more of the validators fail to prove the user is valid", ->
+    context "when none of the validators prove the user is valid", ->
       beforeEach ->
-        @validators[0].isValid = -> true
+        @validators[0].isValid = -> false
         @validators[1].isValid = -> false
 
       it "does not store the user in the valid users datastore", (done) ->
@@ -69,13 +98,38 @@ describe 'Filter', ->
       beforeEach (done) ->
         @redis.zadd @filter.key, @oldEventRecord.timestamp, @oldEventRecord.userId, done
 
-      it "removes users older then 24 hours from the datastore", ->
+      it "removes users older than @delta from the datastore", ->
         @filter.on 'doneProcessing', =>
           @redis.zscore @filter.key, @oldEventRecord.userId, (err, reply) =>
             should.not.exist reply
         @filter.write JSON.stringify(@event)
 
   describe "#isValid", ->
-    it "returns true if the user is found in the datastore for 24-hours around the event timestamp", ->
+    context "when the user is in the datastore with a timestamp after the @backwardDelta and before the @forwardDelta", ->
+      beforeEach (done) ->
+        @redis.zadd @filter.key, @event.timestamp - @times.oneDay + @times.oneHour, @event.userId, done
 
-    it "returns false if not that stuff", ->
+      it "returns true", ->
+        @filter.isValid JSON.stringify(@event), (valid) ->
+          valid.should.be.true
+
+    context "when the user is in the datastore with a timestamp outside the @backwardDelta before the event", ->
+      beforeEach (done) ->
+        @redis.zadd @filter.key, @event.timestamp - @times.oneDay - @times.oneHour, @event.userId, done
+
+      it "returns false", ->
+        @filter.isValid JSON.stringify(@event), (valid) ->
+          valid.should.be.false
+
+    context "when the user is in the datastore with a timestamp outside the @forwardDelta after the event", ->
+      beforeEach (done) ->
+        @redis.zadd @filter.key, @event.timestamp + @times.oneHour + @times.oneHour, @event.userId, done
+
+      it "returns false", ->
+        @filter.isValid JSON.stringify(@event), (valid) ->
+          valid.should.be.false
+
+    context "when the user is in not in the datastore", ->
+      it "returns false", ->
+        @filter.isValid JSON.stringify(@event), (valid) ->
+          valid.should.be.false

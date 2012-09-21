@@ -1,8 +1,9 @@
 _ = require 'underscore'
 Stream = require 'stream'
+async = require 'async'
 
 class Filter extends Stream
-  constructor: (@redis, @validators, @delta) ->
+  constructor: (@redis, @validators, @backwardDelta, @forwardDelta) ->
     super()
     @pendingWrites = 0
     @on 'doneProcessing', => @pendingWrites--
@@ -14,15 +15,23 @@ class Filter extends Stream
 
     # Wipe user records older than @delta from Reddis
     # TODO: Optimize. Shouldn't run with each write call
-    @redis.zremrangebyscore @key, 0, event.timestamp - @delta
+    @redis.zremrangebyscore @key, 0, event.timestamp - @backwardDelta
 
-    if _.all(@validators, (validator) -> validator.isValid(event))
+    if _.any(@validators, (validator) -> validator.isValid(event))
       @redis.zscore @key, event.userId, (err, reply) =>
         console.log err if err?
         timestamp = parseInt reply, 10
         if !timestamp || timestamp < event.timestamp
-          @redis.zadd @key, event.timestamp, event.userId, =>
-            @emit 'doneProcessing'
+          if event.eventName == 'loginGuidChange'
+            async.parallel [
+              @redis.zadd.bind(@redis, @key, event.timestamp, event.userId)
+              @redis.zadd.bind(@redis, @key, event.timestamp, event.oldGuid)
+              @redis.zadd.bind(@redis, @key, event.timestamp, event.newGuid)
+            ], =>
+              @emit 'doneProcessing'
+          else
+            @redis.zadd @key, event.timestamp, event.userId, =>
+              @emit 'doneProcessing'
         else
           @emit 'doneProcessing'
     else
@@ -49,5 +58,21 @@ class Filter extends Stream
         @destroy() if @pendingWrites <= 0
     else
       @destroy()
+
+  isValid: (eventJson, callback) =>
+    event = JSON.parse(eventJson)
+    @redis.zscore @key, event.userId, (err, reply) =>
+      console.log err if err?
+      if reply?
+        timestamp = parseInt reply, 10
+        now = event.timestamp
+        pastExpirePoint = now - @backwardDelta
+        futureExpirePoint = now + @forwardDelta
+        if pastExpirePoint <= timestamp <= futureExpirePoint
+          return callback true
+        else
+          callback false
+      else
+        callback false
 
 module.exports = Filter
