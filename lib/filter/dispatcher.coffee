@@ -19,7 +19,7 @@ class Dispatcher extends Stream
 
   getFromRedis: =>
     if @streaming
-      @redis.brpop "distillery:test:msg_queue", 0, (err, reply) =>
+      @redis.brpop "distillery:" + process.env.NODE_ENV + ":msg_queue", 0, (err, reply) =>
         if err?
           @emit('error', err)
         else

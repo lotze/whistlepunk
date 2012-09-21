@@ -27,7 +27,10 @@ class BacklogProcessor extends Stream
 
   destroySoon: =>
     @writable = false
-    @on 'doneProcessing', @destroy
+    if @processing
+      @on 'doneProcessing', @destroy
+    else
+      @destroy()
 
   pause: =>
     return if @paused

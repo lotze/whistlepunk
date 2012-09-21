@@ -33,8 +33,11 @@ class BacklogFiller extends Stream
     return unless @writable
     @writable = false
     # After the last pending write goes out, disconnect from Redis
-    @on 'added', =>
-      @destroy() if @pendingWrites <= 0
+    if @pendingWrites > 0
+      @on 'added', =>
+        @destroy() if @pendingWrites <= 0
+    else
+      @destroy()
 
   destroy: =>
     @writable = false
