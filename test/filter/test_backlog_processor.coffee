@@ -70,6 +70,12 @@ describe 'Backlog Processor', ->
         return done(err) if err?
 
         @processor.on 'doneProcessing', ->
+
+          # I have gotten some failures on this test that feel
+          # are race-condition-y, but I have not been able to
+          # isolate the issue. Since Redis is single-threaded
+          # and we're using async to ensure we're done adding events
+          # before the assertions are made, I'm not sure what's up. [BT]
           spy.calledThrice.should.be.true
           spy.getCall(0).calledWith(sourceEvents[3]).should.be.true
           spy.getCall(1).calledWith(sourceEvents[2]).should.be.true
