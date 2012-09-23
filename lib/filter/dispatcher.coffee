@@ -1,42 +1,61 @@
 Stream = require 'stream'
 
-# Dispatcher is a readable stream that emits data events
+# Dispatcher is a readable stream that emits `data` events
 # corresponding with entries on the Distillery message queue.
-# The Redis client passed in to the construtor should not be
-# shared, as it executes a BRPOP, blocking the client.
+#
+# Unlike file streams, Dispatcher will not emit an `end` event
+# on its own. Instead, it will continue to try to stream until
+# `destroy()` is called on it.
 #
 # Events:
 #
 #   data
 #     The `data` event emits JSON-stringified version of an event.
+#
+# Methods:
+#
+#   destroy()
+#     Destroys the stream, disconnecting from redis and sending the
+#     appropriate `end` and `close` events.
 class Dispatcher extends Stream
-
   constructor: (@redis) ->
     super()
+    @key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
     @readable = true
-    @streaming = false
+    @paused = true
     @resume()
 
   resume: =>
-    return if @streaming
-    @streaming = true
+    return unless @paused
+    @paused = false
     @getFromRedis()
 
   pause: =>
-    return unless @streaming
-    @streaming = false
+    @paused = true
 
   getFromRedis: =>
-    if @streaming
-      # Note that, even though BRPOP is a blocking Redis command, it doesn't actually
-      # block the Node.js event loop; instead, the callback to the BRPOP call simply
-      # isn't executed until the Redis command returns. [BT]
-      @redis.brpop "distillery:" + process.env.NODE_ENV + ":msg_queue", 0, (err, reply) =>
+    if !@paused && @readable
+      # Although a BRPOP could be used here to simplify logic (and it works
+      # fine in Node.js without blocking the event loop), it makes it
+      # impossible to cleanly disconnect in `destroy`. [BT]
+      @redis.rpop @key, (err, reply) =>
         if err?
           @emit('error', err)
+        else if reply?
+          console.log '      emitting', reply
+          @emit('data', reply)
+          @getFromRedis()
         else
-          [list, data] = reply
-          @emit('data', data)
-        @getFromRedis()
+          # If no data was found, schedule another check on the next
+          # tick of the Node event loop. [BT]
+          process.nextTick @getFromRedis
+
+  destroy: =>
+    return unless @readable && @redis?
+    @readable = false
+    @emit 'end'
+    @redis.quit =>
+      @emit 'close'
+      @redis = null
 
 module.exports = Dispatcher
