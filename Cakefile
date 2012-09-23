@@ -9,23 +9,32 @@ run = (cmd, args) ->
   proc.stdout.pipe(process.stdout, end: false)
   proc.stderr.pipe(process.stderr, end: false)
 
-testFiles = ->
-  files = findit.sync 'test'
-  (file for file in files when file.match /^test_.*\.(js|coffee)$/)
+testFiles = (dir) ->
+  files = if dir? then findit.sync dir else findit.sync 'test'
+  (file for file in files when file.match /test_.*\.(js|coffee)$/)
 
 option '-f', '--file [FILE]', 'set a single file for `cake spec` to run on'
+option '-d', '--dir [DIR]', 'set a directory of files for `cake spec` to run on'
+option '-r', '--reporter [REPORTER]', 'set a reporter for Mocha specs'
 
 task 'spec', (options) ->
   process.env.NODE_ENV ?= 'test'
   process.env.TZ = 'US/Pacific'
   cmd = './node_modules/.bin/mocha'
-  filesToTest = options.file or testFiles()
-  args = spec_opts.concat filesToTest
+  filesToTest = options.file or testFiles(options.dir)
+  args = spec_opts
+  if options.reporter
+    index = args.indexOf '--reporter'
+    if index == -1
+      args = args.concat ['--reporter', options.reporter]
+    else
+      args.splice index, 0, options.reporter
+  args = args.concat filesToTest
   run cmd, args
 
 task 'spec:watch', ->
   process.env.NODE_ENV ?= 'test'
   process.env.TZ = 'US/Pacific'
   cmd = './node_modules/.bin/mocha'
-  args = watch_spec_opts.concat testFiles()
+  args = watch_spec_opts.concat testFiles(options.dir)
   run cmd, args
