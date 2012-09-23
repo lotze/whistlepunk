@@ -1,4 +1,4 @@
-ReconnectingRedis = require("./reconnecting_redis")
+redis = require 'redis'
 config = require("../config")
 
 module.exports = (env, server, cb) ->
@@ -17,8 +17,13 @@ module.exports = (env, server, cb) ->
     when 'distillery' then config.unfiltered_redis
     else config.redis
 
-  client = new ReconnectingRedis(redis_config.host, redis_config.port, redis_config.db_num)
-  if cb?
-    client.connect cb
-  else
-    client.connect()
+  client = redis.createClient redis_config.port, redis_config.host
+  # Handle Redis errors here so that the client will automatically reconnect [BT]
+  client.on 'error', (err) ->
+    console.error "[ERR] Error in Redis client:"
+    console.error err.stack
+  # client.select will cause the client to automatically re-select
+  # the same DB in the case of a reconnect [BT]
+  client.select redis_config.db_num if redis_config.db_num?
+  cb(client) if cb?
+  client
