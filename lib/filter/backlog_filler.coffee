@@ -11,7 +11,7 @@ class BacklogFiller extends Stream
     @queue = []
 
   write: (event) =>
-    @emit 'error', new Error('stream is not writable') unless @writable
+    return @emit 'error', new Error('stream is not writable') unless @writable
     @queue.push event
     @flush()
     false
@@ -26,7 +26,8 @@ class BacklogFiller extends Stream
     event = @queue.shift()
     json = JSON.parse(event)
     timestamp = json.timestamp
-    @redis.zadd @key, timestamp, event, =>
+    @redis.zadd @key, timestamp, event, (err) =>
+      @emit 'error', err if err?
       @emit 'added', event
       @busy = false
       @flush()
@@ -34,21 +35,23 @@ class BacklogFiller extends Stream
   end: (event) =>
     if event?
       @write(event)
-    @destroy()
+    @destroySoon()
 
   destroySoon: =>
     return unless @writable
     @writable = false
     # After the last pending write goes out, disconnect from Redis
-    if @pendingWrites > 0
+    if @queue.length > 0
       @on 'added', =>
-        @destroy() if @pendingWrites <= 0
+        @destroy() if @queue.length == 0
     else
       @destroy()
 
   destroy: =>
+    return unless @redis?
     @writable = false
     @redis.quit()
+    @redis = null
     @emit 'close'
 
 module.exports = BacklogFiller
