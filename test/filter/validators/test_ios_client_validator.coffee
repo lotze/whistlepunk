@@ -13,7 +13,7 @@ describe 'IosClientValidator', ->
         @event = {eventName: 'request', client: 'iPhone app'}
         IosClientValidator.validates(JSON.stringify @event).should.be.true
 
-    context "when the event does not indicate that the user has javascript enabled", ->
+    context "when the event indicates the user is using a non-iOS client", ->
       it "returns false", ->
         @event = {eventName: 'request', client: 'website'}
         IosClientValidator.validates(JSON.stringify @event).should.be.false
