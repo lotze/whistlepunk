@@ -8,21 +8,28 @@ class BacklogFiller extends Stream
     super()
     @writable = true
     @key = 'event:' + process.env.NODE_ENV + ':backlog'
-    @pendingWrites = 0
+    @queue = []
 
   write: (event) =>
-    @pendingWrites++
+    @emit 'error', new Error('stream is not writable') unless @writable
+    @queue.push event
+    @flush()
+    false
+
+  flush: =>
+    return if @busy
+    if @queue.length == 0
+      @emit 'drain'
+      return
+
+    @busy = true
+    event = @queue.shift()
     json = JSON.parse(event)
     timestamp = json.timestamp
     @redis.zadd @key, timestamp, event, =>
-      @pendingWrites--
       @emit 'added', event
-
-    # Backpressure handling--slow down incoming events if we're getting backed up
-    if @pendingWrites >= 1000
-      return false
-    if @pendingWrites <= 0
-      @emit 'drain'
+      @busy = false
+      @flush()
 
   end: (event) =>
     if event?

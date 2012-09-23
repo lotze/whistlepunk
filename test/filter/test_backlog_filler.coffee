@@ -32,3 +32,12 @@ describe 'Backlog Filler', ->
 
     for event in targetData
       dispatcher.emit 'data', event
+
+  describe "#write", ->
+    it "should emit an error if it is not writable", (done) ->
+      backlogFiller = new BacklogFiller(@redis)
+      backlogFiller.on 'close', ->
+        backlogFiller.on 'error', (err) ->
+          done()
+        backlogFiller.write('{"test": "ing"}')
+      backlogFiller.end()
