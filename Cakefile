@@ -32,7 +32,7 @@ task 'spec', (options) ->
   args = args.concat filesToTest
   run cmd, args
 
-task 'spec:watch', ->
+task 'spec:watch', (options) ->
   process.env.NODE_ENV ?= 'test'
   process.env.TZ = 'US/Pacific'
   cmd = './node_modules/.bin/mocha'
