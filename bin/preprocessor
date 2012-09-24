@@ -18,7 +18,7 @@ JavaScriptEnabledValidator = require '../lib/filter/validators/java_script_enabl
 LoginValidator = require '../lib/filter/validators/login_validator'
 IosClientValidator = require '../lib/filter/validators/ios_client_validator'
 
-userValidators    = [JavaScriptEnabledValidator, LoginValidator, new IosClientValidator]
+userValidators    = [JavaScriptEnabledValidator, LoginValidator, IosClientValidator]
 
 dispatcher        = new Dispatcher(redis_builder('distillery'))
 backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
