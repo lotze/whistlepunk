@@ -7,8 +7,8 @@ describe 'Filter', ->
   beforeEach (done) ->
     @redis = redis_builder('whistlepunk')
     @redis.flushdb done
-    @validator1 = { isValid: -> true }
-    @validator2 = { isValid: -> true }
+    @validator1 = { validates: -> true }
+    @validator2 = { validates: -> true }
     @validators = [@validator1, @validator2]
     @times =
       oneHour: 1000 * 60 * 60
@@ -22,8 +22,8 @@ describe 'Filter', ->
   describe "#write", ->
     context "when all the validators prove the user is valid", ->
       beforeEach ->
-        @validators[0].isValid = -> true
-        @validators[1].isValid = -> true
+        @validators[0].validates = -> true
+        @validators[1].validates = -> true
 
       context "when the user isn't already in the store", ->
         it "stores the user in the valid users datastore", (done) ->
@@ -83,8 +83,8 @@ describe 'Filter', ->
 
     context "when none of the validators prove the user is valid", ->
       beforeEach ->
-        @validators[0].isValid = -> false
-        @validators[1].isValid = -> false
+        @validators[0].validates = -> false
+        @validators[1].validates = -> false
 
       it "does not store the user in the valid users datastore", (done) ->
         @filter.on 'doneProcessing', =>

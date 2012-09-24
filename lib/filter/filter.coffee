@@ -5,6 +5,7 @@ async = require 'async'
 class Filter extends Stream
   constructor: (@redis, @validators, @backwardDelta, @forwardDelta) ->
     super()
+    @writable = true
     @pendingWrites = 0
     @on 'doneProcessing', => @pendingWrites--
     @key = "event:" + process.env.NODE_ENV + ":valid_users"
@@ -17,7 +18,7 @@ class Filter extends Stream
     # TODO: Optimize. Shouldn't run with each write call
     @redis.zremrangebyscore @key, 0, event.timestamp - @backwardDelta
 
-    if _.any(@validators, (validator) -> validator.isValid(event))
+    if _.any(@validators, (validator) -> validator.validates(eventJson))
       @redis.zscore @key, event.userId, (err, reply) =>
         console.log err if err?
         timestamp = parseInt reply, 10
@@ -64,15 +65,20 @@ class Filter extends Stream
     @redis.zscore @key, event.userId, (err, reply) =>
       console.log err if err?
       if reply?
-        timestamp = parseInt reply, 10
+        userScore = parseInt reply, 10
         now = event.timestamp
         pastExpirePoint = now - @backwardDelta
         futureExpirePoint = now + @forwardDelta
-        if pastExpirePoint <= timestamp <= futureExpirePoint
+        console.log "Filter.isValid: " + @to_s(pastExpirePoint) + " : " + @to_s(userScore) + " : " + @to_s(futureExpirePoint) + " : " + @backwardDelta + " : " + @forwardDelta
+        if pastExpirePoint <= userScore <= futureExpirePoint
           return callback true
         else
           callback false
       else
         callback false
+
+  to_s: (timestamp) ->
+    date = new Date(timestamp)
+    date.toString()
 
 module.exports = Filter

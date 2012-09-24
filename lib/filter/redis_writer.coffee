@@ -3,15 +3,23 @@ Stream = require 'stream'
 
 class RedisWriter extends Stream
 
-  constructor: (@redis, @destination) ->
+  constructor: (@redis) ->
     super()
+    @writable = true
     @pendingWrites = 0
     @on 'doneProcessing', => @pendingWrites--
-    @key = "event:" + process.env.NODE_ENV + ":" + @destination
 
   write: (eventJson) =>
+    console.log eventJson
     @pendingWrites++
     event = JSON.parse eventJson
+
+    if event.isValidUser
+      destination = "valid_users"
+    else
+      destination = "invalid_users"
+
+    @key = "event:" + process.env.NODE_ENV + ":" + destination
 
     @redis.lpush @key, eventJson, =>
       @emit 'doneProcessing'

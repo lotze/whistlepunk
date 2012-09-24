@@ -42,7 +42,6 @@ class Dispatcher extends Stream
         if err?
           @emit('error', err)
         else if reply?
-          console.log '      emitting', reply
           @emit('data', reply)
           @getFromRedis()
         else

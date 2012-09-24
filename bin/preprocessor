@@ -1,11 +1,12 @@
 #!/usr/bin/env ../node_modules/.bin/coffee
 
-Dispatcher = require '../lib/dispatcher'
-BacklogProcessor = require '../lib/backlog_filler'
-BacklogProcessor = require '../lib/backlog_processor'
-Filter = require '../lib/filter'
-FilterStream = require '../lib/filter_stream'
+redis_builder = require '../lib/redis_builder'
 
+Dispatcher = require '../lib/filter/dispatcher'
+BacklogFiller = require '../lib/filter/backlog_filler'
+BacklogProcessor = require '../lib/filter/backlog_processor'
+Filter = require '../lib/filter/filter'
+RedisWriter = require '../lib/filter/redis_writer'
 
 backlogProcessDelay = 1000 * 60 * 60
 filterBackwardExpireDelay = 1000 * 60 * 60 * 24
@@ -13,15 +14,18 @@ filterForwardExpireDelay = 1000 * 60 * 60 + 1000 * 60 * 5 # extra 5 minute delay
                                                             # to ensure that users processed in "real time" aren't
                                                             # mistakenly counted as invalid
 
-userValidators    = [javascriptEnabledValidator, loggedInValidator, userAgentValidator]
+JavaScriptEnabledValidator = require '../lib/filter/validators/java_script_enabled_validator'
+LoginValidator = require '../lib/filter/validators/login_validator'
+IosClientValidator = require '../lib/filter/validators/ios_client_validator'
+
+userValidators    = [JavaScriptEnabledValidator, LoginValidator, new IosClientValidator]
+
 dispatcher        = new Dispatcher(redis_builder('distillery'))
 backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
-filter            = new Filter(redis_builder('whistlepunk'), filterBackwardExpireDelay, filterForwardExpireDelay, userValidators)
+filter            = new Filter(redis_builder('whistlepunk'), userValidators, filterBackwardExpireDelay, filterForwardExpireDelay)
 backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), backlogProcessDelay, filter) # pull from some config somewhere
 
 dispatcher.pipe(backlogFiller)
 dispatcher.pipe(filter)
 backlogProcessorStream = dispatcher.pipe(backlogProcessor)
-backlogProcessorStream.pipe(new Logwrite('good.log', true))
 backlogProcessorStream.pipe(new RedisWriter(redis_builder('filtered')))
-backlogProcessorStream.pipe(new Logwrite('bad.log', false))

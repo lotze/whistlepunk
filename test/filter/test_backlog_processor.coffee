@@ -84,24 +84,30 @@ describe 'Backlog Processor', ->
         @processor.processEvents now
 
   describe "#processEvent", ->
-    it "emits a data event with 'valid' set to true if it is valid according to the filter", (done) ->
+    it "emits a data event with a 'isValidUser' property set to true if it is valid according to the filter", (done) ->
       @filter.isValid = (event, cb) -> cb(true)
 
-      event = '{"time_desc": "now", "timestamp": 8600}'
-      @processor.on 'data', (valid, event) =>
-        valid.should.be.true
-        event.should.eql event
+      testEventJson = '{"time_desc": "now", "timestamp": 8600}'
+      testEvent = JSON.parse testEventJson
+
+      @processor.on 'data', (eventJson) =>
+        event = JSON.parse eventJson
+        event.isValidUser.should.be.true
+        event.timestamp.should.eql testEvent.timestamp
         done()
 
-      @processor.processEvent event
+      @processor.processEvent testEventJson
 
-    it "emits a data event with 'valid' set to true if it is valid according to the filter", (done) ->
+    it "emits a data event with a 'isValidUser' property set to true if it is valid according to the filter", (done) ->
       @filter.isValid = (event, cb) -> cb(false)
 
-      event = '{"time_desc": "now", "timestamp": 8600}'
-      @processor.on 'data', (valid, event) =>
-        valid.should.be.false
-        event.should.eql event
+      testEventJson = '{"time_desc": "now", "timestamp": 8600}'
+      testEvent = JSON.parse testEventJson
+
+      @processor.on 'data', (eventJson) =>
+        event = JSON.parse eventJson
+        event.isValidUser.should.be.false
+        event.timestamp.should.eql testEvent.timestamp
         done()
 
-      @processor.processEvent event
+      @processor.processEvent testEventJson

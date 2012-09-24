@@ -47,10 +47,15 @@ class BacklogProcessor extends Stream
         async.forEach reply, @processEvent, (err) =>
           @processing = false
           @emit 'doneProcessing'
+      else
+        console.log "Error: " + err
 
-  processEvent: (event, callback) =>
-    @filter.isValid event, (valid) =>
-      @emit 'data', valid, event
+  processEvent: (eventJson, callback) =>
+    @filter.isValid eventJson, (valid) =>
+      event = JSON.parse eventJson
+      event.isValidUser = valid
+      eventJson = JSON.stringify event
+      @emit 'data', eventJson
       callback() if callback?
 
 module.exports = BacklogProcessor
