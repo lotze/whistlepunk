@@ -5,7 +5,7 @@ should = require 'should'
 
 describe 'RedisWriter', ->
   beforeEach (done) ->
-    @redis = redis_builder('filtered')
+    @redis = redis_builder('whistlepunk')
     @redis.flushdb done
     @redisWriter = new RedisWriter(@redis, "example_destination")
     @event = {"name": "event", "timestamp": 1348186752000, "userId": "123"}

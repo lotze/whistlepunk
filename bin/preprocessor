@@ -1,5 +1,6 @@
 #!/usr/bin/env ../node_modules/.bin/coffee
 
+config = require '../config'
 redis_builder = require '../lib/redis_builder'
 
 Dispatcher = require '../lib/filter/dispatcher'
@@ -7,12 +8,8 @@ BacklogFiller = require '../lib/filter/backlog_filler'
 BacklogProcessor = require '../lib/filter/backlog_processor'
 Filter = require '../lib/filter/filter'
 RedisWriter = require '../lib/filter/redis_writer'
-
-backlogProcessDelay = 1000 * 60 * 60
-filterBackwardExpireDelay = 1000 * 60 * 60 * 24
-filterForwardExpireDelay = 1000 * 60 * 60 + 1000 * 60 * 5 # extra 5 minute delay from backlogProcessDelay
-                                                            # to ensure that users processed in "real time" aren't
-                                                            # mistakenly counted as invalid
+LogWriter = require '../lib/filter/log_writer'
+Gate = require '../lib/filter/gate'
 
 JavaScriptEnabledValidator = require '../lib/filter/validators/java_script_enabled_validator'
 LoginValidator = require '../lib/filter/validators/login_validator'
@@ -22,10 +19,20 @@ userValidators    = [JavaScriptEnabledValidator, LoginValidator, IosClientValida
 
 dispatcher        = new Dispatcher(redis_builder('distillery'))
 backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
-filter            = new Filter(redis_builder('whistlepunk'), userValidators, filterBackwardExpireDelay, filterForwardExpireDelay)
-backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), backlogProcessDelay, filter) # pull from some config somewhere
+filter            = new Filter(redis_builder('whistlepunk'), userValidators, config.expirations.filterBackwardExpireDelay, config.expirations.filterForwardExpireDelay)
+backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), config.expirations.backlogProcessDelay, filter) # pull from some config somewhere
 
 dispatcher.pipe(backlogFiller)
 dispatcher.pipe(filter)
-backlogProcessorStream = dispatcher.pipe(backlogProcessor)
-backlogProcessorStream.pipe(new RedisWriter(redis_builder('filtered')))
+dispatcher.pipe(backlogProcessor)
+
+validUserGate = new Gate((event) -> JSON.parse(event).isValidUser)
+backlogProcessor.pipe(validUserGate)
+
+invalidUserGate = new Gate((event) -> !JSON.parse(event).isValidUser)
+backlogProcessor.pipe(invalidUserGate)
+
+validUserGate.pipe(new RedisWriter(redis_builder('whistlepunk')))
+validUserGate.pipe(new LogWriter(config.logfile.valid_user_events))
+
+invalidUserGate.pipe(new LogWriter(config.logfile.invalid_user_events))
