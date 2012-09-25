@@ -6,13 +6,14 @@ describe 'Backlog Filler', ->
   beforeEach (done) ->
     @createRedis = ->
       redis_builder('whistlepunk')
+    @dispatcher = new Stream()
+    @backlogFiller = new BacklogFiller(@createRedis())
+    @dispatcher.pipe(@backlogFiller)
+
     @redis = @createRedis()
     @redis.flushdb done
 
   it "should chuck stuff into the backlog", (done) ->
-    dispatcher = new Stream()
-    backlogFiller = new BacklogFiller(@createRedis())
-    dispatcher.pipe(backlogFiller)
 
     targetData = [
       '{"some": "one", "timestamp": 100}'
@@ -20,8 +21,8 @@ describe 'Backlog Filler', ->
       '{"some": "two", "timestamp": 200}'
     ]
     eventsAdded = 0
-    backlogFiller.on 'close', =>
-      @redis.zrange backlogFiller.key, 0, 2, 'WITHSCORES', (err, reply) ->
+    @backlogFiller.on 'close', =>
+      @redis.zrange @backlogFiller.key, 0, 2, 'WITHSCORES', (err, reply) ->
         return done(err) if err?
         reply.length.should.eql(6) # two elements per event; one for event JSON, one for score [BT/BD]
         [reply1, score1, reply2, score2, reply3, score3] = reply
@@ -34,8 +35,23 @@ describe 'Backlog Filler', ->
         done()
 
     for event in targetData
-      dispatcher.emit 'data', event
-    dispatcher.emit 'end'
+      @dispatcher.emit 'data', event
+    @dispatcher.emit 'end'
+
+  it "should withstand and ignore invalid json, continue entering valid json into store", (done) ->
+
+    validJson = '{"foo": "bar", "timestamp": 100}'
+
+    @backlogFiller.on 'close', =>
+      @redis.zrange @backlogFiller.key, 0, 2, (err, reply) ->
+        return done(err) if err?
+        event = JSON.parse reply
+        event.foo.should.eql 'bar'
+        done()
+
+    @dispatcher.emit 'data', '{{{some invalid JSON'
+    @dispatcher.emit 'data', validJson
+    @dispatcher.emit 'end'
 
   describe "#write", ->
     it "should emit an error if it is not writable", (done) ->

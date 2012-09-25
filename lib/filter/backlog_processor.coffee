@@ -12,7 +12,15 @@ class BacklogProcessor extends Stream
   write: (eventJson) =>
     return true if @processing || @paused
     @processing = true
-    event = JSON.parse(eventJson)
+
+    # This is a point of entry for external data, hence a try/catch
+    # to prevent exceptions that kill the node process on invalid JSON
+    try
+      event = JSON.parse eventJson
+    catch error
+      console.log error
+      return true
+
     @processEvents(event.timestamp)
     return true
 

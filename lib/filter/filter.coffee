@@ -12,7 +12,14 @@ class Filter extends Stream
 
   write: (eventJson) =>
     @pendingWrites++
-    event = JSON.parse(eventJson)
+
+    # This is a point of entry for external data, hence a try/catch
+    # to prevent exceptions that kill the node process on invalid JSON
+    try
+      event = JSON.parse eventJson
+    catch error
+      console.log error
+      return true
 
     # Wipe user records older than @delta from Reddis
     # TODO: Optimize. Shouldn't run with each write call

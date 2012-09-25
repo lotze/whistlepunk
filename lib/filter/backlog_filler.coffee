@@ -23,10 +23,19 @@ class BacklogFiller extends Stream
       return
 
     @busy = true
-    event = @queue.shift()
-    json = JSON.parse(event)
-    timestamp = json.timestamp
-    @redis.zadd @key, timestamp, event, (err) =>
+    eventJson = @queue.shift()
+
+    # This is a point of entry for external data, hence a try/catch
+    # to prevent exceptions that kill the node process on invalid JSON
+    try
+      event = JSON.parse eventJson
+    catch error
+      @busy = false
+      @flush()
+      return
+    
+    timestamp = event.timestamp
+    @redis.zadd @key, timestamp, eventJson, (err) =>
       @emit 'error', err if err?
       @emit 'added', event
       @busy = false
