@@ -18,7 +18,16 @@ class Filter extends Stream
     # TODO: Optimize. Shouldn't run with each write call
     @redis.zremrangebyscore @key, 0, event.timestamp - @backwardDelta
 
-    if _.any(@validators, (validator) -> validator.validates(eventJson))
+    passesValidation = false
+    for validator in @validators
+      result = validator.validates eventJson
+      if result
+        passesValidation = true
+      if validator.required && !result
+        passesValidation = false
+        break
+
+    if passesValidation
       @redis.zscore @key, event.userId, (err, reply) =>
         console.log err if err?
         timestamp = parseInt reply, 10
@@ -69,7 +78,7 @@ class Filter extends Stream
         now = event.timestamp
         pastExpirePoint = now - @backwardDelta
         futureExpirePoint = now + @forwardDelta
-        console.log "Filter.isValid: " + @to_s(pastExpirePoint) + " : " + @to_s(userScore) + " : " + @to_s(futureExpirePoint) + " : " + @backwardDelta + " : " + @forwardDelta
+        console.log "Filter.isValid: " + event.userId + ": " + @to_s(pastExpirePoint) + " : " + @to_s(userScore) + " : " + @to_s(futureExpirePoint) + " : " + @backwardDelta + " : " + @forwardDelta
         if pastExpirePoint <= userScore <= futureExpirePoint
           return callback true
         else
