@@ -1,7 +1,7 @@
 IosClientValidator = require '../../../lib/filter/validators/ios_client_validator'
 
 describe 'IosClientValidator', ->
-  describe '#validates', ->
+  describe '.validates', ->
 
     context "when the event indicates the user is using the iPad app", ->
       it "returns true", ->

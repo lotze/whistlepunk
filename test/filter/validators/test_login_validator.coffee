@@ -1,7 +1,7 @@
 LoginValidator = require '../../../lib/filter/validators/login_validator'
 
 describe 'LoginValidator', ->
-  describe '#validates', ->
+  describe '.validates', ->
 
     context "when the event indicates the user logged in", ->
       it "returns true", ->

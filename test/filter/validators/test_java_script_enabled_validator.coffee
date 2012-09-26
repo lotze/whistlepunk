@@ -1,7 +1,7 @@
 JavaScriptEnabledValidator = require '../../../lib/filter/validators/java_script_enabled_validator'
 
 describe 'JavaScriptEnabledValidator', ->
-  describe '#validates', ->
+  describe '.validates', ->
 
     context "when the event indicates the user has JavaScript enabled", ->
       it "returns true", ->
