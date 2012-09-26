@@ -19,20 +19,9 @@ describe 'LogWriter', ->
       fs.writeFile @testFileDestination, '', (err) =>
 
         @logWriter.on 'doneProcessing', =>
-          fs.readFile @testFileDestination, (err, data) =>
+          fs.readFile @testFileDestination, 'utf8', (err, data) =>
             should.not.exist err
-
-            # Fascinating:
-            # console.log 'File reads: ' + data
-            # data.should.eql messageObj.message
-            #
-            # Fails because data is '<Buffer 48 65 6c 6c 6f 20 77 6f 72 6c 64 48 65 6c 6c 6f 20 77 6f 72 6c 64 48 65 6c 6c 6f 20 77 6f 72 6c 64 48 65 6c 6c 6f 20 77 6f 72 6c 64 48 65 6c 6c 6f 20 77 ...>'
-            # Yet logging it out appears normally
-
-            console.log 'reading file'
-
-            data.toString().should.eql JSON.stringify(@event) + '\n'
-
+            data.should.eql JSON.stringify(@event) + '\n'
             done()
 
         upstream = new Stream()

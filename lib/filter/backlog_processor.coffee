@@ -18,7 +18,7 @@ class BacklogProcessor extends Stream
     try
       event = JSON.parse eventJson
     catch error
-      console.log error
+      console.error "Problem parsing JSON in BacklogProcessor#write: #{error.stack}"
       return true
 
     @processEvents(event.timestamp)
@@ -51,12 +51,12 @@ class BacklogProcessor extends Stream
   processEvents: (timestamp) =>
     max = timestamp - @delta
     @redis.zrangebyscore @key, 0, max, (err, reply) =>
-      if reply?
-        async.forEach reply, @processEvent, (err) =>
+      if err?
+        console.error "Error with ZRANGEBYSCORE in BacklogProcessor#processEvents: #{err.stack}"
+      else if reply?
+        async.forEachSeries reply, @processEvent, (err) =>
           @processing = false
           @emit 'doneProcessing'
-      else
-        console.log "Error: " + err
 
   processEvent: (eventJson, callback) =>
     @filter.isValid eventJson, (valid) =>

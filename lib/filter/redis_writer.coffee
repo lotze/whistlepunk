@@ -10,7 +10,6 @@ class RedisWriter extends Stream
     @on 'doneProcessing', => @pendingWrites--
 
   write: (eventJson) =>
-    console.log eventJson
     @pendingWrites++
     event = JSON.parse eventJson
 

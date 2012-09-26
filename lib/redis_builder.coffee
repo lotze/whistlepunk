@@ -18,10 +18,11 @@ module.exports = (env, server, cb) ->
     else config.redis
 
   client = redis.createClient redis_config.port, redis_config.host
+
   # Handle Redis errors here so that the client will automatically reconnect [BT]
   client.on 'error', (err) ->
-    console.error "[ERR] Error in Redis client:"
-    console.error err.stack
+    console.error "Error in Redis client: #{err.stack}"
+
   # client.select will cause the client to automatically re-select
   # the same DB in the case of a reconnect [BT]
   client.select redis_config.db_num if redis_config.db_num?

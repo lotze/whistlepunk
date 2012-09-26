@@ -10,7 +10,7 @@ class Gate extends Stream
     @emit 'data', event if @discriminator(event)
 
   end: (event) =>
-    @write event
+    @write event if event?
     @destroy()
 
   destroy: =>

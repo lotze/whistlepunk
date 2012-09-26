@@ -8,7 +8,7 @@ class LogWriter extends Stream
 
   write: (eventJson) =>
     fs.appendFile @filename, eventJson + '\n', (err) =>
-      console.log("Error appending to logs: " + err) if err
+      console.error("Error appending to logs: " + err.stack) if err
       @emit 'doneProcessing'
 
   end: (eventJson) =>

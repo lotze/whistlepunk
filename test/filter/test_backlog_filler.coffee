@@ -39,18 +39,15 @@ describe 'Backlog Filler', ->
     @dispatcher.emit 'end'
 
   it "should withstand and ignore invalid json, continue entering valid json into store", (done) ->
-
-    validJson = '{"foo": "bar", "timestamp": 100}'
-
     @backlogFiller.on 'close', =>
       @redis.zrange @backlogFiller.key, 0, 2, (err, reply) ->
-        return done(err) if err?
-        event = JSON.parse reply
+        reply.length.should.eql(1)
+        event = JSON.parse reply[0]
         event.foo.should.eql 'bar'
-        done()
+        done(err)
 
     @dispatcher.emit 'data', '{{{some invalid JSON'
-    @dispatcher.emit 'data', validJson
+    @dispatcher.emit 'data', JSON.stringify({ foo: "bar", timestamp: 100 })
     @dispatcher.emit 'end'
 
   describe "#write", ->

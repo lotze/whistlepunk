@@ -18,7 +18,7 @@ class Filter extends Stream
     try
       event = JSON.parse eventJson
     catch error
-      console.log error
+      console.error "Problem parsing JSON in Filter#write: #{error.stack}"
       return true
 
     # Wipe user records older than @delta from Reddis
@@ -36,7 +36,10 @@ class Filter extends Stream
 
     if passesValidation
       @redis.zscore @key, event.userId, (err, reply) =>
-        console.log err if err?
+        if err?
+          console.error "Error with ZSCORE in Filter#write: #{err.stack}"
+          return @emit 'doneProcessing' # should do more error handing here?
+
         timestamp = parseInt reply, 10
         if !timestamp || timestamp < event.timestamp
           if event.eventName == 'loginGuidChange'
@@ -79,13 +82,13 @@ class Filter extends Stream
   isValid: (eventJson, callback) =>
     event = JSON.parse(eventJson)
     @redis.zscore @key, event.userId, (err, reply) =>
-      console.log err if err?
+      if err?
+        console.error err.stack
       if reply?
         userScore = parseInt reply, 10
         now = event.timestamp
         pastExpirePoint = now - @backwardDelta
         futureExpirePoint = now + @forwardDelta
-        console.log "Filter.isValid: " + event.userId + ": " + @to_s(pastExpirePoint) + " : " + @to_s(userScore) + " : " + @to_s(futureExpirePoint) + " : " + @backwardDelta + " : " + @forwardDelta
         if pastExpirePoint <= userScore <= futureExpirePoint
           return callback true
         else

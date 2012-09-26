@@ -30,10 +30,11 @@ class BacklogFiller extends Stream
     try
       event = JSON.parse eventJson
     catch error
+      console.error "Problem parsing JSON in BacklogFiller#flush: #{error} in #{eventJson}"
       @busy = false
       @flush()
       return
-    
+
     timestamp = event.timestamp
     @redis.zadd @key, timestamp, eventJson, (err) =>
       @emit 'error', err if err?
