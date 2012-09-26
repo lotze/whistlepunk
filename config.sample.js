@@ -13,9 +13,6 @@ config.expirations = {};
 config.expirations.backlogProcessDelay = 1000 * 60 * 60;
 config.expirations.filterBackwardExpireDelay = 1000 * 60 * 60 * 24;
 
-// extra 5 minute delay from backlogProcessDelay to ensure that users processed in "real time" aren't mistakenly counted as invalid
-config.expirations.filterForwardExpireDelay = 1000 * 60 * 60 + 1000 * 60 * 5;
-
 config.backup = {};
 config.backup.dir = '/tmp';
 config.backup.redis_rdb_dir = '/usr/local/var/db/redis';

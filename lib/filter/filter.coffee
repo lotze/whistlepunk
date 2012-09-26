@@ -3,7 +3,7 @@ Stream = require 'stream'
 async = require 'async'
 
 class Filter extends Stream
-  constructor: (@redis, @validators, @backwardDelta, @forwardDelta) ->
+  constructor: (@redis, @validators, @backwardDelta) ->
     super()
     @writable = true
     @pendingWrites = 0

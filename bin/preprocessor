@@ -19,7 +19,7 @@ userValidators    = [JavaScriptEnabledValidator, LoginValidator, IosClientValida
 
 dispatcher        = new Dispatcher(redis_builder('distillery'))
 backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
-filter            = new Filter(redis_builder('whistlepunk'), userValidators, config.expirations.filterBackwardExpireDelay, config.expirations.filterForwardExpireDelay)
+filter            = new Filter(redis_builder('whistlepunk'), userValidators, config.expirations.filterBackwardExpireDelay)
 backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), config.expirations.backlogProcessDelay, filter) # pull from some config somewhere
 
 dispatcher.pipe(backlogFiller)

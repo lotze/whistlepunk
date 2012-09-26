@@ -14,8 +14,7 @@ describe 'Filter', ->
       oneHour: 1000 * 60 * 60
       oneDay: 1000 * 60 * 60 * 24
     @backwardDelta = @times.oneDay
-    @forwardDelta = @times.oneHour
-    @filter = new Filter(@redis, @validators, @backwardDelta, @forwardDelta)
+    @filter = new Filter(@redis, @validators, @backwardDelta)
     @event = {"name": "event", "timestamp": 1348186752000, "userId": "123"}
     @oldEventRecord = {"name": "event", "timestamp": 1, "userId": "456"}
 
