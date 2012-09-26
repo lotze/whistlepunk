@@ -13,15 +13,14 @@ testFiles = (dir) ->
   files = if dir? then findit.sync dir else findit.sync 'test'
   (file for file in files when file.match /test_.*\.(js|coffee)$/)
 
-option '-f', '--file [FILE]', 'set a single file for `cake spec` to run on'
-option '-d', '--dir [DIR]', 'set a directory of files for `cake spec` to run on'
+option '-f', '--file [FILE]', 'set a single file or directory for `cake spec` to run on'
 option '-r', '--reporter [REPORTER]', 'set a reporter for Mocha specs'
 
 task 'spec', (options) ->
   process.env.NODE_ENV ?= 'test'
   process.env.TZ = 'US/Pacific'
   cmd = './node_modules/.bin/mocha'
-  filesToTest = options.file or testFiles(options.dir)
+  filesToTest = testFiles(options.file)
   args = spec_opts
   if options.reporter
     index = args.indexOf '--reporter'
@@ -36,5 +35,5 @@ task 'spec:watch', (options) ->
   process.env.NODE_ENV ?= 'test'
   process.env.TZ = 'US/Pacific'
   cmd = './node_modules/.bin/mocha'
-  args = watch_spec_opts.concat testFiles(options.dir)
+  args = watch_spec_opts.concat testFiles(options.file)
   run cmd, args
