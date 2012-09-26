@@ -38,23 +38,32 @@ describe 'Backlog Filler', ->
       @dispatcher.emit 'data', event
     @dispatcher.emit 'end'
 
-  it "should withstand and ignore invalid json, continue entering valid json into store", (done) ->
-    @backlogFiller.on 'close', =>
-      @redis.zrange @backlogFiller.key, 0, 2, (err, reply) ->
-        reply.length.should.eql(1)
-        event = JSON.parse reply[0]
-        event.foo.should.eql 'bar'
-        done(err)
+  context "error handling", ->
+    # This beforeEach/afterEach pair suppresses console.error output from the error handling code [BT]
+    beforeEach ->
+      @oldWrite = process.stderr.write.bind(process.stderr)
+      process.stderr.write = ->
 
-    @dispatcher.emit 'data', '{{{some invalid JSON'
-    @dispatcher.emit 'data', JSON.stringify({ foo: "bar", timestamp: 100 })
-    @dispatcher.emit 'end'
+    afterEach ->
+      process.stderr.write = @oldWrite
 
-  describe "#write", ->
-    it "should emit an error if it is not writable", (done) ->
-      backlogFiller = new BacklogFiller(@createRedis())
-      backlogFiller.on 'close', ->
-        backlogFiller.on 'error', (err) ->
-          done()
-        backlogFiller.write('{"test": "ing"}')
-      backlogFiller.end()
+    it "should withstand and ignore invalid json, continue entering valid json into store", (done) ->
+      @backlogFiller.on 'close', =>
+        @redis.zrange @backlogFiller.key, 0, 2, (err, reply) ->
+          reply.length.should.eql(1)
+          event = JSON.parse reply[0]
+          event.foo.should.eql 'bar'
+          done(err)
+
+      @dispatcher.emit 'data', '{{{some invalid JSON'
+      @dispatcher.emit 'data', JSON.stringify({ foo: "bar", timestamp: 100 })
+      @dispatcher.emit 'end'
+
+    describe "#write", ->
+      it "should emit an error if it is not writable", (done) ->
+        backlogFiller = new BacklogFiller(@createRedis())
+        backlogFiller.on 'close', ->
+          backlogFiller.on 'error', (err) ->
+            done()
+          backlogFiller.write('{"test": "ing"}')
+        backlogFiller.end()
