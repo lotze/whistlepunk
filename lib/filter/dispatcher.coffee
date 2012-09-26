@@ -54,7 +54,7 @@ class Dispatcher extends Stream
     @readable = false
     @emit 'end'
     @redis.quit =>
-      @emit 'close'
       @redis = null
+      @emit 'close'
 
 module.exports = Dispatcher

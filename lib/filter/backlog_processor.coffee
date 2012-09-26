@@ -11,6 +11,7 @@ class BacklogProcessor extends Stream
 
   write: (eventJson) =>
     return true if @processing || @paused
+    @emit 'error', new Error("BacklogProcessor stream is not writable") unless @writable
     @processing = true
 
     # This is a point of entry for external data, hence a try/catch
@@ -30,8 +31,9 @@ class BacklogProcessor extends Stream
 
   destroy: =>
     @writable = false
-    @redis.quit()
-    @emit 'close'
+    @redis.quit =>
+      @redis = null
+      @emit 'close'
 
   destroySoon: =>
     @writable = false

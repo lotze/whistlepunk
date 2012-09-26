@@ -34,8 +34,9 @@ class RedisWriter extends Stream
 
   destroy: =>
     @writable = false
-    @redis.quit()
-    @emit 'close'
+    @redis.quit =>
+      @redis = null
+      @emit 'close'
 
   destroySoon: =>
     @writable = false

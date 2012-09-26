@@ -60,8 +60,8 @@ class BacklogFiller extends Stream
   destroy: =>
     return unless @redis?
     @writable = false
-    @redis.quit()
-    @redis = null
-    @emit 'close'
+    @redis.quit =>
+      @redis = null
+      @emit 'close'
 
 module.exports = BacklogFiller
