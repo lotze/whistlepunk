@@ -31,6 +31,8 @@ class BacklogProcessor extends Stream
 
   destroy: =>
     @writable = false
+    @readable = false
+    @emit 'end'
     @redis.quit =>
       @redis = null
       @emit 'close'

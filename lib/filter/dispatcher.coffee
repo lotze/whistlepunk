@@ -1,22 +1,5 @@
 Stream = require 'stream'
 
-# Dispatcher is a readable stream that emits `data` events
-# corresponding with entries on the Distillery message queue.
-#
-# Unlike file streams, Dispatcher will not emit an `end` event
-# on its own. Instead, it will continue to try to stream until
-# `destroy()` is called on it.
-#
-# Events:
-#
-#   data
-#     The `data` event emits JSON-stringified version of an event.
-#
-# Methods:
-#
-#   destroy()
-#     Destroys the stream, disconnecting from redis and sending the
-#     appropriate `end` and `close` events.
 class Dispatcher extends Stream
   constructor: (@redis) ->
     super()

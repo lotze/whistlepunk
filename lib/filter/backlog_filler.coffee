@@ -1,8 +1,5 @@
 Stream = require 'stream'
 
-# BacklogFiller is a writable stream that places incoming events into the
-# Redis backlog. It applies backpressure if the number of incoming events
-# build up faster than it can push them into Redis.
 class BacklogFiller extends Stream
   constructor: (@redis) ->
     super()
@@ -10,9 +7,9 @@ class BacklogFiller extends Stream
     @key = 'event:' + process.env.NODE_ENV + ':backlog'
     @queue = []
 
-  write: (event) =>
+  write: (json) =>
     return @emit 'error', new Error('stream is not writable') unless @writable
-    @queue.push event
+    @queue.push json
     @flush()
     false
 
@@ -38,13 +35,12 @@ class BacklogFiller extends Stream
     timestamp = event.timestamp
     @redis.zadd @key, timestamp, eventJson, (err) =>
       @emit 'error', err if err?
-      @emit 'added', event
+      @emit 'added', eventJson
       @busy = false
       @flush()
 
-  end: (event) =>
-    if event?
-      @write(event)
+  end: (json) =>
+    @write(json) if json?
     @destroySoon()
 
   destroySoon: =>
