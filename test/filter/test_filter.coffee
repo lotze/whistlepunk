@@ -105,29 +105,13 @@ describe 'Filter', ->
         @filter.write JSON.stringify(@event)
 
   describe "#isValid", ->
-    context "when the user is in the datastore with a timestamp after the @backwardDelta and before the @forwardDelta", ->
+    context "when the user is in the datastore", ->
       beforeEach (done) ->
         @redis.zadd @filter.key, @event.timestamp - @times.oneDay + @times.oneHour, @event.userId, done
 
       it "returns true", ->
         @filter.isValid JSON.stringify(@event), (valid) ->
           valid.should.be.true
-
-    context "when the user is in the datastore with a timestamp outside the @backwardDelta before the event", ->
-      beforeEach (done) ->
-        @redis.zadd @filter.key, @event.timestamp - @times.oneDay - @times.oneHour, @event.userId, done
-
-      it "returns false", ->
-        @filter.isValid JSON.stringify(@event), (valid) ->
-          valid.should.be.false
-
-    context "when the user is in the datastore with a timestamp outside the @forwardDelta after the event", ->
-      beforeEach (done) ->
-        @redis.zadd @filter.key, @event.timestamp + @times.oneHour + @times.oneHour, @event.userId, done
-
-      it "returns false", ->
-        @filter.isValid JSON.stringify(@event), (valid) ->
-          valid.should.be.false
 
     context "when the user is in not in the datastore", ->
       it "returns false", ->

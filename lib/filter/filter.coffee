@@ -85,15 +85,9 @@ class Filter extends Stream
     @redis.zscore @key, event.userId, (err, reply) =>
       if err?
         console.error err.stack
-      if reply?
-        userScore = parseInt reply, 10
-        now = event.timestamp
-        pastExpirePoint = now - @backwardDelta
-        futureExpirePoint = now + @forwardDelta
-        if pastExpirePoint <= userScore <= futureExpirePoint
-          return callback true
-        else
-          callback false
+        callback false
+      else if reply?
+        callback true
       else
         callback false
 
