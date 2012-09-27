@@ -30,6 +30,7 @@ class IOSWorker extends Worker
       normalizedSource = json.client
       if (json.client == ' app' && json.deviceType?)
         normalizedSource = json.deviceType + ' app'
+      normalizedSource = normalizedSource.toLowerCase();
   
       timestamp = json.timestamp
       userId = json.userId

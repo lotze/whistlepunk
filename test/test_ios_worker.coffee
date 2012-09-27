@@ -52,5 +52,5 @@ describe "an ios worker", ->
           console.log "ERROR: " + error
           done error
         assert.equal rows.length, 1
-        assert.equal rows[0].source, "iPad app"
+        assert.equal rows[0].source, "ipad app"
         done()
