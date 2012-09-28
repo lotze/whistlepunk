@@ -7,29 +7,31 @@ class RedisWriter extends Stream
     super()
     @writable = true
     @pendingWrites = 0
-    @on 'doneProcessing', => @pendingWrites--
+    @on 'doneProcessing', =>
+      @pendingWrites--
+      @emit 'drain' if @pendingWrites <= 0
 
   write: (eventJson) =>
     @pendingWrites++
     event = JSON.parse eventJson
 
     if event.isValidUser
-      destination = "valid_users"
+      destination = "valid_user_events"
     else
-      destination = "invalid_users"
+      destination = "invalid_user_events"
 
-    @key = "event:" + process.env.NODE_ENV + ":" + destination
+    key = "event:" + process.env.NODE_ENV + ":" + destination
 
-    @redis.lpush @key, eventJson, =>
+    @redis.lpush key, eventJson, =>
       @emit 'doneProcessing'
 
     if @pendingWrites >= 1000
       return false
-    if @pendingWrites <= 0
-      @emit 'drain'
+    else
+      return true
 
   end: (eventJson) =>
-    @write eventJson
+    @write eventJson if eventJson?
     @destroySoon()
 
   destroy: =>
