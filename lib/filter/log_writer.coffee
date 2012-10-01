@@ -12,7 +12,7 @@ class LogWriter extends Stream
       @emit 'doneProcessing'
 
   end: (eventJson) =>
-    @write eventJson
+    @write eventJson if eventJson?
     @destroy()
 
   destroy: =>

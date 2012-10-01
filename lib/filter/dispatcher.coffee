@@ -38,6 +38,7 @@ class Dispatcher extends Stream
     @emit 'end'
     @redis.quit =>
       @redis = null
+      @emit 'end'
       @emit 'close'
 
 module.exports = Dispatcher
