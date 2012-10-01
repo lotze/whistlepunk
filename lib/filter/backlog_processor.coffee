@@ -10,9 +10,9 @@ class BacklogProcessor extends Stream
     @key = 'event:' + process.env.NODE_ENV + ':backlog'
 
   write: (eventJson) =>
-    return true if @processing || @paused
+    if @paused
+      return true
     @emit 'error', new Error("BacklogProcessor stream is not writable") unless @writable
-    @processing = true
 
     # This is a point of entry for external data, hence a try/catch
     # to prevent exceptions that kill the node process on invalid JSON
@@ -22,11 +22,16 @@ class BacklogProcessor extends Stream
       console.error "Problem parsing JSON in BacklogProcessor#write: #{error.stack}"
       return true
 
+    if @processing
+      if (@queuedTimestamp && event.timestamp > @queuedTimestamp) || !@queuedTimestamp?
+        @queuedTimestamp = event.timestamp
+      return true
+
     @processEvents(event.timestamp)
     return true
 
   end: (eventJson) =>
-    @write(eventJson)
+    @write eventJson if eventJson?
     @destroySoon()
 
   destroy: =>
@@ -53,14 +58,20 @@ class BacklogProcessor extends Stream
     @paused = false
 
   processEvents: (timestamp) =>
+    @processing = true
     max = timestamp - @delta
     @redis.zrangebyscore @key, 0, max, (err, reply) =>
       if err?
         console.error "Error with ZRANGEBYSCORE in BacklogProcessor#processEvents: #{err.stack}"
       else if reply?
         async.forEachSeries reply, @processEvent, (err) =>
-          @processing = false
-          @emit 'doneProcessing'
+          if @queuedTimestamp
+            timestamp = @queuedTimestamp
+            @queuedTimestamp = null
+            @processEvents timestamp
+          else
+            @processing = false
+            @emit 'doneProcessing'
 
   processEvent: (eventJson, callback) =>
     @filter.isValid eventJson, (valid) =>

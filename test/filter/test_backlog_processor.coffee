@@ -24,7 +24,7 @@ describe 'Backlog Processor', ->
       spy.calledOnce.should.be.true
       spy.firstCall.calledWith(8600).should.be.true
 
-    it "does not process if it is already processing", ->
+    it "does not process immediately if it is already processing", ->
       spy = sinon.spy @processor, "processEvents"
       @processor.write('{"name": "event", "timestamp": 8600}')
       @processor.write('{"name": "event", "timestamp": 8700}')
@@ -45,6 +45,13 @@ describe 'Backlog Processor', ->
       spy.called.should.be.false
       @processor.write('{"name": "event", "timestamp": 8600}')
       spy.called.should.be.true
+
+    it "queues events to be processed if it's already processing", ->
+      spy = sinon.spy @processor, "processEvents"
+      @processor.write('{"name": "event", "timestamp": 8600}')
+      @processor.write('{"name": "event", "timestamp": 8700}')
+      spy.calledOnce.should.be.true
+      @processor.queuedTimestamp.should.eql 8700
 
   describe "#processEvents", ->
     it "processes events from the backlog in order, up to @delta ago", (done) ->
@@ -82,6 +89,16 @@ describe 'Backlog Processor', ->
           spy.getCall(2).calledWith(sourceEvents[1]).should.be.true
           done()
         @processor.processEvents now
+
+    it "processes queued events after processing", (done) ->
+      spy = sinon.spy @processor, "processEvents"
+      @processor.on 'doneProcessing', =>
+        spy.calledTwice.should.be.true
+        spy.firstCall.calledWith(8600).should.be.true
+        spy.secondCall.calledWith(8700).should.be.true
+        done()
+      @processor.queuedTimestamp = 8700
+      @processor.processEvents 8600
 
   describe "#processEvent", ->
     it "emits a data event with a 'isValidUser' property set to true if it is valid according to the filter", (done) ->
