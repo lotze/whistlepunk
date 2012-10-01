@@ -13,10 +13,9 @@ module.exports = (env, server, cb) ->
     env = process.env.NODE_ENV
 
   redis_config = switch server
-    when 'filtered' then config.filtered_redis
+    when 'whistlepunk' then config.filtered_redis
     when 'distillery' then config.unfiltered_redis
-    when 'whistlepunk' then config.redis
-    else throw new Error("#{server} is not a valid server for redis_builder")
+    else config.redis
 
   client = redis.createClient redis_config.port, redis_config.host
 

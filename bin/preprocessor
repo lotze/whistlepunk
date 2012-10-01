@@ -20,7 +20,7 @@ userValidators    = [JavaScriptEnabledValidator, LoginValidator, IosClientValida
 dispatcher        = new Dispatcher(redis_builder('distillery'))
 backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
 filter            = new Filter(redis_builder('whistlepunk'), userValidators, config.expirations.filterBackwardExpireDelay)
-backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), config.expirations.backlogProcessDelay, filter)
+backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), config.expirations.backlogProcessDelay, filter) # pull from some config somewhere
 
 dispatcher.pipe(backlogFiller)
 dispatcher.pipe(filter)
@@ -32,7 +32,7 @@ backlogProcessor.pipe(validUserGate)
 invalidUserGate = new Gate((event) -> !JSON.parse(event).isValidUser)
 backlogProcessor.pipe(invalidUserGate)
 
-validUserGate.pipe(new RedisWriter(redis_builder('filtered')))
+validUserGate.pipe(new RedisWriter(redis_builder('whistlepunk')))
 validUserGate.pipe(new LogWriter(config.logfile.valid_user_events))
 
 invalidUserGate.pipe(new LogWriter(config.logfile.invalid_user_events))

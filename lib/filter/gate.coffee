@@ -11,12 +11,10 @@ class Gate extends Stream
 
   end: (event) =>
     @write event if event?
-    @emit 'end'
     @destroy()
 
   destroy: =>
     @writable = false
-    @readable = false
     @emit 'close'
 
 module.exports = Gate

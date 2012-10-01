@@ -18,7 +18,7 @@ class Filter extends Stream
     try
       event = JSON.parse eventJson
     catch error
-      console.error "Problem parsing JSON in BacklogFiller#flush: #{error} in #{eventJson}"
+      console.error "Problem parsing JSON in Filter#write: #{error.stack}"
       return true
 
     # Wipe user records older than @delta from Reddis
@@ -63,7 +63,7 @@ class Filter extends Stream
       @emit 'drain'
 
   end: (eventJson) =>
-    @write eventJson if eventJson?
+    @write eventJson
     @destroySoon()
 
   destroy: =>

@@ -10,7 +10,6 @@ class BacklogProcessor extends Stream
     @key = 'event:' + process.env.NODE_ENV + ':backlog'
 
   write: (eventJson) =>
-    console.log 'got', eventJson, 'processing:', @processing
     return true if @processing || @paused
     @emit 'error', new Error("BacklogProcessor stream is not writable") unless @writable
     @processing = true
@@ -27,7 +26,7 @@ class BacklogProcessor extends Stream
     return true
 
   end: (eventJson) =>
-    @write eventJson if eventJson?
+    @write(eventJson)
     @destroySoon()
 
   destroy: =>
