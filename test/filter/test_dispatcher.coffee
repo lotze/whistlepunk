@@ -26,7 +26,24 @@ describe 'Dispatcher', ->
         if _.difference(sourceEvents, targetEvents).length == 0
           done()
 
-    async.forEachSeries sourceEvents, @redis.lpush.bind(@redis, @dispatcher.key)
+    async.forEachSeries sourceEvents, @redis.lpush.bind(@redis, @dispatcher.key), =>
+      @dispatcher.destroy()
+
+  # This test was written to catch non-deterministic behavior where it was _possible_
+  # that the Dispatcher would emit 'end' and/or 'close' before reading all the data
+  # off its list--however, this test would not fail 100% of the time. [BT]
+  it "streams all the available data before closing", (done) ->
+    sourceEvents = ['an_event', 'another_event', 'a_third_event', 'a_fourth_event', 'a_fifth_event', 'a_sixth_event', 'a_seventh_event']
+    targetEvents = []
+
+    @dispatcher.on 'data', (data) ->
+      targetEvents.push data
+    @dispatcher.on 'close', ->
+      _.difference(sourceEvents, targetEvents).length.should.eql 0
+      done()
+
+    async.forEachSeries sourceEvents, @redis.lpush.bind(@redis, @dispatcher.key), =>
+      @dispatcher.destroy()
 
   context "#destroy", ->
     it "emits a single 'end' event", (done) ->
@@ -48,7 +65,3 @@ describe 'Dispatcher', ->
           closeEmitted = true
           done()
       @dispatcher.destroy()
-
-    it "sets the stream's readable property to false", ->
-      @dispatcher.destroy()
-      @dispatcher.readable.should.be.false
