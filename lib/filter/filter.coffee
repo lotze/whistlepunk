@@ -68,9 +68,7 @@ class Filter extends Stream
 
   destroy: =>
     @writable = false
-    @redis.quit =>
-      @redis = null
-      @emit 'close'
+    @emit 'close'
 
   destroySoon: =>
     @writable = false
