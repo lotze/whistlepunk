@@ -32,8 +32,8 @@ class Foreman extends EventEmitter
     @startProcessing()
 
   connectRedis: =>
-    @redis_client = redis.createClient(config.msg_source_redis.port, config.msg_source_redis.host)
-    @redis_client.select config.msg_source_redis.db_num  if config.msg_source_redis.db_num
+    @redis_client = redis.createClient(config.filtered_redis.port, config.filtered_redis.host)
+    @redis_client.select config.filtered_redis.db_num  if config.filtered_redis.db_num
     console.log "Redis connected."
     @redis_client.once "end", =>
       console.log "Lost connection to Redis. Reconnecting..."
@@ -64,10 +64,10 @@ class Foreman extends EventEmitter
     jsonString ||= JSON.stringify(message)
     @local_redis.set "whistlepunk:last_event_processed", jsonString
     console.log message.eventName, message  if process.env.NODE_ENV is "development"
-    
+
   processLine: (jsonString) =>
     @processMessage JSON.parse(jsonString)
-    
+
   clearDatabase: (callback) =>
     async.parallel [
       (setup_cb) =>
@@ -125,11 +125,11 @@ class Foreman extends EventEmitter
         return(parseInt(a_num) - parseInt(b_num))
 
       callback err, matchedFiles
-      
+
   addWorker: (name, worker, callback) =>
     @unionRep.addWorker(name, worker)
     worker.init callback
-    
+
   addAllWorkers: (callback) =>
     files = fs.readdirSync(__dirname + '/../workers')
     async.forEach files, (workerFile, worker_callback) =>
@@ -137,7 +137,7 @@ class Foreman extends EventEmitter
       WorkerClass = require('../workers/'+workerFile)
       @addWorker(workerName, new WorkerClass(this), worker_callback)
     , callback
-      
+
   # for testing/confirming that there are no jobs in progress: either callback immediately or when the unionRep is next drained
   callbackWhenClear: (callback) =>
     if @unionRep.total == 0
@@ -145,7 +145,7 @@ class Foreman extends EventEmitter
     else
       @unionRep.once 'drain', =>
         callback()
-  
+
   processFiles: (logPath, eventBounds..., callback) =>
     [firstEvent, lastEvent] = eventBounds
     logPath ||= if process.env.NODE_ENV == 'development' then "/Users/grockit/workspace/whistlepunk/test/log" else "/opt/grockit/log"
@@ -155,7 +155,7 @@ class Foreman extends EventEmitter
         console.log("WhistlePunk: processing file: " + fileName) unless process.env.NODE_ENV == 'test'
         @processFile(fileName, firstEvent, lastEvent, file_cb)
       , (err) =>
-        callback(err)    
+        callback(err)
 
   processFile: (file, eventBounds..., callback) =>
     [firstEvent, lastEvent] = eventBounds
@@ -178,6 +178,6 @@ class Foreman extends EventEmitter
         console.trace "event line " + line + " had a serious parsing issue: #{error}"
     reader.on 'end', ->
       callback() if callback?
-    reader.start()    
+    reader.start()
 
 module.exports = Foreman

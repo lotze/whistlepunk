@@ -21,7 +21,7 @@ async = require('async')
 # get the next event to be processed from the msg queue
 # clear out database
 # for continuing a halted reprocess: get the start event -- the last processed event in redis
-# process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]  
+# process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]
 #  -- do not process the last event from the dump (it's already been processed), but do process the event you pulled off the msg queue (you just pulled it off, so it won't be there for whistlepunk to process)
 # start whistlepunk
 
@@ -54,9 +54,9 @@ class Application
         # get the next event to be processed from the msg queue
         if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
           redis_key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
-          remote_redis_client = redis.createClient(config.msg_source_redis.port, config.msg_source_redis.host)
-          if config.msg_source_redis.db_num?
-            remote_redis_client.select(config.msg_source_redis.db_num)
+          remote_redis_client = redis.createClient(config.filtered_redis.port, config.filtered_redis.host)
+          if config.filtered_redis.db_num?
+            remote_redis_client.select(config.filtered_redis.db_num)
           remote_redis_client.brpop redis_key, 0, (err, reply) =>
             return cb(err) if err?
             console.log("Got next event -- will reprocess up to ", reply)
@@ -67,7 +67,7 @@ class Application
           @last_event_to_process = {timestamp:999999999999999999}
           cb()
       (cb) =>
-        # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]  
+        # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]
         console.log("Time to begin reprocessing from the very beginning, up to #{@last_event_to_process.timestamp}.")
         @foreman = new Foreman()
         @foreman.init (err) =>
@@ -77,12 +77,12 @@ class Application
             @foreman.addAllWorkers (err) =>
               return cb(err) if err?
               @foreman.processFiles(config.backup.full_log_dir, @last_event_processed, @last_event_to_process, cb)
-    ], callback  
+    ], callback
 
   resumeReprocessing: (from, to, callback) =>
     @last_event_processed = JSON.parse(from)
     @last_event_to_process = JSON.parse(to)
-    # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]  
+    # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]
     console.log("Time to resume reprocess, after #{@last_event_processed.timestamp} and up to #{@last_event_to_process.timestamp}.")
     @foreman = new Foreman()
     @foreman.init (err) =>
@@ -152,9 +152,9 @@ process.on 'SIGKILL', ->
 
 process.on 'SIGINT', ->
   process.exit(0)
-  
+
 process.on 'uncaughtException', (e) ->
-  console.error("UNCAUGHT EXCEPTION: ", e, e.stack)  
+  console.error("UNCAUGHT EXCEPTION: ", e, e.stack)
   process.exit(0)
 
 app.run()

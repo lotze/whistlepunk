@@ -45,10 +45,10 @@ class FirstRequest extends Worker
           @dataProvider.createObject 'user', userId, timestamp, cb
         (cb) =>
           myQuery = "
-            INSERT INTO olap_users (id, created_at)
+            INSERT IGNORE INTO olap_users (id, created_at)
             VALUES (
               '#{@db.escape(userId)}', FROM_UNIXTIME(#{timestamp})
-            ) ON DUPLICATE KEY UPDATE created_at = FROM_UNIXTIME(#{timestamp});
+            );
           "
           @db.query(myQuery).execute cb
         (cb) =>

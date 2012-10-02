@@ -27,7 +27,7 @@ async = require('async')
 # - load redis
 # - load mongo
 # get the next event to be processed from the msg queue
-# process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]  
+# process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]
 #  -- do not process the last event from the dump (it's already been processed), but do process the event you pulled off the msg queue (you just pulled it off, so it won't be there for whistlepunk to process)
 # start whistlepunk
 
@@ -44,9 +44,9 @@ process.on 'SIGKILL', ->
 
 process.on 'SIGINT', ->
   process.exit(0)
-  
+
 process.on 'uncaughtException', (e) ->
-  console.error("UNCAUGHT EXCEPTION: ", e, e.stack)  
+  console.error("UNCAUGHT EXCEPTION: ", e, e.stack)
   process.exit(0)
 
 whistlepunk_running = false
@@ -96,17 +96,17 @@ async.series [
       (load_cb) =>
         # load SQL
         async.series [
-          (mysql_cb) => 
+          (mysql_cb) =>
             console.log("gunzipping mysql...")
             child_process.exec "gunzip #{config.backup.dir}/#{timestamp}/mysql.sql.gz", mysql_cb
-          (mysql_cb) => 
+          (mysql_cb) =>
             console.log("loading mysql...")
             child_process.exec "mysql -u#{config.db.user} -p#{config.db.password} -h#{config.db.hostname} #{config.db.database} < #{config.backup.dir}/#{timestamp}/mysql.sql", (err, results) =>
               console.log("...finished loading mysql")
               mysql_cb()
-          (mysql_cb) => 
+          (mysql_cb) =>
             console.log("gzipping mysql...")
-            child_process.exec "gzip #{config.backup.dir}/#{timestamp}/mysql.sql", mysql_cb          
+            child_process.exec "gzip #{config.backup.dir}/#{timestamp}/mysql.sql", mysql_cb
         ], load_cb
           load_cb(err, results)
       (load_cb) =>
@@ -153,12 +153,12 @@ async.series [
     console.log("...getting latest event from remote redis queue")
     if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
       redis_key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
-      remote_redis_client = redis.createClient(config.msg_source_redis.port, config.msg_source_redis.host)
+      remote_redis_client = redis.createClient(config.filtered_redis.port, config.filtered_redis.host)
       async.series [
         (redis_cb) =>
-          if config.msg_source_redis.db_num?
-            console.log("selecting config.msg_source_redis.db_num")
-            remote_redis_client.select config.msg_source_redis.db_num, redis_cb
+          if config.filtered_redis.db_num?
+            console.log("selecting config.filtered_redis.db_num")
+            remote_redis_client.select config.filtered_redis.db_num, redis_cb
           else
             console.log("no need for db_num")
             redis_cb()
@@ -178,10 +178,10 @@ async.series [
     local_redis_client.get 'whistlepunk:last_event_processed', (err, last_event) =>
       return cb(err) if err?
       last_event_processed = JSON.parse(last_event)
-      console.log("Got last event processed, will reprocess after ", last_event_processed)      
+      console.log("Got last event processed, will reprocess after ", last_event_processed)
       cb()
   (cb) =>
-    # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]  
+    # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]
     console.log("Time to reprocess, after #{last_event_processed.timestamp} and up to #{last_event_to_process.timestamp}.")
     foreman = new Foreman()
     foreman.init (err) =>

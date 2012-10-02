@@ -97,7 +97,7 @@ describe "a first_request worker", ->
         done()
 
     it "results in one user from google, one unknown, and one from hatchery", (done) ->
-      dbloader.db().query("select source from olap_users join sources_users on olap_users.id = sources_users.user_id").execute (error, rows, columns) ->
+      dbloader.db().query("select source from olap_users join sources_users on olap_users.id = sources_users.user_id order by source desc").execute (error, rows, columns) ->
         if error
           console.log "ERROR: " + error
           done error
