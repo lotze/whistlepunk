@@ -52,7 +52,6 @@ class BacklogFiller extends Stream
 
     timestamp = event.timestamp
     @redis.zadd @key, timestamp, eventJson, (err) =>
-      console.log ' ######## added', eventJson
       @emit 'error', err if err?
       @emit 'data', eventJson
       @busy = false
