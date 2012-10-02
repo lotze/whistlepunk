@@ -20,9 +20,9 @@ class RedisWriter extends Stream
     else
       destination = "invalid_user_events"
 
-    key = "event:" + process.env.NODE_ENV + ":" + destination
+    @key = "event:" + process.env.NODE_ENV + ":" + destination
 
-    @redis.lpush key, eventJson, =>
+    @redis.lpush @key, eventJson, =>
       @emit 'doneProcessing'
 
     if @pendingWrites >= 1000
