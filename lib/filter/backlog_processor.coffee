@@ -1,7 +1,33 @@
 Stream = require 'stream'
 async = require 'async'
 
+# BacklogProcessor is a duplex stream. Whenever an event is written to it
+# via `write`, it checks the Redis backlog for any events created up to a
+# point in time sometime before the timestamp on the event being written (based
+# on the `delta` parameter passed into its constructor). For every event found,
+# it will check its filter to see if the user associated with the event has been
+# confirmed to be a "real" (non-bot) user or not. It then sets the `isValidUser`
+# attribute on the event, determined by the check on the filter, and emits a
+# JSON representation of the event with a `data` event.
+#
+# This stream is a bit different on its write method in that, other than the
+# timestamp of the event, it does not actually care about the event being
+# written--write is simply used as a trigger to kick off a process that reads
+# a set of old records from Redis. write may not trigger another process in
+# this way if an older bactch process is still running. Thus, the stream
+# applies no backpressure (as it will simply discard superfluous events).
 class BacklogProcessor extends Stream
+
+  # Constructor
+  # -----------
+  #
+  # Initialize a BacklogProcessor.
+  #
+  # * redis - An instance of a Redis client to use for reading from the backlog.
+  # * delta - How far back to limit events that are processed when an event comes in via `write`.
+  #   For example, a delta of one hour will cause a process to look for any events up to 5:00 PM
+  #   if the event sent to `write` has a timestamp of 6:00 PM.
+  # * filter - An instance of Filter to use to check for valid users.
   constructor: (@redis, @delta, @filter) ->
     super()
     @readable = true
@@ -9,6 +35,8 @@ class BacklogProcessor extends Stream
     @processing = false
     @key = 'event:' + process.env.NODE_ENV + ':backlog'
 
+  # Triggers (or schedules, if busy processing) a process that reads backlogged events with
+  # timestamps up to now-minus-delta ago.
   write: (eventJson) =>
     if @paused
       return true
@@ -22,6 +50,10 @@ class BacklogProcessor extends Stream
       console.error "Problem parsing JSON in BacklogProcessor#write: #{error.stack}"
       return true
 
+    # If we're already processing, we want to make sure to keep track of the written event
+    # with the largest timestamp, so that when we're done processing we can process
+    # again starting at that new timestamp. This is to ensure we don't miss any events
+    # by accident, causing non-deterministic behavior, especially in tests. [BT]
     if @processing
       if (@queuedTimestamp && event.timestamp > @queuedTimestamp) || !@queuedTimestamp?
         @queuedTimestamp = event.timestamp

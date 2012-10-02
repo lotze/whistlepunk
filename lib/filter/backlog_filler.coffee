@@ -1,6 +1,19 @@
 Stream = require 'stream'
 
+# **BacklogFiller** is a duplex stream that takes data written to it and places
+# it in a Redis backlog for later processing. Once the data has been successfully
+# written to Redis, it will emit a `data` even with the same data.
+#
+# BacklogFiller adds the events to a Redis sorted set, with the `timestamp` attribute of
+# the event used as the score for the entry.
 class BacklogFiller extends Stream
+
+  # Constructor
+  # -----------
+  #
+  # Initialize a BacklogFiller.
+  #
+  # * redis - An instance of a Redis client to use for inserting into the backlog.
   constructor: (@redis) ->
     super()
     @writable = true
@@ -8,11 +21,16 @@ class BacklogFiller extends Stream
     @key = 'event:' + process.env.NODE_ENV + ':backlog'
     @queue = []
     @parentStream = null
+    # When we pipe a stream into BacklogFiller, we will store a reference to that stream
+    # so that our `pause` and `resume` methods, and our `drain` events, are all delegated
+    # to that stream.
     @on 'pipe', (stream) =>
       @readable = true
       @parentStream = stream
       @parentStream.on 'drain', => @emit 'drain'
 
+  # Adds the given event JSON to the queue to be `flush`ed later. `json` **must** have a `timestamp`
+  # property.
   write: (json) =>
     return @emit 'error', new Error('stream is not writable') unless @writable
     @queue.push json
@@ -31,6 +49,7 @@ class BacklogFiller extends Stream
     else
       @emit 'error', new Error('Cannot resume this stream unless another stream is piped into it first')
 
+  # `flush` is called recusrively in order to drain the queue.
   flush: =>
     return if @busy
     if @queue.length == 0
@@ -76,6 +95,7 @@ class BacklogFiller extends Stream
     @writable = false
     @redis.quit =>
       @redis = null
+      @emit 'end'
       @emit 'close'
 
 module.exports = BacklogFiller
