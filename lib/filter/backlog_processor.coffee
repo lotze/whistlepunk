@@ -34,7 +34,7 @@ class BacklogProcessor extends Stream
     @write eventJson if eventJson?
     @destroySoon()
 
-  destroy: =>
+  _shutdown: =>
     @writable = false
     @readable = false
     @emit 'end'
@@ -42,12 +42,12 @@ class BacklogProcessor extends Stream
       @redis = null
       @emit 'close'
 
-  destroySoon: =>
+  destroy: =>
     @writable = false
     if @processing
-      @on 'doneProcessing', @destroy
+      @on 'doneProcessing', @_shutdown
     else
-      @destroy()
+      @_shutdown()
 
   pause: =>
     return if @paused
@@ -65,13 +65,16 @@ class BacklogProcessor extends Stream
         console.error "Error with ZRANGEBYSCORE in BacklogProcessor#processEvents: #{err.stack}"
       else if reply?
         async.forEachSeries reply, @processEvent, (err) =>
-          if @queuedTimestamp
-            timestamp = @queuedTimestamp
-            @queuedTimestamp = null
-            @processEvents timestamp
-          else
-            @processing = false
-            @emit 'doneProcessing'
+          @redis.zremrangebyscore @key, 0, max, (err, reply) =>
+            if err?
+              console.error "Error removing old events in BacklogProcessor#processEvents: #{err.stack}"
+            if @queuedTimestamp
+              timestamp = @queuedTimestamp
+              @queuedTimestamp = null
+              @processEvents timestamp
+            else
+              @processing = false
+              @emit 'doneProcessing'
 
   processEvent: (eventJson, callback) =>
     @filter.isValid eventJson, (valid) =>

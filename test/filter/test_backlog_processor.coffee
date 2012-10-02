@@ -100,6 +100,28 @@ describe 'Backlog Processor', ->
       @processor.queuedTimestamp = 8700
       @processor.processEvents 8600
 
+    it "removes processed events from Redis", (done) ->
+      @filter.isValid = (event, cb) -> cb(true)
+
+      events = [
+        '{"eventName": "event1", "timestamp": 100}'
+        '{"eventName": "event2", "timestamp": 200}'
+        '{"eventName": "event2", "timestamp": 300}'
+      ]
+
+      @processor.on 'doneProcessing', =>
+        @redis.zcard @processor.key, (err, reply) =>
+          return done(err) if err?
+          reply.should.eql(1)
+          done()
+
+      addToRedis = (event, cb) => @redis.zadd @processor.key, JSON.parse(event).timestamp, event, cb
+      async.forEach events, addToRedis, (err) =>
+        return done(err) if err?
+
+        @processor.delta = 0
+        @processor.processEvents 200
+
   describe "#processEvent", ->
     it "emits a data event with a 'isValidUser' property set to true if it is valid according to the filter", (done) ->
       @filter.isValid = (event, cb) -> cb(true)
