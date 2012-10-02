@@ -4,14 +4,32 @@ class BacklogFiller extends Stream
   constructor: (@redis) ->
     super()
     @writable = true
+    @readable = false
     @key = 'event:' + process.env.NODE_ENV + ':backlog'
     @queue = []
+    @parentStream = null
+    @on 'pipe', (stream) =>
+      @readable = true
+      @parentStream = stream
+      @parentStream.on 'drain', => @emit 'drain'
 
   write: (json) =>
     return @emit 'error', new Error('stream is not writable') unless @writable
     @queue.push json
     @flush()
     false
+
+  pause: =>
+    if @parentStream?
+      @parentStream.pause()
+    else
+      @emit 'error', new Error('Cannot pause this stream unless another stream is piped into it first')
+
+  resume: =>
+    if @parentStream?
+      @parentStream.resume()
+    else
+      @emit 'error', new Error('Cannot resume this stream unless another stream is piped into it first')
 
   flush: =>
     return if @busy
@@ -34,8 +52,9 @@ class BacklogFiller extends Stream
 
     timestamp = event.timestamp
     @redis.zadd @key, timestamp, eventJson, (err) =>
+      console.log ' ######## added', eventJson
       @emit 'error', err if err?
-      @emit 'added', eventJson
+      @emit 'data', eventJson
       @busy = false
       @flush()
 
@@ -48,7 +67,7 @@ class BacklogFiller extends Stream
     @writable = false
     # After the last pending write goes out, disconnect from Redis
     if @queue.length > 0
-      @on 'added', =>
+      @on 'data', =>
         @destroy() if @queue.length == 0
     else
       @destroy()
