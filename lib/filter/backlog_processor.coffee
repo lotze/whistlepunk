@@ -74,6 +74,9 @@ class BacklogProcessor extends Stream
       @redis = null
       @emit 'close'
 
+  destroySoon: =>
+    @destroy()
+
   destroy: =>
     @writable = false
     if @processing
