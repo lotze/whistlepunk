@@ -37,7 +37,8 @@ class Dispatcher extends Stream
           if reply? && reply.length
             # `reply` is reversed due to using LRANGE 0, -1 and the fact that Distillery is LPUSH'd into
             # (e.g. the oldest/first event is on the right of the list) [BT]
-            @emit 'data', event for event in reply.reverse()
+            reply.reverse() # WARNING: Array#reverse mutates the array!
+            @emit 'data', event for event in reply
           @emit 'doneProcessing'
           process.nextTick @getFromRedis
 
