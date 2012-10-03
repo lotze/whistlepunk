@@ -1,10 +1,12 @@
 process.env.NODE_ENV ?= 'test'
 
 fs = require 'fs'
+path = require 'path'
 _ = require 'underscore'
 should = require 'should'
 moment = require 'moment'
 async = require 'async'
+existsSync = fs.existsSync || path.existsSync
 
 config = require '../../config'
 redis_builder = require '../../lib/redis_builder'
@@ -50,8 +52,8 @@ makeTargetEvents = (ids, valid, stringify = false) ->
 
 describe "Filter integration", ->
   beforeEach ->
-    for path in [config.logfile.valid_user_events, config.logfile.invalid_user_events]
-      fs.unlinkSync path if fs.existsSync path
+    for filePath in [config.logfile.valid_user_events, config.logfile.invalid_user_events]
+      fs.unlinkSync filePath if existsSync filePath
 
   beforeEach (done) ->
     flushRedis = (redisName, cb) ->
