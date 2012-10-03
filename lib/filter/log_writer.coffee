@@ -5,21 +5,14 @@ class LogWriter extends Stream
   constructor: (@filename) ->
     super()
     @writable = true
+    @stream = fs.createWriteStream(@filename, {'flags': 'a'})
+    @stream.on 'drain', => @emit 'drain'
+    @stream.on 'error', (err) => @emit 'error', err # TODO: Better error handling [BT/TL]
 
   write: (eventJson) =>
-    stream = fs.createWriteStream(@filename, {'flags': 'a'})
-    stream.on "error", (err) =>
-      console.error("Error appending to logs: " + err.stack) if err
-    if stream.write(eventJson + '\n')
-      stream.destroySoon()
-      @emit 'doneProcessing'
-    else
-      stream.on "drain", () =>
-        stream.destroySoon()
-        @emit 'doneProcessing'
-    # fs.appendFile @filename, eventJson + '\n', (err) =>
-    #   console.error("Error appending to logs: " + err.stack) if err
-    #   @emit 'doneProcessing'
+    success = @stream.write(eventJson + "\n")
+    @emit 'doneProcessing'
+    success
 
   end: (eventJson) =>
     @write eventJson if eventJson?
@@ -27,6 +20,7 @@ class LogWriter extends Stream
 
   destroy: =>
     @writable = false
-    @emit 'close'
+    @stream.on 'close', => @emit 'close'
+    @stream.destroySoon()
 
 module.exports = LogWriter
