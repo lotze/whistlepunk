@@ -22,7 +22,7 @@ class Foreman extends EventEmitter
   init: (callback) =>
     @unionRep = new UnionRep()
     @setMaxListeners(12)
-    @redis_key = "distillery:" + process.env.NODE_ENV + ":msg_queue"
+    @redis_key = "event:" + process.env.NODE_ENV + ":valid_user_events"
     Redis.getClient (err, client) =>
       @local_redis = client
       callback(err, client)
@@ -60,6 +60,7 @@ class Foreman extends EventEmitter
       @startProcessing()
 
   processMessage: (message, jsonString=null) =>
+    # console.log("got message", message)
     @emit message.eventName, message
     jsonString ||= JSON.stringify(message)
     @local_redis.set "whistlepunk:last_event_processed", jsonString

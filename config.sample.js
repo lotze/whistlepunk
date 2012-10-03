@@ -6,8 +6,8 @@ config.filtered_redis = {};
 config.unfiltered_redis = {};
 
 config.logfile = {};
-config.logfile.valid_user_events = '../log/valid_user_events.log';
-config.logfile.invalid_user_events = '../log/invalid_user_events.log';
+config.logfile.valid_user_events = 'log/valid_user_events.log';
+config.logfile.invalid_user_events = 'log/invalid_user_events.log';
 
 config.expirations = {};
 config.expirations.backlogProcessDelay = 1000 * 60 * 60;
