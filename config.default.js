@@ -43,21 +43,22 @@ switch(process.env.NODE_ENV) {
 case 'production':
   config.db.user = 'metricizer';
   config.db.database = 'metricizer_prod';
-  config.db.password = 'PROD_PASSWORD';
-  config.unfiltered_redis.host = 'REDIS_HOST';
   config.backup.dir = '/mnt/whistlepunk_backup';
   config.backup.redis_rdb_dir = '/var/lib/redis/6379';
   config.backup.full_log_dir = '/opt/grockit/log';
   break;
 case 'staging':
-  config.db.user = 'metricizer';
+  config.db.hostname = 'staging-mysql-master';
+  config.db.user = 'learnist';
   config.db.database = 'metricizer_prod';
-  config.db.password = 'PROD_PASSWORD';
-  config.filtered_redis.db_num = 2;
-  config.redis.db_num = 2;
   config.backup.dir = '/mnt/whistlepunk_backup';
   config.backup.redis_rdb_dir = '/var/lib/redis/6379';
   config.backup.full_log_dir = '/opt/grockit/log';
+  config.unfiltered_redis.host = config.redis.host;
+  config.redis.host = 'staging-redis-master';
+  config.redis.db_num = 2;
+  config.filtered_redis.host = config.redis.host;
+  config.filtered_redis.db_num = 2;
   break;
 case 'test':
   config.db.database = 'metricizer_test';

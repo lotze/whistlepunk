@@ -13,7 +13,7 @@ results
 
 node_modules
 npm-debug.log
-config.js
+config.local.js
 .idea
 log/*.log
 docs/*

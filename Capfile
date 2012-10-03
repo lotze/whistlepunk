@@ -116,10 +116,18 @@ namespace :deploy do
     # Set up custom directory layout in addition to capistrano's defaults
     run "mkdir -p #{shared_path}/tmp/pids"
     run "mkdir -p #{shared_path}/node_modules && ln -s #{shared_path}/node_modules #{release_path}/node_modules"
-    # copy config.js file to remore repository
-    top.upload("config.js", "#{release_path}/config.js", :via=> :scp)
+    # copy config.local.js file to shared remote repository; only replace it if it doesn't exist -- you will have to manually update if you change it
+    top.upload("config.local.js", "#{shared_path}/config.local.latest.js", :via => :scp)
+    run "[ -f '#{shared_path}/config.local.js' ] || cp '#{shared_path}/config.local.latest.js' '#{shared_path}/config.local.js'"
+    # always link to the shared version
+    run "ln -s #{shared_path}/config.local.js #{release_path}/config.local.js"
     npm.install
     write_upstart_script
+  end
+
+  desc "replace the server's config.local.js file with your local version -- use with caution!"
+  task :replace_config_file, :roles => :all, :except => { :no_release => true } do
+    top.upload("config.local.js", "#{shared_path}/config.local.js", :via => :scp)
   end
 
   task :start, :roles => :app, :except => { :no_release => true } do
