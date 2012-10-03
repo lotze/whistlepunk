@@ -28,11 +28,12 @@ set :application, 'whistlepunk'
 set :deploy_to, "/opt/grockit/#{application}"
 set :scm, :git
 set :repository, "git@github.com:lotze/whistlepunk.git"
-set :branch, "master"
 set :repository_cache, "git_cache"
 set :deploy_via, :remote_cache
 set :normalize_asset_timestamps, false
 set :keep_releases, 3
+
+set :branch, ENV['TAG'] || raise("TAG must be set; refusing to deploy from head of git repository")
 
 ##############################################################################
 # Rails environments
@@ -47,7 +48,8 @@ end
 
 task :production do
   set :node_env, "production"
-  host = "23.20.144.232"
+  #host = "23.20.144.232"
+  host = "metricizer"
   role :app, host
   role :web, host
   role :db,  host, :primary => true
@@ -55,7 +57,7 @@ end
 
 task :staging do
   set :node_env, "staging"
-  host = "staging.learni.st"
+  host = "staging-app-1"
   role :app, host
   role :web, host
   role :db,  host, :primary => true
@@ -122,20 +124,28 @@ namespace :deploy do
 
   task :start, :roles => :app, :except => { :no_release => true } do
     run "sudo start #{application}_#{node_env}"
+    run "sudo start preprocessor_#{node_env}"
   end
 
   task :stop, :roles => :app, :except => { :no_release => true } do
     run "sudo stop #{application}_#{node_env}"
+    run "sudo stop preprocessor_#{node_env}"
   end
 
   desc "Restart ALL THE THINGS"
   task :restart, :roles => :app, :except => { :no_release => true } do
     run "sudo restart #{application}_#{node_env} || sudo start #{application}_#{node_env}"
+    run "sudo restart preprocessor_#{node_env} || sudo start preprocessor_#{node_env}"
   end
 
   task :write_upstart_script, :roles => :app do
+    write_upstart_template(self, application, "#{application}.coffee")
+    write_upstart_template(self, 'preprocessor', "bin/preprocessor")
+  end
+  
+  def write_upstart_template(cap, process, command)
     upstart_script = <<-UPSTART
-description "#{application}"
+description "#{process}"
 
 start on startup
 stop on shutdown
@@ -146,12 +156,12 @@ export HOME="/home/#{user}"
 export NODE_ENV="#{node_env}"
 
 cd #{current_path}
-exec sudo -u #{user} sh -c "TZ=US/Pacific NODE_ENV=#{node_env} #{current_path}/node_modules/.bin/coffee #{current_path}/#{application}.coffee >> #{shared_path}/log/#{application}_#{node_env}.log 2>&1"
+exec sudo -u #{user} sh -c "TZ=US/Pacific NODE_ENV=#{node_env} #{current_path}/node_modules/.bin/coffee #{current_path}/#{command} >> #{shared_path}/log/#{process}_#{node_env}.log 2>&1"
 end script
 respawn
 UPSTART
-    put upstart_script, "/tmp/#{application}_upstart.conf"
-    run "sudo mv /tmp/#{application}_upstart.conf /etc/init/#{application}_#{node_env}.conf"
+    cap.put upstart_script, "/tmp/#{process}_upstart.conf"
+    cap.run "sudo mv /tmp/#{process}_upstart.conf /etc/init/#{process}_#{node_env}.conf"
   end
 end
 
