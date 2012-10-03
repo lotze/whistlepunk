@@ -23,7 +23,7 @@ class Filter extends Stream
 
     # Wipe user records older than @delta from Reddis
     # TODO: Optimize. Shouldn't run with each write call
-    @redis.zremrangebyscore @key, 0, Math.round(event.timestamp) - @backwardDelta
+    @redis.zremrangebyscore @key, 0, event.timestamp - @backwardDelta
 
     passesValidation = false
     for validator in @validators

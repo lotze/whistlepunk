@@ -190,7 +190,7 @@ class Sessionizer extends Worker
 
   processClosedSessions: (before_timestamp, callback) =>
     # get all users with end_time before before_timestamp (15 minutes ago); for each one, process their info from start_time/is_first/end_time and remove
-    @client.zrangebyscore 'sessionizer:end_time', -1, Math.round(before_timestamp), (err, userIds) =>
+    @client.zrangebyscore 'sessionizer:end_time', -1, before_timestamp, (err, userIds) =>
       if userIds.length == 0
         callback err, null
       nonblankUserIds = (userId for userId in userIds when userId isnt '')
@@ -246,12 +246,12 @@ class Sessionizer extends Worker
     # get all users with next_day_end before before_timestamp (now); remove them from next_day_start and next_day_end
     async.series [
       (cb) => 
-        @client.zrangebyscore 'sessionizer:next_day_end', -1, Math.round(before_timestamp), (err, results) =>
+        @client.zrangebyscore 'sessionizer:next_day_end', -1, before_timestamp, (err, results) =>
           async.forEachSeries results, (key, key_cb) =>
             @client.hdel 'sessionizer:next_day_start', key, key_cb
           , cb
       (cb) => 
-        @client.zremrangebyscore 'sessionizer:end_time', -1, Math.round(before_timestamp), cb
+        @client.zremrangebyscore 'sessionizer:end_time', -1, before_timestamp, cb
     ], (err, results) =>
       callback?()
 
