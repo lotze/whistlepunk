@@ -10,8 +10,8 @@ config.logfile.valid_user_events = 'log/valid_user_events.log';
 config.logfile.invalid_user_events = 'log/invalid_user_events.log';
 
 config.expirations = {};
-config.expirations.backlogProcessDelay = 1000 * 60 * 60;
-config.expirations.filterBackwardExpireDelay = 1000 * 60 * 60 * 24;
+config.expirations.backlogProcessDelay = 60 * 60;
+config.expirations.filterBackwardExpireDelay = 60 * 60 * 24;
 
 config.backup = {};
 config.backup.dir = '/tmp';

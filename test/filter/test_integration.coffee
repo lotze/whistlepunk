@@ -14,7 +14,7 @@ Preprocessor = require '../../lib/filter/preprocessor'
 
 now = new Date().getTime()
 time = (modifications = {}) ->
-  moment.unix(now).add(modifications).toDate().getTime()
+  moment.unix(now).add(modifications).toDate().getTime()/1000.0
 
 users = (num) ->
   "user#{num}"
