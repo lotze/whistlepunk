@@ -54,10 +54,10 @@ case 'staging':
   config.backup.dir = '/mnt/whistlepunk_backup';
   config.backup.redis_rdb_dir = '/var/lib/redis/6379';
   config.backup.full_log_dir = '/opt/grockit/log';
-  config.unfiltered_redis.host = config.redis.host;
+  config.unfiltered_redis.host = 'staging-redis-master';
   config.redis.host = 'staging-redis-master';
   config.redis.db_num = 2;
-  config.filtered_redis.host = config.redis.host;
+  config.filtered_redis.host = 'staging-redis-master';
   config.filtered_redis.db_num = 2;
   break;
 case 'test':
