@@ -8,18 +8,7 @@ async = require 'async'
 
 config = require '../../config'
 redis_builder = require '../../lib/redis_builder'
-
-Dispatcher = require '../../lib/filter/dispatcher'
-BacklogFiller = require '../../lib/filter/backlog_filler'
-BacklogProcessor = require '../../lib/filter/backlog_processor'
-Filter = require '../../lib/filter/filter'
-RedisWriter = require '../../lib/filter/redis_writer'
-LogWriter = require '../../lib/filter/log_writer'
-Gate = require '../../lib/filter/gate'
-
-JavaScriptEnabledValidator = require '../../lib/filter/validators/java_script_enabled_validator'
-LoginValidator = require '../../lib/filter/validators/login_validator'
-IosClientValidator = require '../../lib/filter/validators/ios_client_validator'
+Preprocessor = require '../../lib/filter/preprocessor'
 
 now = new Date().getTime()
 time = (modifications = {}) ->
@@ -63,47 +52,15 @@ describe "Filter integration", ->
     async.forEach redisNames, flushRedis, done
 
   beforeEach (done) ->
-    userValidators    = [JavaScriptEnabledValidator, LoginValidator, IosClientValidator]
-
-    dispatcher        = new Dispatcher(redis_builder('distillery'))
-    backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
-    filter            = new Filter(redis_builder('whistlepunk'), userValidators, config.expirations.filterBackwardExpireDelay)
-    backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), config.expirations.backlogProcessDelay, filter)
-
-    dispatcher.pipe(backlogFiller)
-    backlogFiller.pipe(filter)
-    backlogFiller.pipe(backlogProcessor)
-
-    validUserGate = new Gate((event) -> JSON.parse(event).isValidUser)
-    backlogProcessor.pipe(validUserGate)
-
-    invalidUserGate = new Gate((event) -> !JSON.parse(event).isValidUser)
-    backlogProcessor.pipe(invalidUserGate)
-
-    @redisWriter = new RedisWriter(redis_builder('filtered'))
-    validUserGate.pipe(@redisWriter)
-    validUserLogWriter = new LogWriter(config.logfile.valid_user_events)
-    validUserGate.pipe(validUserLogWriter)
-
-    invalidUserLogWriter = new LogWriter(config.logfile.invalid_user_events)
-    invalidUserGate.pipe(invalidUserLogWriter)
-
-    necessaryClosedStreams = 3
-    closedStreams = 0
-    closeStream = ->
-      closedStreams++
-      done() if closedStreams == necessaryClosedStreams
-
-    @redisWriter.on 'close', closeStream
-    validUserLogWriter.on 'close', closeStream
-    invalidUserLogWriter.on 'close', closeStream
+    @preprocessor = new Preprocessor()
+    @preprocessor.on 'close', done
 
     distilleryRedis = redis_builder('distillery')
-    queueEvent = (event, cb) ->
-      distilleryRedis.lpush dispatcher.key, JSON.stringify(event), cb
+    queueEvent = (event, cb) =>
+      distilleryRedis.lpush @preprocessor.dispatcher.key, JSON.stringify(event), cb
 
-    async.forEachSeries sourceEvents, queueEvent, ->
-      process.nextTick dispatcher.destroy
+    async.forEachSeries sourceEvents, queueEvent, =>
+      process.nextTick @preprocessor.destroy
 
   it 'works', (done) ->
     done()
@@ -111,7 +68,7 @@ describe "Filter integration", ->
   it 'writes the correct events to the valid user events message queue', (done) ->
     redis = redis_builder('filtered')
 
-    redis.lrange @redisWriter.key, 0, -1, (err, reply) ->
+    redis.lrange @preprocessor.redisWriter.key, 0, -1, (err, reply) ->
       return done(err) if err?
       reply.reverse() # Since we do LPUSHes into Redis, the oldest event is at the end of the array
       targetEvents = makeTargetEvents([2, 3, 4, 5, 6], true, true)

@@ -1,38 +1,9 @@
-#!/usr/bin/env ../node_modules/.bin/coffee
+#!/usr/bin/env ./node_modules/.bin/coffee
 
-config = require '../config'
-redis_builder = require '../lib/redis_builder'
+Preprocessor = require '../lib/filter/preprocessor'
 
-Dispatcher = require '../lib/filter/dispatcher'
-BacklogFiller = require '../lib/filter/backlog_filler'
-BacklogProcessor = require '../lib/filter/backlog_processor'
-Filter = require '../lib/filter/filter'
-RedisWriter = require '../lib/filter/redis_writer'
-LogWriter = require '../lib/filter/log_writer'
-Gate = require '../lib/filter/gate'
+preprocessor = new Preprocessor()
 
-JavaScriptEnabledValidator = require '../lib/filter/validators/java_script_enabled_validator'
-LoginValidator = require '../lib/filter/validators/login_validator'
-IosClientValidator = require '../lib/filter/validators/ios_client_validator'
-
-userValidators    = [JavaScriptEnabledValidator, LoginValidator, IosClientValidator]
-
-dispatcher        = new Dispatcher(redis_builder('distillery'))
-backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
-filter            = new Filter(redis_builder('whistlepunk'), userValidators, config.expirations.filterBackwardExpireDelay)
-backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), config.expirations.backlogProcessDelay, filter)
-
-dispatcher.pipe(backlogFiller)
-dispatcher.pipe(filter)
-dispatcher.pipe(backlogProcessor)
-
-validUserGate = new Gate((event) -> JSON.parse(event).isValidUser)
-backlogProcessor.pipe(validUserGate)
-
-invalidUserGate = new Gate((event) -> !JSON.parse(event).isValidUser)
-backlogProcessor.pipe(invalidUserGate)
-
-validUserGate.pipe(new RedisWriter(redis_builder('filtered')))
-validUserGate.pipe(new LogWriter(config.logfile.valid_user_events))
-
-invalidUserGate.pipe(new LogWriter(config.logfile.invalid_user_events))
+process.on 'SIGINT', ->
+  console.log 'SHUTTING DOWN'
+  preprocessor.destroy()
