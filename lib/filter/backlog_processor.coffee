@@ -28,7 +28,7 @@ class BacklogProcessor extends Stream
   #   For example, a delta of one hour will cause a process to look for any events up to 5:00 PM
   #   if the event sent to `write` has a timestamp of 6:00 PM.
   # * filter - An instance of Filter to use to check for valid users.
-  constructor: (@redis, @delta, @filter) ->
+  constructor: (@redis, @delta, @filter, @checker) ->
     super()
     @readable = true
     @writable = true
@@ -71,6 +71,7 @@ class BacklogProcessor extends Stream
     @readable = false
     @emit 'end'
     @redis.quit =>
+      @checker.destroy()
       @redis = null
       @emit 'close'
 
@@ -112,7 +113,7 @@ class BacklogProcessor extends Stream
               @emit 'doneProcessing'
 
   processEvent: (eventJson, callback) =>
-    @filter.isValid eventJson, (valid) =>
+    @checker.isValid eventJson, (valid) =>
       event = JSON.parse eventJson
       event.isValidUser = valid
       eventJson = JSON.stringify event

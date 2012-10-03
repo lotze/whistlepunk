@@ -1,9 +1,11 @@
 #!/usr/bin/env ./node_modules/.bin/coffee
 
-Preprocessor = require '../lib/filter/preprocessor'
+unless process.env.NODE_ENV?
+  throw new Error "You mus specify a NODE_ENV"
 
+Preprocessor = require '../lib/filter/preprocessor'
 preprocessor = new Preprocessor()
 
 process.on 'SIGINT', ->
-  console.log 'SHUTTING DOWN'
+  console.log 'Shutting down...'
   preprocessor.destroy()

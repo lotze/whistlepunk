@@ -7,6 +7,7 @@ Dispatcher = require './dispatcher'
 BacklogFiller = require './backlog_filler'
 BacklogProcessor = require './backlog_processor'
 Filter = require './filter'
+ValidUserChecker = require './valid_user_checker'
 RedisWriter = require './redis_writer'
 LogWriter = require './log_writer'
 Gate = require './gate'
@@ -24,7 +25,8 @@ class Preprocessor extends EventEmitter
     @dispatcher        = new Dispatcher(redis_builder('distillery'))
     @backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
     @filter            = new Filter(redis_builder('whistlepunk'), @userValidators, config.expirations.filterBackwardExpireDelay)
-    @backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), config.expirations.backlogProcessDelay, @filter)
+    @validUserChecker  = new ValidUserChecker(redis_builder('whistlepunk'))
+    @backlogProcessor  = new BacklogProcessor(redis_builder('whistlepunk'), config.expirations.backlogProcessDelay, @filter, @validUserChecker)
 
     @dispatcher.pipe(@backlogFiller)
     @backlogFiller.pipe(@filter)
@@ -50,7 +52,6 @@ class Preprocessor extends EventEmitter
     combinedStreamClosePromise = join.create()
     combinedStreamClosePromise.add(redisWriterClosePromise, validUserLogWriterPromise, invalidUserLogWriterPromise)
     combinedStreamClosePromise.when =>
-      console.log 'emitting close'
       @emit 'close'
 
     @redisWriter.on 'close', @onStreamClose.bind(this, redisWriterClosePromise)
@@ -61,7 +62,6 @@ class Preprocessor extends EventEmitter
     @dispatcher.destroy()
 
   onStreamClose: (promise) =>
-    console.log 'closing a stream!'
     promise.deliver()
 
 module.exports = Preprocessor

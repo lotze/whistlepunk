@@ -1,5 +1,6 @@
 redis_builder = require '../../lib/redis_builder'
 BacklogProcessor = require '../../lib/filter/backlog_processor'
+ValidUserChecker = require '../../lib/filter/valid_user_checker'
 async = require 'async'
 sinon = require 'sinon'
 
@@ -10,7 +11,8 @@ describe 'Backlog Processor', ->
     @redis = redis_builder('whistlepunk')
     @redis.flushdb done
     @filter = {}
-    @processor = new BacklogProcessor(@redis, @delta, @filter)
+    @checker = new ValidUserChecker(redis_builder('whistlepunk'))
+    @processor = new BacklogProcessor(@redis, @delta, @filter, @checker)
 
   describe "#write", ->
     it "processes the event", ->
@@ -124,7 +126,7 @@ describe 'Backlog Processor', ->
 
   describe "#processEvent", ->
     it "emits a data event with a 'isValidUser' property set to true if it is valid according to the filter", (done) ->
-      @filter.isValid = (event, cb) -> cb(true)
+      @checker.isValid = (event, cb) -> cb(true)
 
       testEventJson = '{"time_desc": "now", "timestamp": 8600}'
       testEvent = JSON.parse testEventJson
@@ -138,7 +140,7 @@ describe 'Backlog Processor', ->
       @processor.processEvent testEventJson
 
     it "emits a data event with a 'isValidUser' property set to true if it is valid according to the filter", (done) ->
-      @filter.isValid = (event, cb) -> cb(false)
+      @checker.isValid = (event, cb) -> cb(false)
 
       testEventJson = '{"time_desc": "now", "timestamp": 8600}'
       testEvent = JSON.parse testEventJson
