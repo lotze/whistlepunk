@@ -55,7 +55,17 @@ class Filter extends Stream
         else
           @emit 'doneProcessing'
     else
-      @emit 'doneProcessing'
+      @redis.zscore @key, event.userId, (err, reply) =>
+        if err?
+          console.error "Error with ZSCORE in Filter#write: #{err.stack}"
+          return @emit 'doneProcessing' # should do more error handing here?
+
+        timestamp = parseInt reply, 10
+        if timestamp > 0 && timestamp < event.timestamp
+          @redis.zadd @key, event.timestamp, event.userId, =>
+            @emit 'doneProcessing'
+        else
+          @emit 'doneProcessing'
 
     if @pendingWrites >= 1000
       return false

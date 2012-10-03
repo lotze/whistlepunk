@@ -85,13 +85,38 @@ describe 'Filter', ->
         @validators[0].validates = -> false
         @validators[1].validates = -> false
 
-      it "does not store the user in the valid users datastore", (done) ->
-        @filter.on 'doneProcessing', =>
-          @redis.zscore @filter.key, @event.userId, (err, reply) ->
-            return done(err) if err?
-            should.not.exist(reply)
-            done()
-        @filter.write JSON.stringify(@event)
+      context "when the user is not already in the datastore", ->
+        it "does not store the user in the valid users datastore", (done) ->
+          @filter.on 'doneProcessing', =>
+            @redis.zscore @filter.key, @event.userId, (err, reply) ->
+              return done(err) if err?
+              should.not.exist(reply)
+              done()
+          @filter.write JSON.stringify(@event)
+
+      context "when the user is already in the store with a lower score", ->
+        beforeEach (done) ->
+          @redis.zadd @filter.key, @event.timestamp - 1, @event.userId, done
+
+        it "updates the score of the user to the latest timestamp", (done) ->
+          @filter.on 'doneProcessing', =>
+            @redis.zscore @filter.key, @event.userId, (err, reply) =>
+              return done(err) if err?
+              reply.should.eql(@event.timestamp.toString())
+              done()
+          @filter.write JSON.stringify(@event)
+
+      context "when the user is already in the store with a higher score", ->
+        beforeEach (done) ->
+          @redis.zadd @filter.key, @event.timestamp + 1, @event.userId, done
+
+        it "keeps the user's higher score", (done) ->
+          @filter.on 'doneProcessing', =>
+            @redis.zscore @filter.key, @event.userId, (err, reply) =>
+              return done(err) if err?
+              reply.should.eql((@event.timestamp + 1).toString())
+              done()
+          @filter.write JSON.stringify(@event)
 
     context "when there are old users in the datastore", (done) ->
       beforeEach (done) ->
