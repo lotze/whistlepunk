@@ -96,12 +96,12 @@ class BacklogProcessor extends Stream
   processEvents: (timestamp) =>
     @processing = true
     max = Math.round(timestamp - @delta)
-    console.log("processing events in #{@key} from 0 to #{max} via ",@redis)
+    #console.log("processing events in #{@key} from 0 to #{max}")
     @redis.zrangebyscore @key, 0, max, (err, reply) =>
       if err?
         console.error "Error with ZRANGEBYSCORE in BacklogProcessor#processEvents: #{err.stack}"
       else if reply?
-        console.log("Got #{reply.length} events to process")
+        #console.log("Got #{reply.length} events to process")
         async.forEachSeries reply, @processEvent, (err) =>
           @redis.zremrangebyscore @key, 0, max, (err, reply) =>
             if err?
