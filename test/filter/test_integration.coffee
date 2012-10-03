@@ -64,9 +64,6 @@ describe "Filter integration", ->
     async.forEachSeries sourceEvents, queueEvent, =>
       process.nextTick @preprocessor.destroy
 
-  it 'works', (done) ->
-    done()
-
   it 'writes the correct events to the valid user events message queue', (done) ->
     redis = redis_builder('filtered')
 
