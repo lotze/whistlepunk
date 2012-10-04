@@ -20,6 +20,7 @@ S3_BUCKET="com.grockit.distillery"
 VALID_BUCKET_PREFIX=learnist/$NODE_ENV/raw_logs/`date +%Y/%m/%d`
 INVALID_BUCKET_PREFIX=learnist/$NODE_ENV/invalid_logs/`date +%Y/%m/%d`
 
+# Note: not currently putting filtered logs into hive (being put in by learnist's archive_distillery_logs.sh)
 S3_HIVE_BUCKET="st.learni.analytics"
 S3_HIVE_PREFIX="learnist/${NODE_ENV}/raw_logs/ds=$(date +%Y-%m-%d)"
 
@@ -53,12 +54,12 @@ done
 cd $LOGDIR
 for f in `ls -1 valid_user_events.log.1.$HOSTNAME.$TIMESTAMP`; do
   s3cmd put $LOGDIR/$f s3://$S3_BUCKET/$VALID_BUCKET_PREFIX/$f || exit 1
-  s3cmd put $LOGDIR/$f s3://${S3_HIVE_BUCKET}/${S3_HIVE_PREFIX}/$f || exit 1
+  # s3cmd put $LOGDIR/$f s3://${S3_HIVE_BUCKET}/${S3_HIVE_PREFIX}/$f || exit 1
   bzip2 $LOGDIR/$f || exit 1
 done
 for f in `ls -1 invalid_user_events.log.1.$HOSTNAME.$TIMESTAMP`; do
   s3cmd put $LOGDIR/$f s3://$S3_BUCKET/$INVALID_BUCKET_PREFIX/$f || exit 1
-  s3cmd put $LOGDIR/$f s3://${S3_HIVE_BUCKET}/${S3_HIVE_PREFIX}/$f || exit 1
+  # s3cmd put $LOGDIR/$f s3://${S3_HIVE_BUCKET}/${S3_HIVE_PREFIX}/$f || exit 1
   bzip2 $LOGDIR/$f || exit 1
 done
 
