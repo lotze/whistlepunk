@@ -24,7 +24,7 @@ describe 'Backlog Processor', ->
       spy = sinon.spy @processor, "processEvents"
       @processor.write('{"name": "event", "timestamp": 8600}')
       spy.calledOnce.should.be.true
-      spy.firstCall.calledWith(8600).should.be.true
+      spy.getCall(0).calledWith(8600).should.be.true
 
     it "does not process immediately if it is already processing", ->
       spy = sinon.spy @processor, "processEvents"
@@ -96,8 +96,8 @@ describe 'Backlog Processor', ->
       spy = sinon.spy @processor, "processEvents"
       @processor.on 'doneProcessing', =>
         spy.calledTwice.should.be.true
-        spy.firstCall.calledWith(8600).should.be.true
-        spy.secondCall.calledWith(8700).should.be.true
+        spy.getCall(0).calledWith(8600).should.be.true
+        spy.getCall(1).calledWith(8700).should.be.true
         done()
       @processor.queuedTimestamp = 8700
       @processor.processEvents 8600

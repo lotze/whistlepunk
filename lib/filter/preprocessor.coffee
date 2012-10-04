@@ -15,12 +15,13 @@ Gate = require './gate'
 JavaScriptEnabledValidator = require './validators/java_script_enabled_validator'
 LoginValidator = require './validators/login_validator'
 IosClientValidator = require './validators/ios_client_validator'
+FullUserValidator = require './validators/full_user_validator'
 
 class Preprocessor extends EventEmitter
   constructor: ->
     super()
 
-    @userValidators    = [JavaScriptEnabledValidator, LoginValidator, IosClientValidator]
+    @userValidators    = [JavaScriptEnabledValidator, LoginValidator, IosClientValidator, FullUserValidator]
 
     @dispatcher        = new Dispatcher(redis_builder('distillery'))
     @backlogFiller     = new BacklogFiller(redis_builder('whistlepunk'))
