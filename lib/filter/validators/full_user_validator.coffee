@@ -4,6 +4,6 @@ class FullUserValidator
 
   @validates: (eventJson) ->
     event = JSON.parse eventJson
-    event.memberStatus == 'full'
+    event.memberStatus == 'full' || event.memberStatus == 'limited'
 
 module.exports = FullUserValidator
