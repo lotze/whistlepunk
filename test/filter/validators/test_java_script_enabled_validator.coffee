@@ -5,10 +5,10 @@ describe 'JavaScriptEnabledValidator', ->
 
     context "when the event indicates the user has JavaScript enabled", ->
       it "returns true", ->
-        @event = {eventName: 'jsCharacteristics', jsEnabled: true}
+        @event = {eventName: 'jsCharacteristics'}
         JavaScriptEnabledValidator.validates(JSON.stringify @event).should.be.true
 
     context "when the event does not indicate that the user has JavaScript enabled", ->
       it "returns false", ->
-        @event = {eventName: 'jsCharacteristics', jsEnabled: false}
+        @event = {eventName: 'someOtherEvent'}
         JavaScriptEnabledValidator.validates(JSON.stringify @event).should.be.false

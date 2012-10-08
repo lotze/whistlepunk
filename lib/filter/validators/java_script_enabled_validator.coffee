@@ -4,6 +4,6 @@ class JavaScriptEnabledValidator
 
   @validates: (eventJson) ->
     event = JSON.parse eventJson
-    event.eventName == "jsCharacteristics" && event.jsEnabled == true
+    event.eventName == "jsCharacteristics"
 
 module.exports = JavaScriptEnabledValidator
