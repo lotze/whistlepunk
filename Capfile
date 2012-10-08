@@ -121,6 +121,8 @@ namespace :deploy do
     run "[ -f '#{shared_path}/config.local.js' ] || cp '#{shared_path}/config.local.latest.js' '#{shared_path}/config.local.js'"
     # always link to the shared version
     run "ln -s #{shared_path}/config.local.js #{release_path}/config.local.js"
+    # Install new logrotate config, if any
+    sudo "ln -sf #{current_path}/script/logrotate.conf /etc/logrotate.d/#{application}.conf"
     npm.install
     write_upstart_script
   end
