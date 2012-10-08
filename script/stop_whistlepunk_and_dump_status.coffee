@@ -41,6 +41,7 @@ async.series [
     # get redis client
     console.log("getting redis client...")
     Redis.getClient (err, client) =>
+      client.select config.redis.db_num  if config.redis.db_num
       return cb(err) if err?
       redis = client
       cb()
