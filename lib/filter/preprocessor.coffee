@@ -58,8 +58,12 @@ class Preprocessor extends EventEmitter
     @redisWriter.on 'close', @onStreamClose.bind(this, redisWriterClosePromise)
     @validUserLogWriter.on 'close', @onStreamClose.bind(this, validUserLogWriterPromise)
     @invalidUserLogWriter.on 'close', @onStreamClose.bind(this, invalidUserLogWriterPromise)
+    
+    # ...this locks the preprocessor in a state that needs to be killed :(
+    #@backlogFiller.on 'error', @destroy
 
   destroy: =>
+    console.log("preprocessor trying to destroy dispatcher")
     @dispatcher.destroy()
 
   onStreamClose: (promise) =>

@@ -19,6 +19,7 @@ class LogWriter extends Stream
     @destroy()
 
   destroy: =>
+    console.log("log writer #{@filename} destroying now")
     @writable = false
     @stream.on 'close', => @emit 'close'
     @stream.destroySoon()

@@ -62,13 +62,21 @@ class Dispatcher extends Stream
   # `destroy` will ensure that one more read of the message queue is done before shutting down,
   # in order to prevent non-deterministic behavior in tests. [BT]
   destroy: =>
+    console.log("dispatcher destroying now")
     if @processing
+      console.log("dispatcher needs to finish processing")
       @once 'doneProcessing', =>
-        @once 'doneProcessing', @_shutdown
+        console.log("dispatcher got one 'doneProcessing'")
+        @once 'doneProcessing', =>
+          console.log("dispatcher got a second 'doneProcessing'")
+          @_shutdown()
     else
-      @once 'doneProcessing', @_shutdown
+      @once 'doneProcessing', =>
+        console.log("dispatcher got one and only 'doneProcessing'")
+        @_shutdown()
 
   _shutdown: =>
+    console.log("dispatcher shutting down")
     @readable = false
     @redis.quit =>
       @redis = null

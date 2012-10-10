@@ -77,11 +77,13 @@ class Filter extends Stream
     @destroySoon()
 
   destroy: =>
+    console.log("filter destroying now")
     @writable = false
     @redis.quit =>
       @emit 'close'
 
   destroySoon: =>
+    console.log("filter destroying soon")
     @writable = false
     if @pendingWrites > 0
       @on 'doneProcessing', =>

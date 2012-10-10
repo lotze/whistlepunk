@@ -63,10 +63,15 @@ class BacklogFiller extends Stream
     # to prevent exceptions that kill the node process on invalid JSON
     try
       event = JSON.parse eventJson
+      console.log "Successfully parsed #{eventJson}"
     catch error
       console.error "Problem parsing JSON in BacklogFiller#flush: #{error} in #{eventJson}"
+      #@emit 'error', "Problem parsing JSON in BacklogFiller#flush: #{error} in #{eventJson}"
+      #console.log("emitted the error")
       @busy = false
+      console.log("set busy false")
       @flush()
+      console.log("flushed again")
       return
 
     timestamp = event.timestamp
@@ -81,6 +86,7 @@ class BacklogFiller extends Stream
     @destroySoon()
 
   destroySoon: =>
+    console.log("backlog filler destroying soon")
     return unless @writable
     @writable = false
     # After the last pending write goes out, disconnect from Redis
@@ -91,6 +97,7 @@ class BacklogFiller extends Stream
       @destroy()
 
   destroy: =>
+    console.log("backlog filler destroying now")
     return unless @redis?
     @writable = false
     @redis.quit =>

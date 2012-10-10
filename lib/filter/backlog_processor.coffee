@@ -76,9 +76,11 @@ class BacklogProcessor extends Stream
       @emit 'close'
 
   destroySoon: =>
+    console.log("backlog processor destroying soon")
     @destroy()
 
   destroy: =>
+    console.log("backlog processor destroying now")
     @writable = false
     if @processing
       @on 'doneProcessing', @_shutdown
