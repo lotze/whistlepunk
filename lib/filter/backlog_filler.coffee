@@ -1,4 +1,5 @@
 Stream = require 'stream'
+logger = require '../../lib/logger'
 
 # **BacklogFiller** is a duplex stream that takes data written to it and places
 # it in a Redis backlog for later processing. Once the data has been successfully
@@ -65,9 +66,9 @@ class BacklogFiller extends Stream
       event = JSON.parse eventJson
       console.log "Successfully parsed #{eventJson}"
     catch error
-      console.error "Problem parsing JSON in BacklogFiller#flush: #{error} in #{eventJson}"
+      logger.error "Problem parsing JSON in BacklogFiller#flush: #{error} in #{eventJson}"
       #@emit 'error', "Problem parsing JSON in BacklogFiller#flush: #{error} in #{eventJson}"
-      #console.log("emitted the error")
+      #logger.info("emitted the error")
       @busy = false
       console.log("set busy false")
       @flush()

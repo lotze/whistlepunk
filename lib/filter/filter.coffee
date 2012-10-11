@@ -1,6 +1,7 @@
 _ = require 'underscore'
 Stream = require 'stream'
 async = require 'async'
+logger = require '../../lib/logger'
 
 class Filter extends Stream
   constructor: (@redis, @validators, @backwardDelta) ->
@@ -18,7 +19,7 @@ class Filter extends Stream
     try
       event = JSON.parse eventJson
     catch error
-      console.error "Problem parsing JSON in BacklogFiller#flush: #{error} in #{eventJson}"
+      logger.error "Problem parsing JSON in BacklogFiller#flush: #{error} in #{eventJson}"
       return true
 
     # Wipe user records older than @delta from Reddis
@@ -37,7 +38,7 @@ class Filter extends Stream
     if passesValidation
       @redis.zscore @key, event.userId, (err, reply) =>
         if err?
-          console.error "Error with ZSCORE in Filter#write: #{err.stack}"
+          logger.error "Error with ZSCORE in Filter#write: #{err.stack}"
           return @emit 'doneProcessing' # should do more error handing here?
 
         timestamp = parseInt reply, 10
@@ -57,7 +58,7 @@ class Filter extends Stream
     else
       @redis.zscore @key, event.userId, (err, reply) =>
         if err?
-          console.error "Error with ZSCORE in Filter#write: #{err.stack}"
+          logger.error "Error with ZSCORE in Filter#write: #{err.stack}"
           return @emit 'doneProcessing' # should do more error handing here?
 
         timestamp = parseInt reply, 10

@@ -15,6 +15,8 @@ fs = require('fs')
 util = require('util')
 async = require('async')
 
+logger = require('../lib/logger')
+
 # stop whistlepunk
 # run sorting script to make sure we have copies of all logs up to the present moment
 # check the local redis to see if we are in the middle of a reprocess
@@ -27,7 +29,7 @@ async = require('async')
 
 class Application
   constructor: ->
-    console.log("doing (or continuing) a full reprocess:")
+    logger.info("doing (or continuing) a full reprocess:")
     @last_event_processed = null
     @last_event_to_process = null
     @whistlepunk_running = false
@@ -39,14 +41,14 @@ class Application
       (cb) =>
         # run downloading/sorting script to get logs up to date on S3
         if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
-          console.log("forcing an update to S3 and getting latest logs from the app...")
+          logger.info("forcing an update to S3 and getting latest logs from the app...")
           child_process.exec "ssh 174.129.119.21 'RAILS_ENV=#{process.env.NODE_ENV} ROTATE_LOGS=TRUE /bin/bash /home/grockit/metricizer/script/update_stored_logs.sh'", cb
         else
           cb()
       (cb) =>
         # after having run downloading/sorting script to get logs up to date on S3, download into local directory
         if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging')
-          console.log("syncing latest logs from S3...")
+          logger.info("syncing latest logs from S3...")
           child_process.exec "s3cmd sync s3://com.grockit.distillery/learnist/#{process.env.NODE_ENV}/sorted/ #{config.backup.full_log_dir}/", cb
         else
           cb()
@@ -59,7 +61,7 @@ class Application
             remote_redis_client.select(config.filtered_redis.db_num)
           remote_redis_client.brpop redis_key, 0, (err, reply) =>
             return cb(err) if err?
-            console.log("Got next event -- will reprocess up to ", reply)
+            logger.info("Got next event -- will reprocess up to ", reply)
             jsonString = reply[1]
             @last_event_to_process = JSON.parse(jsonString)
             @local_redis_client.set 'whistlepunk:last_event_to_process', jsonString, cb
@@ -68,7 +70,7 @@ class Application
           cb()
       (cb) =>
         # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]
-        console.log("Time to begin reprocessing from the very beginning, up to #{@last_event_to_process.timestamp}.")
+        logger.info("Time to begin reprocessing from the very beginning, up to #{@last_event_to_process.timestamp}.")
         @foreman = new Foreman()
         @foreman.init (err) =>
           return cb(err) if err?
@@ -83,7 +85,7 @@ class Application
     @last_event_processed = JSON.parse(from)
     @last_event_to_process = JSON.parse(to)
     # process from the logs, between (the last processed event from the dump, the next event to be processed from the msg queue]
-    console.log("Time to resume reprocess, after #{@last_event_processed.timestamp} and up to #{@last_event_to_process.timestamp}.")
+    logger.info("Time to resume reprocess, after #{@last_event_processed.timestamp} and up to #{@last_event_to_process.timestamp}.")
     @foreman = new Foreman()
     @foreman.init (err) =>
       callback(err) if err?
@@ -100,20 +102,20 @@ class Application
             cb(err) if err?
             @whistlepunk_running = (result.match(/whistlepunk_production start\/running/))?
             if !@whistlepunk_running
-              console.log "Whistlepunk is not currently running; will not attempt to stop or restart it at the end."
+              logger.info "Whistlepunk is not currently running; will not attempt to stop or restart it at the end."
             cb()
         else
           cb()
       (cb) =>
         # stop whistlepunk
         if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging') && @whistlepunk_running
-          console.log("stopping whistlepunk...")
+          logger.info("stopping whistlepunk...")
           child_process.exec "sudo stop whistlepunk_#{process.env.NODE_ENV}", cb
         else
           cb()
       (cb) =>
         # get redis client
-        console.log("getting redis client...")
+        logger.info("getting redis client...")
         Redis.getClient (err, client) =>
           return cb(err) if err?
           @local_redis_client = client
@@ -131,17 +133,17 @@ class Application
           else
             @startReprocessing(cb)
       (cb) =>
-        console.log("finished reprocessing!  ready to restart whistlepunk!")
+        logger.info("finished reprocessing!  ready to restart whistlepunk!")
         @local_redis_client.del 'whistlepunk:last_event_to_process', cb
       (cb) =>
         if (process.env.NODE_ENV == 'production' || process.env.NODE_ENV == 'staging') && @whistlepunk_running
-          console.log("starting whistlepunk...")
+          logger.info("starting whistlepunk...")
           child_process.exec "sudo start whistlepunk_#{process.env.NODE_ENV}", cb
         else
           cb()
     ], (err, results) =>
       if err?
-        console.log("Error was #{err}, results were #{results}")
+        logger.info("Error was #{err}, results were #{results}")
         process.exit(-1)
       process.exit(0)
 
@@ -154,7 +156,7 @@ process.on 'SIGINT', ->
   process.exit(0)
 
 process.on 'uncaughtException', (e) ->
-  console.error("UNCAUGHT EXCEPTION: ", e, e.stack)
+  logger.error("UNCAUGHT EXCEPTION: ", e, e.stack)
   process.exit(0)
 
 app.run()

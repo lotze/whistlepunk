@@ -1,5 +1,6 @@
 Stream = require 'stream'
 async = require 'async'
+logger = require '../../lib/logger'
 
 # BacklogProcessor is a duplex stream. Whenever an event is written to it
 # via `write`, it checks the Redis backlog for any events created up to a
@@ -47,7 +48,7 @@ class BacklogProcessor extends Stream
     try
       event = JSON.parse eventJson
     catch error
-      console.error "Problem parsing JSON in BacklogProcessor#write: #{error.stack}"
+      logger.error "Problem parsing JSON in BacklogProcessor#write: #{error.stack}"
       return true
 
     # If we're already processing, we want to make sure to keep track of the written event
@@ -101,13 +102,13 @@ class BacklogProcessor extends Stream
     #console.log("processing events in #{@key} from 0 to #{max} via ",@redis)
     @redis.zrangebyscore @key, 0, max, (err, reply) =>
       if err?
-        console.error "Error with ZRANGEBYSCORE in BacklogProcessor#processEvents: #{err.stack}"
+        logger.error "Error with ZRANGEBYSCORE in BacklogProcessor#processEvents: #{err.stack}"
       else if reply?
         #console.log("Got #{reply.length} events to process")
         async.forEachSeries reply, @processEvent, (err) =>
           @redis.zremrangebyscore @key, 0, max, (err, reply) =>
             if err?
-              console.error "Error removing old events in BacklogProcessor#processEvents: #{err.stack}"
+              logger.error "Error removing old events in BacklogProcessor#processEvents: #{err.stack}"
             if @queuedTimestamp
               timestamp = @queuedTimestamp
               @queuedTimestamp = null

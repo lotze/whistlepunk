@@ -117,7 +117,9 @@ namespace :deploy do
     run "mkdir -p #{shared_path}/tmp/pids"
     run "mkdir -p #{shared_path}/node_modules && ln -s #{shared_path}/node_modules #{release_path}/node_modules"
     # copy config.local.js file to shared remote repository; only replace it if it doesn't exist -- you will have to manually update if you change it
-    top.upload("config.local.js", "#{shared_path}/config.local.latest.js", :via => :scp)
+    if File.exists?("config.local.js")
+      top.upload("config.local.js", "#{shared_path}/config.local.latest.js", :via => :scp)
+    end
     run "[ -f '#{shared_path}/config.local.js' ] || cp '#{shared_path}/config.local.latest.js' '#{shared_path}/config.local.js'"
     # always link to the shared version
     run "ln -s #{shared_path}/config.local.js #{release_path}/config.local.js"

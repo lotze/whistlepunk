@@ -1,3 +1,5 @@
+logger = require '../../lib/logger'
+
 class ValidUserChecker
   constructor: (@redis) ->
     @key = "event:" + process.env.NODE_ENV + ":valid_users"
@@ -6,7 +8,7 @@ class ValidUserChecker
     event = JSON.parse(eventJson)
     @redis.zscore @key, event.userId, (err, reply) =>
       if err?
-        console.error err.stack
+        logger.error "error getting zscore", err.stack
         callback false
       else if reply?
         callback true

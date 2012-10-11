@@ -1,5 +1,6 @@
 {EventEmitter} = require 'events'
 util = require 'util'
+logger = require '../lib/logger'
 
 class UnionRep extends EventEmitter
   constructor: (@max = 10000) ->
@@ -27,7 +28,7 @@ class UnionRep extends EventEmitter
     worker.on 'done', =>
       @done(name)
     worker.on 'error', (err) =>
-      console.error "Got an error in a worker: ", err, err.stack
+      logger.error "Got an error in a worker: " + err, err.stack
       @done(name)
   
   done: (name) =>
@@ -39,7 +40,6 @@ class UnionRep extends EventEmitter
       @emit 'drain'
       
   report: =>
-    console.log("Worker workloads:")
-    console.log util.inspect(@count)
+    logger.info "Worker workloads:", @count
     
 module.exports = UnionRep

@@ -4,6 +4,7 @@ _ = require('underscore')
 async = require 'async'
 DataProvider = require('../lib/data_provider')
 DbLoader = require('../lib/db_loader')
+logger = require('../lib/logger')
 
 class ShareWorker extends Worker
   constructor: (foreman) ->
@@ -41,7 +42,7 @@ class ShareWorker extends Worker
         when "respondedToInvitation" then @handleRespondedToInvitation(json)
         else throw new Error('unhandled eventName');
     catch error
-      console.error "Error processing",json," (#{error}): #{error.stack}"
+      logger.error "Error processing",json," (#{error}): #{error.stack}"
       @emitResults error
 
   #

@@ -2,6 +2,7 @@
 {future, join} = require 'futures'
 config = require '../../config'
 redis_builder = require '../../lib/redis_builder'
+logger = require '../../lib/logger'
 
 Dispatcher = require './dispatcher'
 BacklogFiller = require './backlog_filler'
@@ -61,6 +62,8 @@ class Preprocessor extends EventEmitter
     
     # ...this locks the preprocessor in a state that needs to be killed :(
     #@backlogFiller.on 'error', @destroy
+
+    logger.info('finished constructing preprocessor')
 
   destroy: =>
     console.log("preprocessor trying to destroy dispatcher")

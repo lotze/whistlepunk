@@ -1,6 +1,8 @@
 fs = require("fs")
 {EventEmitter} = require 'events'
 util = require 'util'
+logger = require '../lib/logger'
+
 
 class FileLineStreamer extends EventEmitter
   constructor: (@filename) ->
@@ -9,7 +11,7 @@ class FileLineStreamer extends EventEmitter
   start: =>
     @stream = fs.createReadStream(@filename, encoding: 'utf8')
     @stream.on 'error', (err) ->
-      console.error("Error reading from stream for #{@filename}", err)
+      logger.error("Error reading from stream for #{@filename}", err)
     @stream.on 'end', =>
       @emit 'data', @buffer if @buffer.length
       @emit 'end'

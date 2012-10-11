@@ -5,6 +5,7 @@ async = require 'async'
 DataProvider = require('../lib/data_provider')
 DateFirster = require('../lib/date_firster')
 DbLoader = require('../lib/db_loader')
+logger = require('../lib/logger')
 
 class IOSWorker extends Worker
   constructor: (foreman) ->
@@ -70,7 +71,7 @@ class IOSWorker extends Worker
           @db.query(myQuery).execute cb
       ], @emitResults
     catch error
-      console.error "Error processing",json," (#{error}): #{error.stack}"
+      logger.error "Error processing",json," (#{error}): #{error.stack}"
       @emitResults error
 
 module.exports = IOSWorker 

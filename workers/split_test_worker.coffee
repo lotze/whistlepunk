@@ -5,6 +5,7 @@ async = require 'async'
 DataProvider = require('../lib/data_provider')
 DateFirster = require('../lib/date_firster')
 DbLoader = require('../lib/db_loader')
+logger = require('../lib/logger')
 
 class SplitTestWorker extends Worker
   constructor: (foreman) ->
@@ -37,7 +38,7 @@ class SplitTestWorker extends Worker
       "
       @db.query(myQuery).execute @emitResults
     catch error
-      console.error "Error processing",json," (#{error}): #{error.stack}"
+      logger.error "Error processing",json," (#{error}): #{error.stack}"
       @emitResults error
 
   # TODO: should we also measure outcomes here?   probably.  probably needs some thought around measurement events and sessions  --TL

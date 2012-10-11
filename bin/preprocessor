@@ -1,11 +1,13 @@
 #!/usr/bin/env ./node_modules/.bin/coffee
 
+logger = require('../lib/logger')
+
 unless process.env.NODE_ENV?
-  throw new Error "You mus specify a NODE_ENV"
+  throw new Error "You must specify a NODE_ENV"
 
 Preprocessor = require '../lib/filter/preprocessor'
 preprocessor = new Preprocessor()
 
 process.on 'SIGINT', ->
-  console.log 'Shutting down...'
+  logger.info 'Shutting down...'
   preprocessor.destroy()

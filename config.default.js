@@ -1,3 +1,6 @@
+var logger = require('./lib/logger');
+
+
 var config = {};
 
 config.db = {};
@@ -72,7 +75,7 @@ case 'development':
   config.redis.db_num = 4;
   break;
 default:
-  console.log("No configuration for the current NODE_ENV!!")
+  logger.warn("No configuration for the current NODE_ENV!!")
 }
 
 module.exports = config;

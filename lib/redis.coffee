@@ -1,5 +1,6 @@
 redis = require('redis')
 config = require('../config')
+logger = require '../lib/logger'
 
 client = null
 
@@ -10,7 +11,7 @@ module.exports =
     else
       temp_client = redis.createClient(config.redis.port, config.redis.host)
       temp_client.on "error", (err) ->
-        console.log("Error " + err);
+        logger.error("Error in redis ", err);
       temp_client.once "ready", (err) =>
         if config.redis.db_num?
           temp_client.select config.redis.db_num, =>

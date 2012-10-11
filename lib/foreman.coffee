@@ -3,6 +3,8 @@ EventEmitter = require("events").EventEmitter
 redis = require("redis")
 async = require('async')
 
+logger = require '../lib/logger'
+
 config = require("../config")
 Redis = require("../lib/redis")
 DbLoader = require("../lib/db_loader")
@@ -34,9 +36,9 @@ class Foreman extends EventEmitter
   connectRedis: =>
     @redis_client = redis.createClient(config.filtered_redis.port, config.filtered_redis.host)
     @redis_client.select config.filtered_redis.db_num  if config.filtered_redis.db_num
-    console.log "Redis connected."
+    logger.info "Redis connected."
     @redis_client.once "end", =>
-      console.log "Lost connection to Redis. Reconnecting..."
+      logger.info "Lost connection to Redis. Reconnecting..."
       @connectRedis()
 
   terminate: ->
@@ -44,7 +46,7 @@ class Foreman extends EventEmitter
   startProcessing: =>
     @redis_client.brpop @redis_key, 0, (err, reply) =>
       if err?
-        console.error "Error during Redis BRPOP: " + err
+        logger.error "Error during Redis BRPOP: ", err
         @startProcessing()
       else
         list = reply[0]
@@ -55,16 +57,16 @@ class Foreman extends EventEmitter
     try
       @processMessage JSON.parse(jsonString)
     catch err
-      console.log "Error processing message:" + jsonString + "; error was " + err
+      logger.error "Error processing message:" + jsonString + "; error was " + err
     finally
       @startProcessing()
 
   processMessage: (message, jsonString=null) =>
-    # console.log("got message", message)
+    # logger.info("got message", message)
     @emit message.eventName, message
     jsonString ||= JSON.stringify(message)
     @local_redis.set "whistlepunk:last_event_processed", jsonString
-    console.log message.eventName, message  if process.env.NODE_ENV is "development"
+    logger.info message.eventName, message  if process.env.NODE_ENV is "development"
 
   processLine: (jsonString) =>
     @processMessage JSON.parse(jsonString)
@@ -153,7 +155,7 @@ class Foreman extends EventEmitter
     @getLogFilesInOrder logPath, (err, fileList) =>
       return callback(err) if err?
       async.forEachSeries fileList, (fileName, file_cb) =>
-        console.log("WhistlePunk: processing file: " + fileName) unless process.env.NODE_ENV == 'test'
+        logger.info("WhistlePunk: processing file: " + fileName) unless process.env.NODE_ENV == 'test'
         @processFile(fileName, firstEvent, lastEvent, file_cb)
       , (err) =>
         callback(err)
