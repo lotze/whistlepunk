@@ -2,6 +2,7 @@
 {future, join} = require 'futures'
 config = require '../../config'
 redis_builder = require '../../lib/redis_builder'
+logger = require '../../lib/logger'
 
 Dispatcher = require './dispatcher'
 BacklogFiller = require './backlog_filler'
@@ -58,6 +59,8 @@ class Preprocessor extends EventEmitter
     @redisWriter.on 'close', @onStreamClose.bind(this, redisWriterClosePromise)
     @validUserLogWriter.on 'close', @onStreamClose.bind(this, validUserLogWriterPromise)
     @invalidUserLogWriter.on 'close', @onStreamClose.bind(this, invalidUserLogWriterPromise)
+
+    logger.info('finished constructing preprocessor')
 
   destroy: =>
     @dispatcher.destroy()

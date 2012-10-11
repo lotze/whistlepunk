@@ -4,6 +4,7 @@ _ = require('underscore')
 async = require 'async'
 DataProvider = require('../lib/data_provider')
 DbLoader = require('../lib/db_loader')
+logger = require('../lib/logger')
 
 class LearnistTranslator extends Worker
   constructor: (foreman) ->
@@ -67,7 +68,7 @@ class LearnistTranslator extends Worker
         when "viewedLearning" then @handleViewedLearning(json)
         else throw new Error("unhandled eventName: #{json.eventName}");
     catch error
-      console.error "Error processing",json," (#{error}): #{error.stack}"
+      logger.error "Error processing",json," (#{error}): #{error.stack}"
       @emitResults error
 
   handleCompletedLearning: (json) =>

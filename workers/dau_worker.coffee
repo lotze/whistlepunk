@@ -6,6 +6,7 @@ DateFirster = require('../lib/date_firster')
 DbLoader = require('../lib/db_loader')
 Redis = require("../lib/redis")
 config = require('../config')
+logger = require('../lib/logger')
 
 class DauWorker extends Worker
   constructor: (foreman) ->
@@ -44,7 +45,7 @@ class DauWorker extends Worker
           @client.sadd "dau:#{status}:#{df.year()}:#{df.month()}:#{df.day()}", userId, (err, results) =>
             @emitResults err, results
       catch error
-        console.error "Error processing",json," (#{error}): #{error.stack}"
+        logger.error "Error processing",json," (#{error}): #{error.stack}"
         @emitResults error
 
 module.exports = DauWorker 

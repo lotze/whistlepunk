@@ -1,5 +1,6 @@
 redis = require 'redis'
 config = require("../config")
+logger = require '../lib/logger'
 
 module.exports = (env, server, cb) ->
   # called with (server, cb)
@@ -22,7 +23,7 @@ module.exports = (env, server, cb) ->
 
   # Handle Redis errors here so that the client will automatically reconnect [BT]
   client.on 'error', (err) ->
-    console.error "Error in Redis client: #{err.stack}"
+    logger.error "Error in Redis client: #{err.stack}"
 
   # client.select will cause the client to automatically re-select
   # the same DB in the case of a reconnect [BT]

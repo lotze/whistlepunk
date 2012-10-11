@@ -1,3 +1,5 @@
+var logger = require('./lib/logger');
+
 function update_config(config) {
   switch(process.env.NODE_ENV) {
   case 'production':
@@ -12,7 +14,7 @@ function update_config(config) {
   case 'development':
     break;
   default:
-    console.log("No configuration for the current NODE_ENV!!")
+    logger.warn("No configuration for the current NODE_ENV (" + process.env.NODE_ENV + ")!!")
   }
   return(config);
 }

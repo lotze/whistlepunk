@@ -8,6 +8,7 @@ DbLoader = require('../lib/db_loader')
 Redis = require("../lib/redis")
 crypto = require("crypto")
 config = require('../config')
+logger = require('../lib/logger')
 
 # sessionizer maintains data objects in redis to determine the aspects of all currently-active user sessions:
 #  - sessionizer:start_time  hash by user; start time of the session
@@ -54,7 +55,7 @@ class Sessionizer extends Worker
       else
         @handleRequest(json, queueCallback)
     catch error
-      console.error "Error processing ",json," (#{error}): #{error.stack}"
+      logger.error "Error processing ",json," (#{error}): #{error.stack}"
       queueCallback error
 
   enqueueEvent: (json) =>
