@@ -26,3 +26,10 @@ describe 'ValidUserChecker', ->
       it "returns false", ->
         @checker.isValid JSON.stringify(@event), (valid) ->
           valid.should.be.false
+
+    context "when the event is a server-generated event", ->
+      it "returns true", ->
+        @server_event = @event
+        @server_event["client"] = "server"
+        @checker.isValid JSON.stringify(@server_event), (valid) ->
+          valid.should.be.true

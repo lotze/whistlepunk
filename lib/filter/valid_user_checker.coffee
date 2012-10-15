@@ -6,14 +6,17 @@ class ValidUserChecker
 
   isValid: (eventJson, callback) =>
     event = JSON.parse(eventJson)
-    @redis.zscore @key, event.userId, (err, reply) =>
-      if err?
-        logger.error "error getting zscore", err.stack
-        callback false
-      else if reply?
-        callback true
-      else
-        callback false
+    if (event.client == 'server')
+      return callback true
+    else
+      @redis.zscore @key, event.userId, (err, reply) =>
+        if err?
+          logger.error "error getting zscore", err.stack
+          callback false
+        else if reply?
+          callback true
+        else
+          callback false
 
   destroy: (cb) =>
     @redis.quit ->
