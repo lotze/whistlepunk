@@ -71,7 +71,7 @@ class IOSWorker extends Worker
           @db.query(myQuery).execute cb
       ], @emitResults
     catch error
-      logger.error "Error processing",json," (#{error}): #{error.stack}"
+      logger.error "Error processing (#{error}): #{error.stack}", json
       @emitResults error
 
 module.exports = IOSWorker 
