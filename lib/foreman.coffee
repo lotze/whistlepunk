@@ -35,8 +35,9 @@ class Foreman extends EventEmitter
 
   connectRedis: =>
     @redis_client = redis.createClient(config.filtered_redis.port, config.filtered_redis.host)
+    logger.info "Monitoring #{@redis_key}"
     @redis_client.select config.filtered_redis.db_num  if config.filtered_redis.db_num
-    logger.info "Redis connected."
+    logger.info "Redis connected.", @redis_client
     @redis_client.once "end", =>
       logger.info "Lost connection to Redis. Reconnecting..."
       @connectRedis()
