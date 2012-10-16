@@ -35,6 +35,9 @@ class IOSWorker extends Worker
   
       timestamp = json.timestamp
       userId = json.userId
+      if (typeof userId == 'number')
+        logger.warn("userId was a number rather than a string:",userId)
+        userId = userId.toString()
     
       # users_created_at
       dateFirster = new DateFirster(new Date(1000*timestamp))
