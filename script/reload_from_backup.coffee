@@ -67,7 +67,8 @@ async.series [
           (mysql_cb) =>
             logger.info("gzipping mysql...")
             child_process.exec "gzip #{config.backup.dir}/#{timestamp}/mysql.sql", mysql_cb
-        ], load_cb
+        ], (err, results) =>
+          logger.info("...finished unzipping")
           load_cb(err, results)
       (load_cb) =>
         async.series [
