@@ -11,7 +11,7 @@ module.exports =
     else
       temp_client = redis.createClient(config.redis.port, config.redis.host)
       temp_client.on "error", (err) ->
-        logger.error("Error in redis ", err);
+        logger.error("Error in redis (#{err}): #{err.stack}", err);
       temp_client.once "ready", (err) =>
         if config.redis.db_num?
           temp_client.select config.redis.db_num, =>

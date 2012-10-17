@@ -1,7 +1,6 @@
 var config = require('./config.default');
 var logger = require('./lib/logger');
 
-
 try {
   var update_config = require('./config.local');
   config = update_config(config);
@@ -10,11 +9,11 @@ try {
   if (error.message == "Cannot find module './config.local'") {
     if (process.env.NODE_ENV == 'production') {
       logger.error("ERROR: Production deploy requires a config.local.js file");
-      process.exit(0);
+      process.exit(1);
     }
   } else {
-    logger.error("ERROR: Unexpected error reading config.local.js file");
-    process.exit(0);
+    logger.error("ERROR: Unexpected error reading config.local.js file",error);
+    process.exit(1);
   }
 }
 
