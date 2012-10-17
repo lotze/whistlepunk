@@ -48,7 +48,6 @@ end
 
 task :production do
   set :node_env, "production"
-  #host = "23.20.144.232"
   host = "metricizer"
   role :app, host
   role :web, host
@@ -121,17 +120,12 @@ namespace :deploy do
       top.upload("config.local.js", "#{shared_path}/config.local.latest.js", :via => :scp)
     end
     run "[ -f '#{shared_path}/config.local.js' ] || cp '#{shared_path}/config.local.latest.js' '#{shared_path}/config.local.js'"
-    # always link to the shared version
-    run "ln -s #{shared_path}/config.local.js #{release_path}/config.local.js"
+    # always copy from the shared version
+    run "cp -f #{shared_path}/config.local.js #{release_path}/config.local.js"
     # Install new logrotate config, if any
     sudo "ln -sf #{current_path}/script/logrotate.conf /etc/logrotate.d/#{application}.conf"
     npm.install
     write_upstart_script
-  end
-
-  desc "replace the server's config.local.js file with your local version -- use with caution!"
-  task :replace_config_file, :roles => :all, :except => { :no_release => true } do
-    top.upload("config.local.js", "#{shared_path}/config.local.js", :via => :scp)
   end
 
   task :start, :roles => :app, :except => { :no_release => true } do
