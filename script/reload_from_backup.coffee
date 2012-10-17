@@ -74,7 +74,7 @@ async.series [
         async.series [
           # shut down redis, copy file, restart redis
           (redis_cb) =>
-            logger.info("stopping redis...")
+            logger.info("stopping redis...NOTE! You will probably see some redis connection ERRORs while redis is down.  This is okay.")
             if (process.env.NODE_ENV == 'development')
               child_process.exec "launchctl unload -w ~/Library/LaunchAgents/homebrew.mxcl.redis.plist", redis_cb
             else
